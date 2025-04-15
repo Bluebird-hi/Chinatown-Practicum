@@ -135,12 +135,15 @@ property_modeling <- property_CT_FE %>%
          log_distance_to_nearest_water,
          central_air,
          year_built_group,
+         # year_built,
          LPSS_PER1000,
          general_construction,
          garage_spaces,
          separate_utilities,
          category_code,
          crime_nn5,
+         nhoods_name,
+         landuse,
          log_adj_sale_price,
          Longitude, Latitude)
 
@@ -156,21 +159,22 @@ data_split <- initial_split(property_modeling, strata = "log_adj_sale_price", pr
 property_train <- training(data_split)
 property_test  <- testing(data_split)
 
-model_rec <- recipe(log_adj_sale_price ~ ., data = property_train) %>%
+
+model_rec <- recipe(log_adj_sale_price ~ ., data = property_modeling) %>%
   # update_role(zoning_group, new_role = "zoning_group") %>%
   step_novel(all_nominal()) %>%
-  step_other(all_nominal(), threshold = 0.01) %>%
+  step_other(all_nominal(), threshold = 0.01, other = "rare_level") %>%
   step_unknown(all_nominal()) %>%
+  step_nzv(all_nominal()) %>%
   step_dummy(all_nominal()) %>%
   step_ns(Latitude, Longitude, options = list(df = 4),keep_original_cols=TRUE) %>%
   # step_corr(all_numeric_predictors(), threshold = 0.9) %>% # reduce multicollinearity
   step_zv(all_predictors()) %>%
   step_center(all_numeric_predictors()) %>%
   step_scale(all_numeric_predictors())
-  # step_center(all_predictors(), -log_adj_sale_price) %>%
-  # step_scale(all_predictors(), -log_adj_sale_price) %>%
   
 ```
+
 
 ```{r message=FALSE, warning=FALSE}
 # Moedl Specifications
@@ -245,6 +249,7 @@ cv_splits_geo <- cv_splits_cluster
 control <- control_resamples(save_pred = TRUE, verbose = TRUE)
 metrics <- metric_set(rmse, rsq, mape, smape)
 ```
+
 
 ```{r eval=FALSE}
 # fit model to workflow and calculate metrics
@@ -355,6 +360,7 @@ The models are tested using Mean Absolute Error (MAE), Mean Absolute Percentage 
 
 + Mean Absolute Error (MAE):
 + Mean Absolute Percentage Error (MAPE):
++ Prediction v.s. Actual Value Scatter Plot:
 
 ```{r}
 # Pull best hyperparam preds from out-of-fold predictions
@@ -499,6 +505,8 @@ OOF_plot3 | val_plot3
 
 ### Random Forest Model
 
+
+
 ```{r}
 # join test data back to make spatial
 val_pred_sf <- val_preds %>% 
@@ -517,6 +525,7 @@ studyarea_4326 <- st_transform(studyarea, crs = 4326)
 mapview(filter(val_pred_sf, model == "RF"), zcol = "MAPE", cex = 5,
         layer.name = "RF MAPE")
 ```
+
 
 ```{r message=FALSE}
 # aggregate val error to Neighborhood 
@@ -543,8 +552,8 @@ ggplot(val_MAPE_by_zoning, aes(x = reorder(zoning_group, MAPE), y = MAPE)) +
 table(property_modeling$zoning_group)
 ```
 
+we don't focus on IRMX and CMX5 so our model behaves well for the situation here.
 
-## Extract final model
 
 ```{r message=FALSE, warning=FALSE}
 ## Fit and Extract final model
@@ -559,9 +568,21 @@ lm_full_mod     <- full_fit_lm  $fit$fit$fit
 glmnet_full_mod <- full_fit_glmnet$fit$fit$fit
 rf_full_mod     <- full_fit_rf  $fit$fit$fit
 xgb_full_mod    <- full_fit_xgb $fit$fit$fit
+
+saveRDS(lm_full_mod,     file = "results/lm_model.rds")
+saveRDS(glmnet_full_mod, file = "results/glmnet_model.rds")
+saveRDS(rf_full_mod,     file = "results/rf_model.rds")
+saveRDS(xgb_full_mod,    file = "results/xgb_model.rds")
 ```
 
-# Predictions: scenario 2 and 3
+## Scenario Predictions
+
+```{r}
+rf_model_loaded     <- readRDS("results/rf_model.rds")
+```
+
+
+### Scenario 1: Stitch Built
 
 ```{r}
 # rf_pred <- predict(rf_full_mod, data = scenario_2)
