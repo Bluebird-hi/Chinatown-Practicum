@@ -177,25 +177,49 @@ body, html {
 /* slides */
 
 .slide {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 80px 40px;
-    box-sizing: border-box;
-    color: #0D564B;
-    margin-block-end: 200px;
-    background-position: center;
-    background-size: cover;
-    transition: background-image 0.5s ease-in-out;
-  }
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  box-sizing: border-box;
+  color: #0D564B;
+  margin-block-end: 50px; /* This was initially 200px */
+  background-position: center;
+  background-size: cover;
+  transition: background-image 0.5s ease-in-out;
+}
   
-  .layout0, .layout1, .layout2, .layout3 {
-    background-color: #f2f2f2;
-  }
+.layout0, .layout1, .layout2, .layout3 {
+  background-color: #f2f2f2;
+}
 
+/* layout0 specifics */
+.layout0 .text {  
+  margin-bottom: 40px;
+  margin-left: 5%;
+  margin-right: 50%;
+ }
+
+.layout0 .image {
+  margin-bottom: 40px; /* 5 possible images as background that change as user hovers over buttons*/
+  margin-left: 50%;
+  margin-right: 5%;
+}
+
+/* layout1 specifics */
 .slide.layout1{
-  background-image: url('../img/');
+  background-image: url('../img/discontinuity_within_500m.png');
+}
+
+.layout1 {
+  display: flex;
+  gap: 40px;
+  margin-left: 10%;
+  margin-right: 10%;
+  /* align-items: stretch;allow children to take full height */
+  justify-content: space-between;
+  padding: 40px;
 }
 
 .slide.layout2{
@@ -206,19 +230,17 @@ body, html {
   background-image: url('../img/');
 }
 
-.layout1, .layout3 {
-    display: flex;
-    gap: 40px;
-    margin-left: 10%;
-    margin-right: 10%;
-    /* align-items: stretch;allow children to take full height */
-    justify-content: space-between;
-    padding: 40px;
-  }
-
 .layout3 {
+  display: flex;
+  gap: 40px;
+  margin-left: 10%;
+  margin-right: 10%;
+  /* align-items: stretch;allow children to take full height */
+  justify-content: space-between;
+  padding: 40px;
   flex-direction: row-reverse;
 }
+
 
 /* Text column */
 .layout1 .text, .layout3 .text {
@@ -265,7 +287,7 @@ body, html {
     text-align: center;
   }
   
-.layout2 .text, .layout0 .text {
+.layout2 .text {
     margin-bottom: 40px;
     margin-left: 15%;
     margin-right: 15%;
@@ -278,13 +300,6 @@ body, html {
     background-color: transparent;
   }
 
-.layout0 .image {
-    width: 1000px;
-    height: 300px;
-    margin: 0 auto;
-    background-color: transparent;
-  }
-
 .responsive-img {
     max-width: 100%;
     height: auto;
@@ -292,7 +307,7 @@ body, html {
     margin: 0 auto;
   }
 
-/* Button */
+/* Next Button */
 .next-button {
   align-self: flex-end;
   margin-top: auto;
@@ -311,4 +326,38 @@ body, html {
 .next-button:hover {
   background-color: #DB5420;
   color: white;
+}
+
+/* Map container */
+.map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Ensure the map is behind the content */
+}
+
+
+/* Slide 1: Initial background map (City Hall) */
+.slide.layoutmap1 {
+    background-image: url('https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/-75.1636,39.9530,11/1280x720?access_token=pk.eyJ1IjoiY2hpYmlha2kiLCJhIjoiY20xODh2NTNqMTBvaDJqb2ptbjM4ZGViayJ9.un9M1_-S6kI8M0ktqZLz_Q');
+    background-size: cover;
+    background-position: center;
+}
+
+/* Slide 2: Zoomed-in background map (12th and Vine St) */
+.slide.layoutmap2 {
+    background-image: url('https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/-75.1581,39.9574,14/1280x720?access_token=pk.eyJ1IjoiY2hpYmlha2kiLCJhIjoiY20xODh2NTNqMTBvaDJqb2ptbjM4ZGViayJ9.un9M1_-S6kI8M0ktqZLz_Q');
+    background-size: cover;
+    background-position: center;
+}
+
+/* Ensure text is visible above the background */
+.slide.layoutmap1 .text, .slide.layoutmap2 .text {
+    position: relative;
+    z-index: 1;
+    background-color: rgba(255, 255, 255, 0.8); /* Optional: Add a semi-transparent background for better readability */
+    padding: 20px;
+    border-radius: 8px;
 }
