@@ -1,11 +1,27 @@
 ---
 title: "Feature Engineering Section"
 author: "Sijia"
-date: '2025-03-08'
-output:
-    html_document:
-      code_folding: hide
+date: '2025-04-08'
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    theme: sandstone
+    toc_float: true
+    code_folding: hide
+    toc_depth: 3
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
+
+```{css format, echo = FALSE}
+.center-leaflet {
+  display: flex;
+  justify-content: center;
+}
+
+```
 
 ```{r setup, message = FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
@@ -29,7 +45,7 @@ library(patchwork)
 2.  Third party: POIs (added in the property dataset)
 ```   
 ```{r Data set up, quiet = TRUE, results = 'hide'}
-property_final <- st_read("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum/DataWrangling/property_final.geojson") %>%
+property_final <- st_read("~/Documents/Upenn/Practicum/2025/results/property_final.geojson") %>%
   st_transform('EPSG:2272')
 ```
 
@@ -56,63 +72,104 @@ property_final <- st_read("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum/
     - depth
     - zoning 
     - distances related features
+    - land use
+    - zip code
+    - nhoods
 ```
 ### Feature Engineering
-```{r FE countinued}
-median_year <- median(property_final$year_built, na.rm = TRUE)
+```{r FE countinued , quiet=TRUE, results='hide'}
 median_bedroom <- median(as.numeric(as.character(property_final$number_of_bedrooms)), na.rm = TRUE)
 median_bathroom <- median(as.numeric(as.character(property_final$number_of_bathrooms)), na.rm = TRUE)
 
 property_CT <- property_final %>%
+  filter(!zoning %in% c("I2", "SPPOA"))%>%
   mutate(
-    # year built
+        # Neighborhood Name
+    nhoods_name = case_when(
+      nhoods_name %in% c("CENTER_CITY", "LOGAN_SQUARE") ~ "WEST_PART",
+      TRUE ~ nhoods_name
+    ),
+
+    # Land Use
+    landuse = case_when(
+      landuse %in% c("Park/Open Space", "Other/Unknown", "Commercial Business/Professional") ~ "Open Space/Business",
+      landuse %in% c("Commercial Consumer", "Commercial Mixed Residential",
+                     "Industrial", "Transportation", "Culture/Amusement") ~ "Commercial",
+      landuse %in% c("Civic/Institution", "Residential High") ~ "Residential High/Civic",
+      TRUE ~ landuse
+    ),
+
+    # LPSS Category
+#    LPSS_PER1000 = case_when(
+#      LPSS_PER1000 < 45 ~ "low",
+#      LPSS_PER1000 >= 45 & LPSS_PER1000 <= 60.70941337 ~ "mid",
+#      LPSS_PER1000 %in% c(60.70941337, 131.86813187) ~ "high",
+#      TRUE ~ "Unknown"
+#    ),
+#    LPSS_PER1000 = factor(LPSS_PER1000, levels = c("low", "mid", "Unknown")),
+
+    # HPSS Category
+#    HPSS_PER1000 = case_when(
+#      HPSS_PER1000 < 5.6 ~ "low",
+#     HPSS_PER1000 >= 5.6 & HPSS_PER1000 <= 7.3 ~ "mid",
+#      HPSS_PER1000 >= 7.3 ~ "high",
+#      TRUE ~ "Unknown"
+#    ),
+#    HPSS_PER1000 = factor(HPSS_PER1000, levels = c("low", "mid", "Unknown")),
+
+    # Year Built
     year_built = as.numeric(year_built),
     year_built_missing = ifelse(is.na(year_built), 1, 0),
-    year_built_filled = ifelse(is.na(year_built), median_year, year_built),
-    #year_built_group = case_when(
-    #  is.na(year_built) ~ "Unknown",
-    #  year_built < 1940 ~ "Pre-War",
-    #  year_built < 2000 ~ "Post-War Mid",
-    #  year_built < 2020 ~ "Modern",
-    #  year_built >= 2020 ~ "New"
-    #),
-    #year_built_group = factor(year_built_group, levels = c("Pre-War", "Post-War Mid", "Modern", "New", "Unknown")),
+#    year_built = case_when(
+#      is.na(year_built) ~ "Unknown",
+#      TRUE ~ as.character(year_built)
+#    ),
+#    year_built = factor(year_built),
+    
+    year_built_group = case_when(
+     year_built < 1900 ~ "1900 Before",
+     year_built >= 1900 & year_built < 1930 ~ "1900- 1930",
+     year_built >= 1930 & year_built < 1970 ~ "1930 - 1970",
+     year_built >= 1970 & year_built < 2010 ~ "1970 - 2010",
+     year_built >= 2010 ~ "2010+",
+      TRUE ~ "Unknown"
+    ),
+    year_built_group = factor(year_built_group, levels = c("1900 Before","1900- 1930","1930 - 1970","1970 - 2010","2010+","Unknown")),
 
-    # log 
+    # Log Transforms
     log_price = log(adj_sale_price),
     log_dist_highway = log(distance_to_I676 + 1),
 
-    
     # Central Air
     central_air = case_when(
-      central_air %in% c("Y", "1") | is.na(central_air) ~ "Y",
-      central_air %in% c("N", "0") ~ "N"
+      central_air %in% c("Y", "1")  ~ "Y",
+      central_air %in% c("N", "0") ~ "N",
+      TRUE ~ "Unknown"
     ),
-    central_air = factor(central_air, levels = c("Y", "N")),
-#    central_air_missing = ifelse(central_air == "Unknown", 1, 0),
+    central_air = factor(central_air),
+    central_air_missing = ifelse(central_air == "Unknown", 1, 0),
 
     # Garage Spaces
-    garage_spaces = ifelse(garage_spaces %in% c(8, 10), NA, garage_spaces),
     garage_spaces_missing = ifelse(is.na(garage_spaces), 1, 0),
     garage_spaces = case_when(
-      is.na(garage_spaces) ~ "Unknown",
+#      is.na(garage_spaces) ~ "Unknown",
       garage_spaces == 0 | garage_spaces == 1 ~ "less than 2",
       TRUE ~ "2 or more"
     ),
-    garage_spaces = factor(garage_spaces, levels = c("less than 2", "2 or more", "Unknown")),
+    garage_spaces = factor(garage_spaces),
 
     # Bedrooms
     number_of_bedrooms = as.numeric(as.character(number_of_bedrooms)),
     number_of_bedrooms_missing = ifelse(is.na(number_of_bedrooms), 1, 0),
     number_of_bedrooms_filled = ifelse(is.na(number_of_bedrooms), median_bedroom, number_of_bedrooms),
     number_of_bedrooms = case_when(
-      is.na(number_of_bedrooms) ~ "NA",
+      is.na(number_of_bedrooms) ~ "Unknown",
       number_of_bedrooms == 0 ~ "0",
       number_of_bedrooms == 1 ~ "1",
-      number_of_bedrooms %in% c(2, 3, 4) ~ "2",
+      number_of_bedrooms %in% c(2, 3) ~ "2",
       number_of_bedrooms %in% c(5, 6) ~ "3",
-      number_of_bedrooms %in% c(7, 9, 12) ~ "4",
-      TRUE ~ "Other"
+      number_of_bedrooms == 4 ~"4",
+      number_of_bedrooms %in% c(7, 9, 12) ~ "5"
     ),
     number_of_bedrooms = factor(number_of_bedrooms),
 
@@ -131,17 +188,17 @@ property_CT <- property_final %>%
     ),
     number_of_bathrooms = factor(number_of_bathrooms),
 
-    # total livable area
+    # Total Livable Area
     total_livable_area = ifelse(is.na(total_livable_area) | total_livable_area == 1, 0, total_livable_area),
 
     # Quality Grade
     quality_grade = case_when(
-      quality_grade %in% c("3 ", "7 ") ~ "Good",
-      quality_grade %in% c("A", "A+", "A-", "C+", "C") | is.na(quality_grade) ~ "Average",
+      quality_grade %in% c("A ", "A-") | is.na(quality_grade) ~ "Good",
+      quality_grade %in% c("3 ", "C+", "C")  ~ "Average",
       TRUE ~ "Below Average"
     ),
     quality_grade = factor(quality_grade, levels = c("Good", "Average", "Below Average")),
-    quality_grade_missing = ifelse(is.na(property_final$quality_grade), 1, 0),
+    quality_grade_missing = ifelse(is.na(quality_grade), 1, 0),
 
     # Construction
     general_construction = as.character(general_construction),
@@ -163,17 +220,17 @@ property_CT <- property_final %>%
     # Exterior Condition
     exterior_condition = case_when(
       exterior_condition == 2 ~ "Good",
-      exterior_condition %in% c(1, 6, 7) ~ "Average",
-      exterior_condition %in% c(3, 4, 5) ~ "Below Average",
-      TRUE ~ "Unknown"
+      exterior_condition %in% c(1, 6, 7) | is.na(exterior_condition) ~ "Average",
+      exterior_condition %in% c(3, 4, 5) ~ "Below Average"
+ #     TRUE ~ "Unknown"
     ),
     exterior_condition = factor(exterior_condition),
 
     # Interior Condition
     interior_condition = case_when(
-      interior_condition %in% c(2, NA) ~ "Good",
-      interior_condition %in% c(1, 4, 7) ~ "Average",
-      interior_condition %in% c(3, 5, 6) ~ "Below Average",
+      interior_condition %in% c(1,2,7) | is.na(interior_condition) ~ "Good",
+      interior_condition %in% c(3,4,5) ~ "Average",
+      interior_condition %in% c(6) ~ "Below Average",
       TRUE ~ "Unknown"
     ),
     interior_condition = factor(interior_condition),
@@ -221,55 +278,113 @@ property_CT <- property_final %>%
 mean_depth <- mean(property_CT$depth, na.rm = TRUE)
 property_CT$depth[is.na(property_CT$depth)] <- mean_depth
 
-
-
+st_write(property_CT, "property_CT_FE.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-# Modeling
-## OLS Regression Modeling
-```{r OLS}
-lm_CT <- lm(
-  log(adj_sale_price) ~ log_dist_highway  + log(distance_to_city_hall +1) + log (distance_to_nearest_transit +1) + log (nearest_restaurant_dist_m +1)  + log(distance_to_nearest_park +1) + zoning + zip_code + exterior_condition + interior_condition + log1p(total_livable_area) + number_of_bathrooms  + number_of_bedrooms + quality_grade + log(distance_to_nearest_water+1) + central_air + year_built + year_built_missing  + general_construction + garage_spaces + separate_utilities  + category_code + crime_nn5  +LPSS_PER1000 +general_construction_missing+ number_of_bathrooms_missing + number_of_bedrooms_missing + separate_utilities_missing+ separate_utilities_missing,  
-          data = property_CT)
-
-model_summary <- tidy(lm_CT) %>%
+### Log Transformation
+```{r Log Transofrmed - Distribution of Total Livable Area - sale price, message=FALSE, warning=FALSE}
+plot_df <- property_final %>%
   mutate(
-    p.value = signif(p.value, 3),
-    estimate = round(estimate, 3),
-    std.error = round(std.error, 3),
-    statistic = round(statistic, 2),
-    sig = case_when(
-      p.value < 0.001 ~ "***",
-      p.value < 0.01  ~ "**",
-      p.value < 0.05  ~ "*",
-      p.value < 0.1   ~ ".",
-      TRUE ~ ""
+    total_livable_area_log = log1p(total_livable_area) 
+  )
+
+plot1 <- ggplot(plot_df, aes(x = total_livable_area)) +
+  geom_histogram(bins = 30, fill = "#1B8370", alpha = 0.8) +
+  labs(title = "Original Total Livable Area",
+        x = "Total Livable Area", 
+        y = "Count") +
+  xlim(0, quantile(plot_df$total_livable_area, 0.99, na.rm = TRUE)) + 
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5)
+  )
+
+plot2 <- ggplot(plot_df, aes(x = total_livable_area_log)) +
+  geom_histogram(bins = 30, fill = "#1B8370", alpha = 0.8) +
+  labs(title = "Log-transformed Total Livable Area",
+        x = "(Log) Total Livable Area", 
+        y = "Count")  +
+  xlim(5, 9) +  
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+combined_plot <- plot1 + plot2 +
+  plot_layout(widths = c(1, 1)) +
+  plot_annotation(
+    title = "Distribution of Total Livable Area",
+    caption = "Figure X.X",
+    theme = theme(
+      plot.title = element_text(size = 16,face = "bold", hjust = 0.5),
+      plot.caption = element_text(hjust = 0.5)
     )
-  ) %>%
-  select(term, estimate, std.error, statistic, p.value, sig)
-
-glance_stats <- glance(lm_CT)
-
-model_stats <- tibble(
-  term = c("R-squared", "Adj. R-squared", "Num. Obs."),
-  estimate = c(round(glance_stats$r.squared, 3),
-               round(glance_stats$adj.r.squared, 3),
-               glance_stats$nobs),
-  std.error = NA,
-  statistic = NA,
-  p.value = NA,
-  sig = ""
-)
-model_full <- bind_rows(model_summary, model_stats)
-
-html_table <- model_full %>%
-  kable(format = "html", caption = "OLS Regression Results", digits = 3) %>%
-  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed")) %>%
-  row_spec(0, bold = TRUE, background = "#1a9988", color = "white")
-
-save_kable(html_table, file = "ols_table.html")
-webshot2::webshot("ols_table.html", file = "ols_table.png", vwidth = 1200, vheight = 3000)
+  )
+combined_plot
 ```
 
 
+### Reclassification
+```{r Reclassification - interior condition - Mean Sale Price, message=FALSE, warning=FALSE}
+lm1_property <- property_final %>%
+  mutate(
+    interior_condition_recode = case_when(
+      interior_condition %in% c(1,2,7) | is.na(interior_condition) ~ "Good",
+      interior_condition %in% c(3,4,5) ~ "Average",
+      interior_condition %in% c(6) ~ "Below Average",
+      TRUE ~ "Unknown"
+    ),
+    interior_condition_recode = factor(interior_condition_recode, levels = c("Good", "Average", "Below Average", "Unknown"))
+  )
+plot1 <- ggplot(lm1_property, aes(x = factor(interior_condition))) +
+  geom_bar(fill = "#1B8370", alpha = 0.8, width = 0.6) +
+  ggtitle("Original Interior Condition") +
+  labs(x = "Interior Condition Code", y = "Count") +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
 
+plot2 <- lm1_property %>%
+  group_by(interior_condition) %>%
+  summarise(mean_log_price = mean(market_value, na.rm = TRUE)) %>%
+  ggplot(aes(x = factor(interior_condition), y = mean_log_price)) +
+  geom_col(fill = "#E46726", alpha = 0.8, width = 0.6) +
+  ggtitle("Mean Sale Price by Original Condition") +
+  labs(x = "Interior Condition Code", y = "Avg Sale Price ($)") +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
+
+plot3 <- ggplot(lm1_property, aes(x = interior_condition_recode)) +
+  geom_bar(fill = "#1B8370", alpha = 0.8, width = 0.6) +
+  ggtitle("Reclassified Interior Condition") +
+  labs(x = "Interior Condition Recode", y = "Count") +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
+
+plot4 <- lm1_property %>%
+  group_by(interior_condition_recode) %>%
+  summarise(mean_log_price = mean(market_value, na.rm = TRUE)) %>%
+  ggplot(aes(x = interior_condition_recode, y = mean_log_price)) +
+  geom_col(fill = "#E46726", alpha = 0.8, width = 0.6) +
+  ggtitle("Mean Sale Price by Reclassified Condition") +
+  labs(x = "Interior Condition Recode", y = "Avg Sale Price ($)") +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
+
+# Combine with patchwork + large centered title
+combined_plot <- (plot1 + plot2 + plot_layout(tag_level = "new")) /
+                 (plot3 + plot4 + plot_layout(tag_level = "new")) +
+  plot_annotation(
+    title = "Interior Condition and Sale Price",
+    subtitle = "Before (Top) and After (Bottom) Reclassification",
+    caption = "Figure X.X",
+    theme = theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 10, hjust = 0.5),
+      plot.caption = element_text(hjust = 0.5),
+      plot.title.position = "plot"
+    )
+  )
+combined_plot
+```
