@@ -7,6 +7,8 @@ output:
     code_folding: hide
 ---
 
+# Set up
+
 ```{r setup, message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -17,7 +19,6 @@ library(spatialsample)
 library(mapview)
 ```
 
-# Packages
 
 ```{r message = FALSE, warning = FALSE, results='hide'}
 load.fun <- function(x) { 
@@ -55,12 +56,29 @@ for(i in seq_along(packages)){
 sessionInfo()
 ```
 
-# Modeling
+# Scenario Planning
 
-## Set up
+## Case Studies
+
+## Predictive Modeling
+
+### Models Training
+
+Built on our simple OLS model, we train four models based on Ordinary Least Squares (OLS), Regularized Linear Regression, Random Forest, and XGBoost respectively for sales price predictions:
+
++ **Ordinary Least Squares (OLS)** is a basic linear model that captures simple relationships but struggles with messy or complex data.
+
++ **Regularized Linear Regression (RLS)** improves on OLS by adding penalties to reduce overfitting, making it useful for datasets with many or irrelevant variables.
+
++ **Random Forest (RF)** averages many decision trees built on different data slices, handling complex patterns well but with less interpretability.
+
++ **XGBoost (XGB)** builds trees sequentially, each learning from the last’s errors, excelling in accuracy for structured data tasks.
+
+To build and evaluate our models, we split the data into two parts: *75%* for training and *25%* for testing model accuracy. Within the training set, we use *spatial cross-validation*, which tests the model on different areas to avoid overfitting to nearby properties. *K-means Clustering* is used when creating the cross-validation folds. This helps prevent the model from "cheating" by seeing similar areas in both training and testing.
+
 
 ```{r}
-set.seed(717)
+set.seed(123)
 theme_set(theme_bw())
 
 "%!in%" <- Negate("%in%")
@@ -85,7 +103,6 @@ nn_function <- function(measureFrom,measureTo,k) {
 }
 ```
 
-## Data Preparation
 
 ```{r quiet = TRUE, results = 'hide'}
 property_CT_FE <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/property_CT_FE.geojson") %>%
@@ -98,19 +115,13 @@ property_modeling <- property_CT_FE %>%
   ) %>%
   st_drop_geometry() %>%
   mutate(log_distance_to_city_hall = log(distance_to_city_hall +1),
-         log_distance_to_nearest_transit = log (distance_to_nearest_transit +1),
          log_nearest_restaurant_dist_m = log (nearest_restaurant_dist_m +1),
          log_distance_to_nearest_park = log(distance_to_nearest_park +1),
          log_distance_to_nearest_water = log(distance_to_nearest_water+1),
          log_total_livable_area = log1p(total_livable_area),
          log_adj_sale_price = log(adj_sale_price+1)) %>%
-  # mutate(year_built = case_when(
-  #   is.na(year_built) ~ "Unknown",
-  #   TRUE ~ as.character(year_built)
-  # )) %>%
   select(log_dist_highway,
          log_distance_to_city_hall,
-         log_distance_to_nearest_transit,
          log_nearest_restaurant_dist_m,
          log_distance_to_nearest_park,
          zoning_group,
@@ -123,47 +134,43 @@ property_modeling <- property_CT_FE %>%
          quality_grade,
          log_distance_to_nearest_water,
          central_air,
-         year_built, 
-         year_built_missing,
+         year_built_group,
+         LPSS_PER1000,
          general_construction,
          garage_spaces,
          separate_utilities,
          category_code,
          crime_nn5,
-         LPSS_PER1000,
-         general_construction_missing,
-         number_of_bathrooms_missing,
-         number_of_bedrooms_missing,
-         separate_utilities_missing,
          log_adj_sale_price,
          Longitude, Latitude)
 
-# improve the models
-q <- quantile(property_modeling$log_adj_sale_price, probs = c(0.05, 0.95))
-property_modeling <- property_modeling %>%
-  filter(log_adj_sale_price >= q[1], log_adj_sale_price <= q[2])
+property_modeling_geo <- property_modeling %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326)
+
+# write.csv(property_modeling, "E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/property_marketvalue/property_modeling.csv", row.names = FALSE)
+# st_write(property_modeling_geo, "E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/property_marketvalue/property_modeling.geojson")
 
 # Initial Split for Training and Test
-data_split <- initial_split(property_modeling, strata = "log_adj_sale_price", prop = 0.75)
+set.seed(123)
+data_split <- initial_split(property_modeling, strata = "log_adj_sale_price", prop = 0.7)
 property_train <- training(data_split)
 property_test  <- testing(data_split)
 
-model_rec <- recipe(log_adj_sale_price ~ ., data = property_modeling) %>%
-  update_role(zoning_group, new_role = "zoning_group") %>%
-  # step_other(zoning_group, threshold = 0.005) %>%
+model_rec <- recipe(log_adj_sale_price ~ ., data = property_train) %>%
+  # update_role(zoning_group, new_role = "zoning_group") %>%
   step_novel(all_nominal()) %>%
   step_other(all_nominal(), threshold = 0.01) %>%
+  step_unknown(all_nominal()) %>%
   step_dummy(all_nominal()) %>%
-  step_corr(all_numeric_predictors(), threshold = 0.9) %>% # reduce multicollinearity
+  step_ns(Latitude, Longitude, options = list(df = 4),keep_original_cols=TRUE) %>%
+  # step_corr(all_numeric_predictors(), threshold = 0.9) %>% # reduce multicollinearity
   step_zv(all_predictors()) %>%
   step_center(all_numeric_predictors()) %>%
-  step_scale(all_numeric_predictors()) %>%
+  step_scale(all_numeric_predictors())
   # step_center(all_predictors(), -log_adj_sale_price) %>%
   # step_scale(all_predictors(), -log_adj_sale_price) %>%
-  step_ns(Latitude, Longitude, options = list(df = 4),keep_original_cols=TRUE)
+  
 ```
-
-## Model Specifications
 
 ```{r message=FALSE, warning=FALSE}
 # Moedl Specifications
@@ -198,18 +205,6 @@ rf_grid <- expand.grid(mtry = c(2,5,10,13,30,45),
                        min_n = c(5,50,100,500))
 xgb_grid <- expand.grid(mtry = c(3,5),
                         min_n = c(1,5))
-# improve xgb
-# xgb_grid <- grid_latin_hypercube(
-#   trees(),
-#   learn_rate(),
-#   loss_reduction(),
-#   tree_depth(),
-#   sample_size = sample_prop(),
-#   finalize(mtry(), property_train),
-#   min_n(),
-#   size = 20
-# )
-
 
 # create workflow
 lm_wf <-
@@ -236,16 +231,17 @@ property_train_sf <- property_train_sf %>%
     Longitude = st_coordinates(.)[, 1],
     Latitude = st_coordinates(.)[, 2]
   )
-
-cv_splits_geo <- group_vfold_cv(property_train,  
+set.seed(123)
+cv_splits_zoning <- group_vfold_cv(property_train,
                                 group = "zoning_group")
-
+set.seed(123)
 cv_splits_cluster <- spatial_clustering_cv(
   property_train_sf,
-  v = 10,  # Number of folds
+  v = 20,
   cluster_function = "kmeans"
 )
-cv_splits_geo <- cv_splits_geo
+
+cv_splits_geo <- cv_splits_cluster
 control <- control_resamples(save_pred = TRUE, verbose = TRUE)
 metrics <- metric_set(rmse, rsq, mape, smape)
 ```
@@ -328,9 +324,37 @@ xgb_val_fit_geo <- xgb_best_wf %>%
            metrics   = metrics)
 ```
 
+```{r}
+property_train_geo <- property_train %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326) %>%
+  st_transform('EPSG:2272')
+property_test_geo <- property_test %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326) %>%
+  st_transform('EPSG:2272')
+  
+
+studyarea <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/studyarea/StudyArea.shp") %>%
+  st_transform('EPSG:2272')
+landuse <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/landuse_clip/Land_Use_ClipLayer.shp") %>%
+  st_transform('EPSG:2272')
+library(glue)
+ggplot() +
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
+  geom_sf(data = property_train_geo, color = "#eb5600") +
+  geom_sf(data = property_test_geo, color = "#1a9988") +
+  labs(title = glue("<span style='color:#eb5600;'>Train</span> & <span style='color:#1a9988;'>Test</span> Set")) +
+  theme_void() +
+  theme(plot.title = ggtext::element_markdown(size = 16, face = "bold"))
+```
 
 
-## Model Validation
+### Selecting the Best Model
+
+The models are tested using Mean Absolute Error (MAE), Mean Absolute Percentage Error (MAPE) and prediction v.s. actual value scatter plot.
+
++ Mean Absolute Error (MAE):
++ Mean Absolute Percentage Error (MAPE):
 
 ```{r}
 # Pull best hyperparam preds from out-of-fold predictions
@@ -353,10 +377,10 @@ xgb_val_pred_geo    <- collect_predictions(xgb_val_fit_geo)
 
 
 # Aggregate OOF predictions (they do not overlap with Validation prediction set)
-OOF_preds <- rbind(data.frame(dplyr::select(lm_best_OOF_preds, .pred, log_adj_sale_price), model = "lm"),
-                   data.frame(dplyr::select(glmnet_best_OOF_preds, .pred, log_adj_sale_price), model = "glmnet"),
-                   data.frame(dplyr::select(rf_best_OOF_preds, .pred, log_adj_sale_price), model = "rf"),
-                   data.frame(dplyr::select(xgb_best_OOF_preds, .pred, log_adj_sale_price), model = "xgb")) %>% 
+OOF_preds <- rbind(data.frame(dplyr::select(lm_best_OOF_preds, .pred, log_adj_sale_price), model = "OLS"),
+                   data.frame(dplyr::select(glmnet_best_OOF_preds, .pred, log_adj_sale_price), model = "RLS"),
+                   data.frame(dplyr::select(rf_best_OOF_preds, .pred, log_adj_sale_price), model = "RF"),
+                   data.frame(dplyr::select(xgb_best_OOF_preds, .pred, log_adj_sale_price), model = "XGB")) %>% 
   group_by(model) %>% 
   mutate(actual_price = exp(log_adj_sale_price) - 1,
          predicted_price = exp(.pred) - 1,
@@ -364,39 +388,18 @@ OOF_preds <- rbind(data.frame(dplyr::select(lm_best_OOF_preds, .pred, log_adj_sa
          MAE  = yardstick::mae_vec(actual_price, predicted_price),
          MAPE = mean(abs(predicted_price - actual_price) / actual_price)) %>% 
   ungroup() %>% 
-  mutate(model = factor(model, levels=c("lm","glmnet","rf","xgb")))
+  mutate(model = factor(model, levels=c("OLS","RLS","RF","XGB")))
 
 # Aggregate predictions from Validation set
-# val_preds <- rbind(data.frame(lm_val_pred_geo, model = "lm"),
-#                    data.frame(glmnet_val_pred_geo, model = "glmnet"),
-#                    data.frame(rf_val_pred_geo, model = "rf"),
-#                    data.frame(xgb_val_pred_geo, model = "xgb")) %>% 
-#   left_join(., property_modeling %>% 
-#               rowid_to_column(var = ".row") %>% 
-#               dplyr::select(Latitude, Longitude, zoning_group, .row), 
-#             by = ".row") %>% 
-#   group_by(model) %>%
-#   mutate(RMSE = yardstick::rmse_vec(log_adj_sale_price, .pred),
-#          MAE  = yardstick::mae_vec(log_adj_sale_price, .pred),
-#          MAPE = yardstick::mape_vec(log_adj_sale_price, .pred)) %>% 
-#   ungroup() %>% 
-#   mutate(model = factor(model, levels=c("lm","glmnet","rf","xgb")))
-```
-
-```{r}
 # improve MAPE
-val_preds <- rbind(data.frame(lm_val_pred_geo, model = "lm"),
-                   data.frame(glmnet_val_pred_geo, model = "glmnet"),
-                   data.frame(rf_val_pred_geo, model = "rf"),
-                   data.frame(xgb_val_pred_geo, model = "xgb")) %>% 
+val_preds <- rbind(data.frame(lm_val_pred_geo, model = "OLS"),
+                   data.frame(glmnet_val_pred_geo, model = "RLS"),
+                   data.frame(rf_val_pred_geo, model = "RF"),
+                   data.frame(xgb_val_pred_geo, model = "XGB")) %>% 
   left_join(., property_modeling %>% 
               rowid_to_column(var = ".row") %>% 
               dplyr::select(Latitude, Longitude, zoning_group, .row), 
-            by = ".row") %>% 
-  # mutate(
-  #   actual_price = exp(log_adj_sale_price) - 1,
-  #   predicted_price = exp(.pred) - 1
-  # ) %>%
+            by = ".row") %>%
   group_by(model) %>%
   mutate(
     actual_price = exp(log_adj_sale_price) - 1,
@@ -408,84 +411,93 @@ val_preds <- rbind(data.frame(lm_val_pred_geo, model = "lm"),
     MAPE = mean(abs(predicted_price - actual_price) / actual_price)
   ) %>% 
   ungroup() %>% 
-  mutate(model = factor(model, levels=c("lm","glmnet","rf","xgb")))
-```
-
-```{r}
-val_preds %>%
-  ggplot(aes(x = actual_price, y = predicted_price, color = model)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  scale_x_log10() + scale_y_log10() +
-  facet_wrap(~ model)
-
-val_preds %>%
-  mutate(error = abs(actual_price - predicted_price) / actual_price) %>%
-  group_by(zoning_group) %>%
-  summarise(mean_mape = mean(error))
-
-```
-
-
-## Examine the models
-
-```{r}
-ggplot(data = OOF_preds %>% 
-         dplyr::select(model, RMSE) %>% 
-         distinct() , 
-       aes(x = model, y = RMSE, group = 1)) +
-  geom_path(color = "red") +
-  geom_label(aes(label = RMSE)) +
-  theme_bw()
-
-ggplot(data = val_preds %>% 
-         dplyr::select(model, RMSE) %>% 
-         distinct() , 
-       aes(x = model, y = RMSE, group = 1)) +
-  geom_path(color = "red") +
-  geom_label(aes(label = RMSE)) +
-  theme_bw()
+  mutate(model = factor(model, levels=c("OLS","RLS","RF","XGB")))
 ```
 
 
 ```{r}
+library(patchwork)
+library(glue)
 # average error for each model
-ggplot(data = OOF_preds %>% 
+OOF_plot1 <- ggplot(data = OOF_preds %>% 
+         dplyr::select(model, MAE) %>% 
+         distinct() , 
+       aes(x = model, y = MAE, group = 1)) +
+  geom_path(color = "#1a9988") +
+  geom_label(aes(label = paste0("$", round(MAE)))) +
+  labs(title = "MAE | MAPE by Model Specification",
+       subtitle = "Cross validation") +
+  theme_minimal() +
+  theme(plot.title = ggtext::element_markdown(size = 16, face = "bold"),
+        axis.title = element_blank(),
+        axis.text.y = element_blank())
+
+OOF_plot2 <- ggplot(data = OOF_preds %>% 
          dplyr::select(model, MAPE) %>% 
          distinct() , 
        aes(x = model, y = MAPE, group = 1)) +
-  geom_path(color = "red") +
-  geom_label(aes(label = paste0(round(MAPE,2),"%"))) +
-  theme_bw()
+  geom_path(color = "#eb5600") +
+  geom_label(aes(label = paste0(round(MAPE * 100,2),"%"))) +
+  theme_minimal() +
+  theme(
+        axis.title = element_blank(),
+        axis.text.y = element_blank())
 
 # OOF predicted versus actual
-ggplot(OOF_preds, aes(x = log_adj_sale_price, y = .pred, group = model)) +
-  geom_point(alpha = 0.3) +
-  geom_abline(linetype = "dashed", color = "red") +
-  geom_smooth(method = "lm", color = "blue") +
+OOF_plot3 <- ggplot(OOF_preds, aes(x = log_adj_sale_price, y = .pred, group = model)) +
+  geom_point(alpha = 0.1, size = 0.5) +
+  geom_abline(linetype = "dashed", color = "#1a9988") +
+  geom_smooth(method = "lm", color = "#eb5600") +
   coord_equal() +
   facet_wrap(~model, nrow = 2) +
-  theme_bw()
+  labs(title = glue("<span style='color:#1a9988;'>Perfect</span> vs. <span style='color:#eb5600;'>Model</span> Prediction"),
+       x = "Observed value", y = "Predicted value",
+       subtitle = "Cross validation") +
+  theme_minimal() +
+  theme(plot.title = ggtext::element_markdown(size = 16, face = "bold"),
+        axis.text = element_blank())
 
 # plot MAPE by model type
-ggplot(data = val_preds %>% 
-         dplyr::select(model, MAPE),
-       # %>% 
-       #   distinct() , 
+val_plot1 <- ggplot(data = val_preds %>% 
+         dplyr::select(model, MAE) %>% 
+         distinct() , 
+       aes(x = model, y = MAE, group = 1)) +
+  geom_path(color = "#1a9988") +
+  geom_label(aes(label = paste0("$", round(MAE)))) +
+  labs(subtitle = "Test set validation") +
+  theme_minimal() +
+  theme(plot.title = ggtext::element_markdown(size = 16, face = "bold"),
+        axis.title = element_blank(),
+        axis.text.y = element_blank())
+
+val_plot2 <- ggplot(data = val_preds %>% 
+         dplyr::select(model, MAPE) %>%
+         distinct() ,
        aes(x = model, y = MAPE, group = 1)) +
-  geom_path(color = "red") +
-  geom_label(aes(label = paste0(round(MAPE,2),"%"))) +
-  theme_bw()
+  geom_path(color = "#eb5600") +
+  geom_label(aes(label = paste0(round(MAPE * 100,2),"%"))) +
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        axis.text.y = element_blank())
 
 # Validation Predicted vs. actual
-ggplot(val_preds, aes(x = log_adj_sale_price, y = .pred, group = model)) +
-  geom_point(alpha = 0.3) +
-  geom_abline(linetype = "dashed", color = "red") +
-  geom_smooth(method = "lm", color = "blue") +
+val_plot3 <- ggplot(val_preds, aes(x = log_adj_sale_price, y = .pred, group = model)) +
+  geom_point(alpha = 0.1, size = 0.5) +
+  geom_abline(linetype = "dashed", color = "#1a9988") +
+  geom_smooth(method = "lm", color = "#eb5600") +
   coord_equal() +
   facet_wrap(~model, nrow = 2) +
-  theme_bw()
+  labs(x = "Observed value", y = "Predicted value",
+       subtitle = "Test set validation") +
+  theme_minimal() +
+  theme(axis.text = element_blank())
+
+OOF_plot1 | OOF_plot2
+val_plot1 | val_plot2
+OOF_plot3 | val_plot3
 ```
+
+### Random Forest Model
 
 ```{r}
 # join test data back to make spatial
@@ -499,8 +511,11 @@ val_pred_sf <- val_preds %>%
            remove = FALSE,
            crs = 4326)
 
+studyarea_4326 <- st_transform(studyarea, crs = 4326)
+
 # map errors by point
-mapview(filter(val_pred_sf, model == "rf"), zcol = "MAPE")
+mapview(filter(val_pred_sf, model == "RF"), zcol = "MAPE", cex = 5,
+        layer.name = "RF MAPE")
 ```
 
 ```{r message=FALSE}
@@ -514,10 +529,12 @@ val_MAPE_by_zoning <- val_preds %>%
 
 # plot MAPE by Hood
 ggplot(val_MAPE_by_zoning, aes(x = reorder(zoning_group, MAPE), y = MAPE)) +
-  geom_bar(stat = "identity") +
+  geom_bar(stat = "identity", fill = "#1a9988", width = .8, alpha = .7) +
   # scale_y_continuous(breaks = seq(0,10,1)) +
-  theme_bw() +
-  theme(
+  labs(x = "Re-categorized zoning type",
+       title = "MAPE by Zoning Group") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"),
     axis.text.x = element_text(angle = -45, hjust = 0)
   )
 ```
