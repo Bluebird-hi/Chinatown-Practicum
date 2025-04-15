@@ -199,10 +199,8 @@ property_data <-property_studyarea%>%
 price_filtered <- property_data %>%
   filter(adj_sale_price >= 100)
 
-# Step 2: 在干净数据上计算分位数（建议）
 q <- quantile(price_filtered$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
 
-# Step 3: 再从原始数据中筛选合适范围
 property_data2 <- property_data %>%
   filter(adj_sale_price >= q[1], adj_sale_price <= q[2])
 
@@ -286,7 +284,6 @@ st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_
 
 
 ```{r message=FALSE, warning=FALSE}
-
 property_data_wgs <- st_transform(property_data, crs = 4326)
 
 filtered_out <- property_data_wgs %>%
@@ -365,7 +362,7 @@ leaflet() %>%
 ### The method here for pushing data is diffenrent from the one we usually use cause the there is some issues when downloading the geometry data
 
 # census block group
-census_api_key("92998588496b9701036218b765c78d2ffb7aedcd", install = TRUE, overwrite = TRUE)
+census_api_key("", install = TRUE, overwrite = TRUE)
 acs_variable_list.2023 <- load_variables(2023, "acs5", cache = TRUE)
 
 local_shapefile <- "~/Documents/Upenn/Practicum/2025/Data/census/tl_2023_42_bg"
@@ -468,7 +465,7 @@ property_combined <- property1 %>%
 ### Third Party Data 
 ```{r Sijia POI, message=FALSE, warning=FALSE, quiet=TRUE, results='hide', eval = FALSE}
 # POI-restaurant-drink-dessert
-api_key <- "AIzaSyCa-yuy1Y3n07URlR2HHg6dp_cIEouv9hs"
+api_key <- ""
 keywords <- c("restaurant", "dim sum restaurant", "kitchen", "desert","tea", "bubble tea","matcha", "herbal tea")
 place_types <- c("restaurant", "cafe", "bakery")
 
@@ -1320,25 +1317,34 @@ ggplot() +
 ```
 
 ```{r LPSS, message=FALSE, warning=FALSE, quiet=TRUE, results='hide', eval = FALSE}
+property_CT_LPSS <- property_CT %>%
+  mutate(
+    LPSS_CAT = case_when(
+      LPSS_PER1000 < 45 ~ "low",
+      LPSS_PER1000 >= 45 & LPSS_PER1000 < 60 ~ "mid",
+      LPSS_PER1000 >= 60 ~ "high",
+      TRUE ~ "Unknown"
+    ),
+    LPSS_CAT = factor(LPSS_CAT, levels = c("low", "mid", "high", "Unknown"))
+  )
 ggplot() +
   geom_sf(data = block2023_studyarea, fill = "grey95", color = "grey80", size = 0.3) +
   geom_sf(data = I676_2, color = "red", size = 1, alpha = 0.9) +
   geom_sf(
-  data = property_CT %>% filter(!is.na(LPSS_PER1000)),
-  aes(color = LPSS_PER1000),
-  size = 1,
-  alpha = 0.8
-) +
-scale_color_manual(
-  values = c(
-    "low" = "#FFDDAB",
-    "mid" = "#E89972",
-    "high" = "#004B40",
-    "Unknown" = "grey70"
-  ),
-  name = "LPSS Level"
-) +
-
+    data = property_CT_LPSS %>% filter(!is.na(LPSS_PER1000)),
+    aes(color = LPSS_CAT),  
+    size = 1,
+    alpha = 0.8
+  ) +
+  scale_color_manual(
+    values = c(
+      "low" = "#FFDDAB",
+      "mid" = "#E89972",
+      "high" = "#004B40",
+      "Unknown" = "grey70"
+    ),
+    name = "LPSS Level"
+  ) +
   labs(
     title = "Low Produce Supply Score (LPSS) within Study Area",
     subtitle = "Darker = Higher LPSS, i.e., More Limited Access",
@@ -1353,7 +1359,6 @@ scale_color_manual(
     legend.text = element_text(size = 8),
     panel.border = element_rect(color = "black", fill = NA, size = 1)
   )
-
 ```
 
 # Model
