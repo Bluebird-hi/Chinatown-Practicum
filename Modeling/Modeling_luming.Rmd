@@ -574,6 +574,7 @@ saveRDS(glmnet_full_mod, file = "results/glmnet_model.rds")
 saveRDS(rf_full_mod,     file = "results/rf_model.rds")
 saveRDS(xgb_full_mod,    file = "results/xgb_model.rds")
 saveRDS(rf_best_wf, file = "results/rf_workflow.rds")
+saveRDS(full_fit_rf, file = "results/rf_fit_workflow.rds")
 ```
 
 ## Scenario Predictions
