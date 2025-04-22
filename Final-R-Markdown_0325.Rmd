@@ -857,141 +857,9 @@ kable(
 
 ### I-676 Effects
 
-One of OTIS's key interests is the effect of [I-676]{style="color: #7fe3d6;"} on property prices nearby. Here, we construct a relatively **simple linear model** with a few key predictors to look at the effect of [I-676]{style="color: #7fe3d6;"} on property prices while accounting for some control variables such as the square footage of the property, number of bathrooms, year built, zoning, and zip code among others.
+One of OTIS's key interests is the effect of [I-676]{style="color: #7fe3d6;"} on property prices nearby.  Here, we construct a relatively **simple linear model** with a few key predictors to look at the effect of [I-676]{style="color: #7fe3d6;"} on property prices while accounting for some control variables such as the square footage of the property, number of bathrooms, year built, zoning, and zip code among others.
 
-```{r i676effects_setup}
-# keep properties within 500m of I-676
-i676_buff <- st_union(st_buffer(philly_highways %>%
-                                  filter(ST_RT_NO == "0676"),
-                                buff500))
-# actually, working with the study_area properties dataset defined earlier
-
-# code for light feature engineering
-# prop500[i676_buff,] %>% # 1211 rows
-#   st_drop_geometry() %>% 
-#   group_by(number_of_bathrooms) %>% 
-#   summarise(log_price = mean(log_price)) %>% 
-#   ungroup() %>% 
-#   ggplot() +
-#   geom_bar(aes(x = number_of_bathrooms, y = log_price), stat = "identity") +
-#   theme_minimal()
-
-# add features for simple linear regression
-prop500_i676 <- prop500[i676_buff,] %>% # 1211 rows
-  # some feature engineering
-  mutate(
-    log_dist_to_I676 = log(dist_to_I676),
-     # is this property residential? (including mixed)
-    residential = ifelse(category_code_description %in% c("APARTMENTS  > 4 UNITS",
-                                                          "MIXED USE",
-                                                          "MULTI FAMILY",
-                                                          "SINGLE FAMILY",
-                                                          "GARAGE - RESIDENTIAL"),1, 0),
-    
-    year_built = as.numeric(year_built),
-    year_built_group = case_when(
-      year_built < 1990 ~ "Pre-90s",
-      year_built >= 1990 & year_built < 2000 ~ "90s",
-      year_built >= 2000 & year_built < 2010 ~ "00s",
-      year_built >= 2010 & year_built < 2020 ~ "10s",
-      year_built >= 2020 ~ "20s"
-      ),
-    
-    central_air = case_when(
-      central_air %in% c("1", "Y") ~ "Y",  
-      TRUE ~ "N"
-      ),
-    central_air = factor(central_air),
-    
-    exterior_condition = case_when(
-      exterior_condition %in% c("1","2","5") ~ "AboveAverage",
-      exterior_condition %in% c("3","4") ~ "Average",
-      exterior_condition %in% c("6","8","9") ~ "BelowAverage"
-      ),
-    exterior_condition = factor(exterior_condition),
-    
-    interior_condition = case_when(
-      interior_condition == "1" ~ "AboveAverage",
-      interior_condition %in% c("5","2") ~ "Average",
-      interior_condition %in% c("3","4") ~ "BelowAverage"
-      ),
-    interior_condition = factor(interior_condition),
-    
-    garage_spaces = case_when(
-      garage_spaces == 0 ~ "0",    
-      garage_spaces == 1 ~ "1",      
-      .default = "2orMore"
-    ),
-    garage_spaces = factor(garage_spaces),
-    
-    number_of_bathrooms = case_when(
-      number_of_bathrooms %in% c(0,1) ~ "0-1",
-      is.na(number_of_bathrooms) | number_of_bathrooms == 2 ~ "2",
-      number_of_bathrooms > 2 ~ "3orMore"
-      ),
-    number_of_bathrooms = factor(number_of_bathrooms),
-    
-    number_of_bedrooms = case_when(
-      number_of_bedrooms >= 3 ~ "3orMore",
-      is.na(number_of_bedrooms) | number_of_bedrooms == 2 ~ "2orNA",
-      number_of_bedrooms %in% c(0,1) ~ "0or1",
-    ),
-    number_of_bedrooms = factor(number_of_bedrooms),
-    
-    quality_grade_recoded = case_when(
-      quality_grade == "X " ~ "HighestQuality",
-      is.na(quality_grade) | quality_grade %in% c("A-", "B-") ~ "HigherQuality",
-      quality_grade %in% c("A ", "B ") ~ "LowerQuality",
-      .default = "AverageQuality"
-    ),
-    quality_grade_recoded = factor(quality_grade_recoded),
-    
-    building_code_description_new = case_when(
-      grepl("GYM|BAR", building_code_description_new) ~ "MostExpensive",
-      grepl("APARTMENTS - LOW|OFFICE BLDNG - Low|TWIN OLD STYLE|ROW POST WAR|APARTMENTS - MID|ROW OLD STYLE", building_code_description_new) ~ "MoreExpensive",
-      grepl("MEDICAL OFFICE|ROW RIVER ROW|TWIN CONVEN|ROW MIXED-COM/RES-BLT AS|SOCIAL/FRAT|ROW MODERN", building_code_description_new) ~ "Average",
-      grepl("APARTMENTS - BLT AS RESID|ROW TYPICAL|DOWNTOWN ROW TYPE-* SNGL OCCP|CONDO NON CONFORMING", building_code_description_new) ~ "LessExpensive",
-      .default = "LeastExpensive" 
-      ),
-    building_code_description_new = factor(building_code_description_new),
-      
-    zoning_group = case_when(
-      zoning %in% c("RTA1", "RSA5") ~ "Expensive",
-      .default = "LessExpensive"
-      )
-) %>% 
-  select(   # only keep vars necessary for model
-    log_price, log_dist_to_I676,
-    residential, 
-    year_built, year_built_group,
-    central_air, garage_spaces,
-    number_of_bathrooms, number_of_bedrooms, total_area,
-    exterior_condition, interior_condition, quality_grade_recoded,
-    building_code_description_new, zoning_group,
-    zip_code
-  )
-
-# need to check which of residential, building_code_description_new, or zoning is the best in this model
-
-# map to visualize
-# ggplot() +
-#   geom_sf(data = philly_bounds, fill = "#c9b887", color = "grey") +
-#   geom_sf(data = hydro, fill = "#7d97c7", color = "transparent") +
-#   geom_sf(data = philly_parks, fill = "#6b9169", color = "transparent") +
-#   geom_sf(data = i676_buff,
-#           color = "transparent", fill = "grey", alpha = 0.4) +
-#   geom_sf(data = prop500_i676, size = 0.3, color = "#7fe3d6",
-#           show.legend = F) +
-#   geom_sf(data = philly_highways %>%
-#             filter(ST_RT_NO == "0676"),
-#           color = "black") +
-#   labs(title = "Properties within 500m of I-676") +
-#   theme_void()
-
-
-```
-
-Doing the same thing but only with the newest study area properties.
+For these analyses, we look at properties **within our study area**.
 
 ```{r i676effects_setup_studyareanew, quiet = TRUE, results = 'hide'}
 # working with the newest philly_properties dataset where data was cleaned for our studyarea
@@ -1019,7 +887,7 @@ props_i676_tomodel <- property_studyarea_new %>%
          # all the other variables have been cleaned and feature engineered
 ) %>% 
   select(   # only keep vars necessary for model
-    log_price, log_dist_highway,
+    log_price, distance_to_I676, log_dist_highway,
     residential, 
     year_built, year_built_group,
     central_air, garage_spaces,
@@ -1046,78 +914,7 @@ getRMSE <- function(model_results) {
 
 ```
 
-#### Model Results (for properties within 500m of I-676)
-
-```{r i676effects_model1}
-# model with just distance to highway
-model_i676 <- lm(log_price ~ log_dist_to_I676,
-                 data = prop500_i676)
-# log_dist_to_I676  0.06763
-# Multiple R-squared:  0.007223,	Adjusted R-squared:  0.006402
-
-model_i676_summary <- summary(model_i676)
-model_i676_RMSE <- getRMSE(model_i676)
-
-# create a clean table to show model results
-model_i676_table <- data.frame(model_i676_summary$coefficients) %>% 
-  rename(p = `Pr...t..`) %>% 
-  select(Estimate, p) %>% 
-  mutate(Estimate = round(Estimate, 3),
-         p = round(p, 3))
-row.names(model_i676_table) <- c("Intercept", "Log Dist. to I-676")
-
-model_i676_table %>% 
-  kbl(align = c("l", rep("c", 2)),
-      caption = "Regression Results: Log Price ~ Log Distance to I-676",
-      col.names = c("Estimate", "p value")) %>% 
-  kable_styling() %>% 
-  kable_classic(full_width = F, html_font = "Cambria") %>% 
-  row_spec(2, bold = T, background = "#7fe3d6") %>% 
-  add_footnote(label = paste0("R-squared: ", round(model_i676_summary$r.squared, 3), ", RMSE: ", round(model_i676_RMSE, 3)),
-               notation = "none")
-
-```
-
-From an overly simple model, just looking at how logged distance to [I-676]{style="color: #7fe3d6;"} predicts logged property price, we see that for properties within 500m of [I-676]{style="color: #7fe3d6;"}, distance from the highway does not have a large effect on property price. We see that for every 1% increase in distance to the highway, **property price increases by `r paste0(round(1.01^model_i676_table$Estimate[2] - 1, 4)*100,"%")`**. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^model_i676_table$Estimate[2])*100000) - 100000)` more expensive** (assuming a block is about 200m). The R-squared value of the model is very low at `r round(model_i676_summary$r.squared, 3)` and the RMSE is very high `r round(model_i676_RMSE,3)`, meaning the model is terrible.
-
-```{r i676effects_model2}
-# simple model but with more predictors
-model_i676_more <- lm(log_price ~ log_dist_to_I676 + 
-                        residential + building_code_description_new + # internal characteristics
-                        year_built_group + central_air + 
-                        number_of_bedrooms + number_of_bathrooms + total_area +
-                        quality_grade_recoded + 
-                        factor(zip_code), # neighborhood effects (via zip code for now)
-                      data = prop500_i676)
-
-model_i676_more_summary <- summary(model_i676_more)
-model_i676_more_RMSE <- getRMSE(model_i676_more)
-
-# create a clean table to show model results
-model_i676_more_table <- data.frame(model_i676_more_summary$coefficients) %>% 
-  rename(p = `Pr...t..`) %>% 
-  select(Estimate, p) %>% 
-  mutate(Estimate = round(Estimate, 3),
-         p = round(p, 3))
-row.names(model_i676_more_table) <- c("Intercept", "Log Dist. to I-676", "Residential", "Building Code - Least Exp.", "Building Code - Less Exp.", "Building Code - More Exp.", "Building Code - Most Exp.", "Year Built - 2010s", "Year Built - 2020s", "Year Built - 1990s", "Year Built - Pre-1990s", "Central Air", "2 or no Bedrooms", "3 or more Bedrooms", "2 Bathrooms", "3 or more Bathrooms", "Total Area", "Quality Grade - Higher", "Quality Grade - Highest", "Quality Grade - Lower", "ZIP code - 19103", "ZIP code - 19104", "ZIP code - 19106", "ZIP code - 19107", "ZIP code - 19123", "ZIP code - 19130")
-
-model_i676_more_table %>% 
-  kbl(align = c("l", rep("c", 2)),
-      caption = "Regression Results: Log Price ~ Log Distance to I-676 and Other Predictors",
-      col.names = c("Estimate", "p value")) %>% 
-  kable_styling() %>% 
-  kable_classic(full_width = F, html_font = "Cambria") %>%
-  row_spec(2, bold = T, background = "#7fe3d6") %>% 
-  add_footnote(label = paste0("Adj. R-squared: ", round(model_i676_more_summary$adj.r.squared, 3), ", RMSE: ", round(model_i676_more_RMSE, 3)),
-               notation = "none")
-
-```
-
-Finally, we look at a more robust model (which is still relatively simple, including only internal features of the property in addition to ZIP code and logged distance to [I-676]{style="color: #7fe3d6;"}). This model includes the following predictors: year_built_group (categorical), quality_grade (categorical), number_of_bathrooms (categorical), number_of_bedrooms (categorical), total_area (continuous), central_air (binary), building_code_description_new (categorical), and a variable dictating whether the property is residential or not (binary). This more complex model does a better job at explaining the variance in property price than our previous two models, but is not optimal either. The adjusted R-squared for this model is `r round(model_i676_more_summary$adj.r.squared, 3)` and our RMSE is `r round(model_i676_more_RMSE, 3)`. 
-
-When including these other predictors, the effect of logged distance to [I-676]{style="color: #7fe3d6;"} actually **flips** (beta coefficient of **`r model_i676_more_table$Estimate[2]`**). This means that for every 1% increase in distance from the highway, **property price decreases by `r paste0(round(abs(1.01^model_i676_more_table$Estimate[2] - 1), 4)*100,"%")`**. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^model_i676_more_table$Estimate[2]), 5)*100000)` less expensive**.
-
-#### Model Results (for newest studyarea properties)
+#### Model Results
 
 ```{r i676effects_model1_studyareanew}
 # model with just distance to highway
@@ -1193,13 +990,13 @@ When including these other predictors, the **effect of logged distance to [I-676
 ### Discontinuity Effects
 
 ```{r discontinuity_data, quiet = TRUE, results = 'hide'}
-# property_discontinutiy <- property_EDA_update %>%
+# property_discontinuity <- property_EDA_update %>%
 #   mutate(distance_to_highway = case_when(
 #     I676 == "north" ~ distance_to_I676,
 #     I676 == "south" ~ -distance_to_I676
 #   ))
 # 
-# discontinuity_plot <- property_discontinutiy %>%
+# discontinuity_plot <- property_discontinuity %>%
 #   st_drop_geometry() %>%
 #   filter(sale_price > 10 & sale_price < 1e6) %>%
 #   group_by(distance_to_highway, I676) %>%
@@ -1218,48 +1015,87 @@ When including these other predictors, the **effect of logged distance to [I-676
 #   summarise(mean_log_price = mean(log_price, na.rm = TRUE), .groups = "drop")
 
 # with most recently updated data (990 properties)
-discontinuity_plot <- props_i676_tomodel %>%
+discontinuity_plot_ungrouped <- props_i676_tomodel %>%
   st_drop_geometry() %>%
-  mutate(distance_to_highway = case_when(
-           I676_NS == "north" ~ dist_to_I676m,
-           I676_NS == "south" ~ -dist_to_I676m
-           )) %>% 
+  mutate(distance_to_I676m = distance_to_I676 * 0.3048,
+         distance_to_highway = case_when(
+           I676_NS == "north" ~ distance_to_I676m,
+           I676_NS == "south" ~ -distance_to_I676m
+           ))
+
+discontinuity_plot <- discontinuity_plot_ungrouped%>% 
   group_by(distance_to_highway, I676_NS) %>%
-  summarise(mean_log_price = mean(log_price, na.rm = TRUE), .groups = "drop")
+  summarise(mean_log_price = mean(log_price, na.rm = T), .groups = "drop")
 
 ```
 
 ```{r discontinuity_plot}
-# correlations to add as annotations on the plot
-cor_north <- round(cor(discontinuity_plot %>% 
-                         filter(
-                           abs(distance_to_highway) <= 500,
-                           I676_NS == "north") %>% 
-                         pull(mean_log_price),
-                       discontinuity_plot %>% 
-                         filter(
-                           abs(distance_to_highway) <= 500,
-                           I676_NS == "north") %>% 
-                         pull(distance_to_highway)), 3)
+# correlations
+# cor_north <- round(cor(discontinuity_plot %>% 
+#                          filter(
+#                            abs(distance_to_highway) <= 500,
+#                            I676_NS == "north") %>% 
+#                          pull(mean_log_price),
+#                        discontinuity_plot %>% 
+#                          filter(
+#                            abs(distance_to_highway) <= 500,
+#                            I676_NS == "north") %>% 
+#                          pull(distance_to_highway)), 3)
+# 
+# cor_south <- round(cor(discontinuity_plot %>% 
+#                          filter(
+#                            abs(distance_to_highway) <= 500,
+#                            I676_NS == "south") %>% 
+#                          pull(mean_log_price),
+#                        discontinuity_plot %>% 
+#                          filter(
+#                            abs(distance_to_highway) <= 500,
+#                            I676_NS == "south") %>% 
+#                          pull(distance_to_highway)), 3)
 
-cor_south <- round(cor(discontinuity_plot %>% 
-                         filter(
-                           abs(distance_to_highway) <= 500,
-                           I676_NS == "south") %>% 
-                         pull(mean_log_price),
-                       discontinuity_plot %>% 
-                         filter(
-                           abs(distance_to_highway) <= 500,
-                           I676_NS == "south") %>% 
-                         pull(distance_to_highway)), 3)
+# use model coefficients instead of correlations
+coef_north_g <- round(
+  summary(
+    lm(mean_log_price ~ distance_to_highway,
+       data = discontinuity_plot %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "north")) # 229 properties
+    )$coefficients[2,1], 3) # p = 0.105
 
-discontinuity_plot %>% 
+coef_south_g <- round(
+  summary(
+    lm(mean_log_price ~ abs(distance_to_highway), # need to use absolute value cause distance values are negative
+       data = discontinuity_plot %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "south")) # 237 properties
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_north <- round(
+  summary(
+    lm(log_price ~ distance_to_highway,
+       data = discontinuity_plot_ungrouped %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "north")) # 609 properties
+    )$coefficients[2,1], 3) # p = 0.636
+
+coef_south <- round(
+  summary(
+    lm(log_price ~ abs(distance_to_highway), # need to use absolute value cause distance values are negative
+       data = discontinuity_plot_ungrouped %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "south")) # 811 properties
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+discont_plot <- discontinuity_plot %>% 
   filter(abs(distance_to_highway) <= 500) %>% # limiting it to the properties within 500m
   ggplot(aes(x = distance_to_highway, y = mean_log_price, color = I676_NS)) +
   geom_point(size = 0.5) +
   geom_smooth(method = "lm", se = FALSE, size = 1.2) +
   geom_vline(xintercept = 0, color = "black", size = 2) +
+  
+  # custom colors
   scale_colour_manual(values = c("#eb5600", "#1a9988")) +
+  
   theme_minimal() +
   theme(legend.position = "None",
         plot.title = element_text(size = 16, face = "bold"),
@@ -1271,24 +1107,61 @@ discontinuity_plot %>%
        y = "Log-transformed Sale Price") +
   
   # add annotations
-  geom_label(aes(x = 0, y = 8, label = "I-676"),
+  geom_label(aes(x = 0, y = 11, label = "I-676"),
              fill = "black", color = "white", fontface = "bold", size = 5) +
-  geom_text(aes(label = cor_north,
+  geom_text(aes(label = coef_north_g,
                 x = 250,
                 y = 11.825),
             color = "#eb5600",
             show.legend = F) +
-  geom_text(aes(label = cor_south,
+  geom_text(aes(label = coef_south_g,
+                x = -250,
+                y = 11.825),
+            color = "#1a9988",
+            show.legend = F)
+
+discont_plot_ungrouped <- discontinuity_plot_ungrouped %>% 
+  filter(abs(distance_to_highway) <= 500) %>% # limiting it to the properties within 500m
+  ggplot(aes(x = distance_to_highway, y = log_price, color = I676_NS)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, size = 1.2) +
+  geom_vline(xintercept = 0, color = "black", size = 2) +
+  
+  # custom colors
+  scale_colour_manual(values = c("#eb5600", "#1a9988")) +
+  
+  theme_minimal() +
+  theme(legend.position = "None",
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = ggtext::element_markdown(size = 12),
+        plot.caption = element_text(hjust = 0)) +
+  labs(title = 'Logged Sale Price as a Function of Distance to I-676', 
+       subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+       x = "Distance to the Highyway (m)",
+       y = "Log-transformed Sale Price") +
+  
+  # add annotations
+  geom_label(aes(x = 0, y = 11, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+  geom_text(aes(label = coef_north,
+                x = 250,
+                y = 11.825),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = coef_south,
                 x = -250,
                 y = 11.825),
             color = "#1a9988",
             show.legend = F)
   
-
+discont_plot
+discont_plot_ungrouped
 # save image for powerpoint
 # ggsave("PPT/Images/p2_discontinuity_within_500m.png",
 #        height = 7, width = 10, units = "in")
 ```
+
+
 
 # Predictive Modeling
 
