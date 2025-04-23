@@ -5,24 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Future</title>
   <link rel="stylesheet" href="css/future.css" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="..." crossorigin="anonymous">
+
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" ... />
+
 </head>
 <body>
   <div class="upper-area"></div>
   
-<!--natigation bar-->
-<nav id="navbar" class="navbar">
+  <!--natigation bar-->
+  <nav id="navbar" class="navbar">
     <div class="logo-title">
-      <img src="https://upload.wikimedia.org/wikipedia/en/thumb/0/0d/Penn_logo.svg/1280px-Penn_logo.svg.png" alt="logo" class="logo">
-      <a class="project-name" href="introduction.html">Envisioning...</a>
+      <img src="./img/icon.png" alt="logo" class="logo">
+      <span class="project-name">Project Team</span>
     </div>
     
     <div class="nav-buttons">
-      <a class="nav-btn" href="context.html">Past</a>
-      <a class="nav-btn" herf="now.html">Now</a>
-      <a class="nav-btn" herf="future.html">Future</a>
+      <a class="nav-btn" href="introduction.html">HOME</a>
+      <a class="nav-btn" href="context.html">PAST</a>
+      <a class="nav-btn" herf="now.html">NOW</a>
+      <a class="nav-btn" herf="future.html">FUTURE</a>
     </div>
     
     <div class="about-btn">
@@ -30,34 +39,88 @@
     </div>
   </nav>
 
-<!--Cover-->
 
-<div class ="tittle">
-    <img src="img/cover2.png" style="width:100%;">
-    <div class="tittle-tittle">History of Chinatown/Callowhill/Vine Street </div>
-    <div class="tittle-wrapper">The history of Philadelphia's Chinatown is deeply tied to the construction of I-676, whose lasting impacts—including displacement, pollution, traffic issues, and more recent challenges like gentrification and inefficient land use—continue to affect the neighborhood today.</div>
-</div>
+  <main>
+    <!--Cover-->
 
-<div class="tittle-scroll">Scroll to Explore </div>
+    <div class ="tittle">
+      <img src="img/FUTURE.png" style="width:100%;">
+      <div class="tittle-tittle">How will the Chinatown Stitch Project change the neighborhood? </div>
+      <div class="tittle-wrapper">The history of Philadelphia's Chinatown is deeply tied to the construction of I-676, whose lasting impacts—including displacement, pollution, traffic issues, and more recent challenges like gentrification and inefficient land use—continue to affect the neighborhood today.</div>
+    </div>
 
-<!--slides-->
-<main>
-  
-  <!--Context Introduction-->
-  <section class="slide layout0">
+    <!-- <div class="title-bttn-container d-grid gap-2 col-4 mx-auto">
+      <a class="btn btn-outline-primary" href="layoutDS.html" role="button" id="title-bttn">Go to Interactive Tool</a>
+      <a class="btn btn-primary" href="#hover-01" role="button" id="title-bttn-primary">Begin Story</a>
+    </div> -->
+
+    <!-- <div class="tittle-scroll">Scroll to Explore </div> -->
+
+    <div class="map-container">
+      <div class="map" id="map"></div>
+    </div>
+
+    <section class="slide-section">
+        
+      <article class="slide" id="studyarea">
+        <h2>Scenario 0:</h2>
+        <h1>Business as Usual</h1>
+        <p>A business-as-usual alternative without the construction of Chinatown Stitch. This alternative is provided here as our reference/control group which will be used to compare results from other scenarios to measure the impacts of the Chinatown Stitch on the local house market.</p> 
+      </article>
+
+      <article class="slide" id="second-slide">
+        <h2>Scenario 1 - Stitch as a Park</h2>
+        <p>An alternative where the Chinatown Stitch completes its construction and serves as a park and mix-use space as promised. In this scenario, part of the Vine Street Expressway will be capped and transitioned into green open space. With the Chinatown Stitch in place, residents and visitors will have better access to recreational spaces that this neighborhood was previously lacking.</p> 
+        <img src="img/Colonial Beginnings.jpeg">
+      </article>
+
+      <article class="slide" id="third-slide">
+        <h2>Scenario 2 – More Commercial Spaces</h2>
+        <p>A reimagined scenario where the Chinatown Stitch creates more commercial opportunities in the area. In this scenario, the Chinatown Stitch not only functions  as a park but also creates commercial opportunities along the streets. Capping part of the expressway would also encourage more residents to walk around the area, increasing the demand for commercial services. As the Chinatown Stitch attracts more visitors to the area, these new commercial spaces will expand across the entire neighborhood.   </p>
+        <img src="img/plan.jpg">      
+      </article>
+
+      <article class="slide" id="forth-slide">
+        <h2>Scenario 3 – More Housing Units</h2>
+        <p>An alternative scenario where the Chinatown Stitch drives changes in the housing structures in the neighborhood. With this new recreational space in the neighborhood, the need for a lawn or backyard becomes less demanding, which can lead to single-family properties changing into multi-family units. Furthermore, the Chinatown Stitch is able to increase the quality of life aspects of the neighborhood such as lessening noises caused by the highway, making the spaces adjacent to the highway more livable for housing development. </p>
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/g7x_QQOPrsk" 
+          title="Post-Civil War Expansion Video" frameborder="0" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen>
+        </iframe>
+      </article>
+      
+    </section>
+    
+
+  </main>
+
+  <!--Summary-->
+  <section class="slidea">
     <div class="background-layer"></div>
     <div class="content">
       <div class="text">
-        <p>It is hard to talk about the history of the Philadelphia Chinatown without the construction of I-676, also known as Vine Street Expressway. </p>
-        <p>Although the highway serves as a significant thoroughfare through Center City Philadelphia, the indispensable repercussions on the adjacent neighborhoods still lingers today. Consequences of the highway such as demolishment of buildings, pedestrian safety threats, traffic congestion, as well as noise and air pollution had been harming Chinatown and its surrounding neighborhoods over the past decades and are yet to be addressed. </p>
-        <p>The changing dynamics of the neighborhood also adds other layers to the historical issues. As the socioeconomic status alters, new problems such as gentrification and low land use efficiency only worsen the existing conditions of the Chinatown region.</p>
+        <h1>SUMMARY</h1>
+        <p>Note that the purpose of this study is to try to discover the potential trends/shifts in the housing market instead of accurately predicting exact value of each property within the study region due to the limitations of the modeling methods as well as other factors beyond our control. These scenarios are alternatives to reality and not the future market as the future is highly unpredictable.  </p>
       </div>
     </div>
   </section>
-  
 
-</main>
+  <!--Limitations-->
+  <section class="slidea">
+    <div class="background-layer"></div>
+    <div class="content">
+      <div class="text">
+        <H1>LIMITATIONS</H1>
+        <p>Note that the purpose of this study is to try to discover the potential trends/shifts in the housing market instead of accurately predicting exact value of each property within the study region due to the limitations of the modeling methods as well as other factors beyond our control. These scenarios are alternatives to reality and not the future market as the future is highly unpredictable.  </p>
+      </div>
+    </div>
+  </section>
+
   <script src="js/topbar.js"></script>
-  <script src="js/slidedeck.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/slidedeck.js" type="module"></script>
+  <script src="js/index.js" type="module"></script>
+
 </body>
 </html>

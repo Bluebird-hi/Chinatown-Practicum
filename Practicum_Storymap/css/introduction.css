@@ -4,8 +4,9 @@ body {
   background-color: #f2f2f2;
 }
 
-/* natigation bar */
+/* 1. natigation bar */
 .navbar {
+  position: fixed;
   top: 0;
   width: 100%;
   display: flex;
@@ -13,7 +14,9 @@ body {
   align-items: center;
   padding: 30px 40px;
   background-color:  #f2f2f2;
+  transition: top 0.3s;
   border-bottom: 1px solid #ddd;
+  z-index: 1000;
 }
 
 .navbar.hidden {
@@ -31,9 +34,14 @@ body {
 }
 
 .project-name {
-  font-weight: bolder;
-  font-size: 16px;
-  color: #299988;
+  text-decoration: none;
+  color: #299988; 
+  font-weight: bold;
+  font-size: 1em;
+}
+
+.project-name:hover {
+  text-decoration: underline;
 }
 
 .nav-buttons,
@@ -71,6 +79,16 @@ body {
 }
 
 
+.upper-area {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 120px;
+  width: 100%;
+  z-index: 1000;
+}
+
+
 /* cover tittle */
 
 .tittle {
@@ -78,7 +96,9 @@ body {
   position: relative;
   text-align: center;
   color:  #434343;
-  background-color: #f2f2f2;
+  background-color: #279382;
+  font-size:larger;
+  text-shadow: 4px 4px 18px rgba(0, 0, 0, 0.9); 
 }
 
 .tittle-tittle {
@@ -96,10 +116,10 @@ body {
 
 /* Keyframes: hold each color for 1s */
 @keyframes flashColor {
-  0%   { color: #279382; }
-  25%  { color: #DB5420; }
-  50% { color: #D09A27; }
-  75% { color: #0D564B; }
+  0%  { color: #ff7700; }
+  25% { color: #ffae00; }
+  50% { color: #ffd883; }
+  75% { color: #ffffff; }
 }
 
 .tittle-wrapper {
@@ -114,14 +134,14 @@ body {
 .tittle-subtittle {
   font-size: 1em;
   margin: 10px 0;
-  color:#299988
+  color:#ffffff
 }
 
 .tittle-scroll {
   position: absolute;
   top: 80%;
   left: 50%;
-  color:  #6d6d6d;
+  color:  #e4e4e4;
   transform: translate(-50%, -50%);
   font-size: 1.8em;
   font-style: italic;
@@ -135,3 +155,237 @@ body {
   50%  { opacity: 1; }
   100% { opacity: 0.5; }
 }
+
+
+/* 3. Slides */
+
+.slide {
+  position: relative; /* allow child positioning */
+  overflow: hidden;
+  min-height: 100vh;
+  width: 100vw;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0; /* remove side padding to allow full-width background */
+  box-sizing: border-box;
+  
+  color: #0D564B;
+  }
+  
+  /* 3.1 Timeline*/
+  
+  /* Fixed, full-screen background image */
+  .layout0 .background-layer {
+  background-image: url('../img/Storymap-background2.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* makes it stay in place */
+  }
+  
+  .slide.layout0.timeline {
+  background-color: #279382;
+  }
+  
+  .slide.layout0 .text {
+  color: #279382;
+  font-size: 1.3em;
+  text-align: left;
+  margin-left: 30%;
+  margin-right: 20%;
+  }
+  
+  .slide.layout0.timeline .image {
+  width: 100%;
+  max-width: 100%;
+  padding: 0 10%;
+  box-sizing: border-box;
+  }
+  
+  .slide.layout0.timeline .image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  }
+  
+  .slide.layout0.timeline {
+  padding: 40px 0;
+  }
+  
+  /* Remove all padding and margin from the timeline page */
+  .slide.layout0.timeline .content {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* center the image horizontally */
+  }
+  
+  /* Make the image fill full width */
+  .slide.layout0.timeline .image {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  }
+  
+  /* Remove auto margin and scale image */
+  .slide.layout0.timeline .image img {
+  width: 100%;
+  height: auto;
+  margin: 0;
+  display: block;
+  }
+  
+  /* 3.2 slide background */
+  
+  .background-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  z-index: 0; /* stay behind content */
+  }
+  
+  .layout0, .layout1, .layout2, .layout3 {
+    background-color: #f2f2f2;
+  }
+  
+  .slide.layout1 .background-layer{
+  background-image: url('../img/background-callowhill.png');
+  }
+  
+  .slide.layout2 .background-layer{
+  background-image: url('../img/background-vst.png');
+  }
+  
+  .slide.layout3 .background-layer{
+  background-image: url('../img/background-chinatown.png');
+  }
+  
+  /* 3.3 layouts */
+  
+  .slide .content {
+  position: relative;
+  z-index: 1; /* above background */
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding-left: 10%;
+  padding-right: 10%;
+  margin-right: 10%;
+  }
+  
+ .layout0 {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .layout0 .text {
+    margin-bottom: 40px;
+    margin-left: 20%;
+    margin-right: 10%;
+    text-align: left;
+  }
+  
+  .layout0 .ul li a {
+    text-decoration:none;
+  }
+  
+  .layout0 .image {
+    width: 1000px;
+    height: 300px;
+    margin: 0 auto;
+    background-color: transparent;
+  }
+  
+  .responsive-img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  /* 3.4 Problems */
+  
+  
+  /* Container for problem cards */
+  .problem-container {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  padding: 40px;
+  flex-wrap: wrap;
+  }
+  
+  .problem-card {
+    width: 300px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    text-align: left;
+    transition: transform 0.3s;
+  }
+  
+  .problem-card p {
+    word-wrap: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
+    font-size: 14px;
+    color: #279382;
+    margin-top: 10px;
+  }
+  
+  
+  .problem-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .problem-img {
+    width: 100%;
+    height: 150px;
+    background-color: #ddd;
+    margin-bottom: 15px;
+  }
+
+  .problem-link{
+    text-decoration: none;
+    color: #279382;
+  }
+  
+  
+  /* Button */
+  .next-button {
+    align-self: flex-end;
+    margin-top: auto;
+    margin-right: 10%;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 5px;
+    background-color: white;
+    color: #279382;
+    font-weight: bold;
+    font-size: 16px;
+    text-decoration: none;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  /* Hover effect */
+  .next-button:hover {
+    background-color: #DB5420;
+    color: white;
+  }
+  
+   /*make sure the card and button above background*/
+  .problem-container,
+  .next-button {
+    position: relative;
+    z-index: 1;
+  }
+  
