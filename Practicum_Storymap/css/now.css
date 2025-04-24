@@ -136,7 +136,7 @@ body, html {
 
 .title-subtitle {
   font-size: 1.25em;
-  margin: 0 0 20px 0; /* Top: 20px, Bottom: 30px */
+  margin: 0 0 20px 0; /* Bottom: 20px */
 }
 
 .title-text {
@@ -165,10 +165,94 @@ body, html {
   100% { opacity: 0.5; }
 }
 
-/* 3. Slides */
+/* 3. Map settings */
+.map-container {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 0;
+}
+
+.map {
+  height: 100%;
+}
+
+/* 4. Slides */
 /* will have to edit this once i implement the map background */
 
+.slide-section {
+  position: relative;
+  margin-top: -30vh;
+  z-index: 100;
+  pointer-events: none;
+  border-bottom: 1px solid rgb(0 0 0 / 10%);
+}
+
 .slide {
+  margin-top: 90vh;
+  margin-bottom: 90vh;
+  margin-left: auto;
+  margin-right: 2rem;
+
+  padding: 1rem;
+
+  box-shadow: -0.5rem 0 1rem rgba(0 0 0 / 50%);
+  
+  border: 1px solid gray;
+  border-radius: 0.5rem;
+  
+  pointer-events: initial;
+
+  width: 25rem;
+
+  background-color: white;
+  color: #0D564B;
+
+  transition: background-image 0.5s ease-in-out;
+}
+
+.slide:first-child {
+  margin-top: 0;
+}
+
+.slide:last-child {
+  margin-bottom: 40vh;
+}
+/* these will maybe come into play later */
+/* .slide-controls {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  column-gap: 0.5rem;
+
+  width: 100%;
+}
+
+.slide-nav-button {
+  transition: all 0.1s;
+
+  padding: 0;
+  margin: 1rem;
+  width: 4rem;
+  height: 3rem;
+  border: 1px solid #888;
+  border-radius: 0.25rem;
+
+  background-color: #eee;
+  font-size: 1.5em;
+}
+
+.slide-nav-button:hover {
+  background-color: #444;
+  color: #fff;
+}
+
+.slide-nav-select {
+  min-width: 0;
+} */
+
+/* old code */
+/* .slide {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -176,11 +260,10 @@ body, html {
   padding: 80px 40px;
   box-sizing: border-box;
   color: #0D564B;
-  /* margin-block-end: 50px; */
   background-position: center;
   background-size: cover;
   transition: background-image 0.5s ease-in-out;
-}
+} */
 
 .layout0, .layout1, .layout2, .layout3 {
   background-color: #f2f2f2;
@@ -190,14 +273,14 @@ body, html {
 .layout0 {
   display: flex;
   gap: 40px;
-  margin-left: 10%;
-  margin-right: 10%;
+  margin-left: 5%;
+  margin-right: 5%;
   justify-content: space-between;
-  padding: 40px;
+  padding: 20px 20px;
 }
 
 .layout0 .text {
-  width: 50%; /* Set width to 50% for left half of the screen */
+  width: 100%; /* Set width to 50% for left half of the screen */
   float: left; /* Align text to the left */
   flex: none; /* Disable flex behavior */
   /* margin-bottom: 100px;  */
@@ -205,14 +288,14 @@ body, html {
 
 /* 3B. layout1 specifics */
 .layout1 {
-  display: flex;
-  gap: 40px;
-  margin-left: 20%;
-  margin-right: 20%;
-  /* align-items: stretch;allow children to take full height */
-  justify-content: space-between;
-  padding: 40px;
-  align-items: center;
+  display: flex; /* Enable flexbox */
+  flex-direction: column; /* Stack elements vertically */
+  justify-content: center; /* Center vertically */
+  align-items: center; /* Center horizontally */
+  gap: 40px; /* Add spacing between elements */
+  margin-left: auto;
+  margin-right: auto;
+  padding: 20px;
 }
 
 .layout1 .text {
@@ -221,14 +304,6 @@ body, html {
   flex-direction: column;
   justify-content: center; /* vertical center if image is shorter */
   text-align: center;
-}
-
-.layout1 .text-specs {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* vertical center if image is shorter */
-  text-align: left;
 }
 
 .layout1 .image {
@@ -246,14 +321,67 @@ body, html {
   display: block;
 }
 
+/* Other Cities */
+.othercity-container {
+  width: 100%; /* Adjust width as needed */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center horizontally */
+  justify-content: center; /* Center vertically */
+  gap: 20px;
+}
+
+.othercity-container .text {
+  width: 100%; /* Regular text takes full width */
+}
+
+.othercity-row {
+  display: flex;
+  justify-content: space-between; /* Space between image and text-specs */
+  align-items: flex-start;
+}
+
+.othercity-image {
+  width: 66.7%; /* Left two-thirds */
+  height: auto;
+}
+
+.text-specs {
+  width: 33.3%; /* Right one-third */
+  text-align: left;
+}
+
 /* 3C. layout2 specifics */
 .layout2 {
   flex-direction: column;
   text-align: center;
+
+  margin-top: 90vh;
+  margin-bottom: 90vh;
+  margin-left: auto;
+  margin-right: auto;
+
+  padding: 2.5rem;
+
+  box-shadow: none;
+  
+  border: none;
+  border-radius: none;
+  
+  pointer-events: initial;
+
+  width: 100%;
+  width: 100%;
+
+  background-color: white;
+  /* I will eventually put an image here */
+  /* background-image: ""; */
+
+  transition: background-image 0.5s ease-in-out;
 }
 
 .layout2 .text {
-  margin-bottom: 100px;
+  /* margin-bottom: 100px; */
   margin-left: 15%;
   margin-right: 15%;
 }
@@ -267,7 +395,14 @@ body, html {
 
 /* 3D. layout3 specifics */
 .layout3 {
-  flex-direction: column;
+  display: flex; /* Enable flexbox */
+  flex-direction: column; /* Stack elements vertically */
+  justify-content: center; /* Center vertically */
+  align-items: center; /* Center horizontally */
+  gap: 40px; /* Add spacing between elements */
+  margin-left: auto;
+  margin-right: auto;
+  padding: 20px;
   text-align: center;
 }
 
@@ -347,7 +482,7 @@ body, html {
 }
 
 .timelineitem:hover {
-  transform: scale(1.1); /* Scale the item without affecting layout */
+  transform: scale(1.05); /* Scale the item without affecting layout */
 }
 
 #timeline25:hover, #timeline26:hover, #timeline27:hover, #timeline30:hover {
@@ -355,34 +490,6 @@ body, html {
 }
 
 /* once the phase I layer is available, hovering over the #timeline27 and #timeline30 will highlight the phase I layer on the map */
-
-/* Other Cities */
-.othercity-container {
-  display: flex;
-  flex-direction: column; /* Stack elements vertically */
-  gap: 20px;
-}
-
-.othercity-container .text {
-  width: 100%; /* Regular text takes full width */
-}
-
-.othercity-row {
-  display: flex;
-  justify-content: space-between; /* Space between image and text-specs */
-  align-items: flex-start;
-  gap: 20px;
-}
-
-.othercity-image {
-  width: 66.7%; /* Left two-thirds */
-  height: auto;
-}
-
-.text-specs {
-  width: 33.3%; /* Right one-third */
-  text-align: left;
-}
 
 /* Changing color of text within chunk*/
 .equation {
