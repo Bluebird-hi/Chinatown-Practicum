@@ -124,7 +124,7 @@ body {
 
 .tittle-wrapper {
   position: absolute;
-  top: 65%;
+  top: 70%;
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
@@ -139,7 +139,7 @@ body {
 
 .tittle-scroll {
   position: absolute;
-  top: 80%;
+  top: 82.5%;
   left: 50%;
   color:  #e4e4e4;
   transform: translate(-50%, -50%);
