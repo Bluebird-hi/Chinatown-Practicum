@@ -32,7 +32,7 @@ body, html {
   }
   
 .logo {
-    height: 20px;
+    height: 40px;
     margin-right: 8px;
   }
   
@@ -49,13 +49,13 @@ body, html {
     font-weight: bold;
   }
   
-.nav-buttons,
-.about-btn {
+  .nav-buttons,
+  .about-btn {
     display: flex;
     gap: 20px;
   }
   
-.nav-btn {
+  .nav-btn {
     background: none;
     border: none;
     font-size: 18px;
@@ -64,34 +64,25 @@ body, html {
     transition: all 0.2s ease-in-out;
   }
   
-.nav-btn:hover {
+  .nav-btn:hover {
     color: #E7551B;
     font-weight: bold;
   }
   
-.nav-btn.active {
+  .nav-btn.active {
     font-weight: bolder;
     border-bottom: 2px solid #299988;
   }
   
-.navbar a {
+  .navbar a {
     text-decoration: none;
   }
   
-.navbar a:hover,
-.navbar a:active {
+  .navbar a:hover,
+  .navbar a:active {
     text-decoration: underline;
   }
 
-.nav-center {
-    display: flex;
-    gap: 20px;
-    margin: 0 auto;
-}
-
-.about-btn {
-    margin-left: auto;
-}
 
 .upper-area {
     position: fixed;
@@ -123,6 +114,15 @@ body, html {
   font-weight: bold; 
   text-align: center;
   font-family: 'Poppins', sans-serif;
+  animation: flashColor 2s infinite steps(1, end);
+}
+
+/* Keyframes: hold each color for 1s */
+@keyframes flashColor {
+  0%  { color: #ff7700; }
+  25% { color: #ffae00; }
+  50% { color: #ffd883; }
+  75% { color: #ffffff; }
 }
 
 .title-scroll {
@@ -136,6 +136,13 @@ body, html {
   font-family: 'Playfair Display', serif; 
 
   animation: flashOpacity 2s infinite ease-in-out; /* Flashing scroll text animation */
+}
+
+/* Define keyframes */
+@keyframes flashOpacity {
+  0%   { opacity: 0.5; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.5; }
 }
 
 .title-wrapper {
@@ -198,20 +205,16 @@ body, html {
 
 /* layout0 specifics */
 .layout0 .text {  
-  margin-bottom: 40px;
-  margin-left: 5%;
-  margin-right: 50%;
+  
  }
 
 .layout0 .image {
-  margin-bottom: 40px; /* 5 possible images as background that change as user hovers over buttons*/
-  margin-left: 50%;
-  margin-right: 5%;
+  
 }
 
 /* layout1 specifics */
 .slide.layout1{
-  background-image: 
+  background-image: ;
 }
 
 .layout1 {
@@ -222,6 +225,7 @@ body, html {
   /* align-items: stretch;allow children to take full height */
   justify-content: space-between;
   padding: 40px;
+  align-items: center;
 }
 
 .slide.layout2{
@@ -246,11 +250,12 @@ body, html {
 
 /* Text column */
 .layout1 .text, .layout3 .text {
-    width: 40%;
-    flex: 1;
+  width: 40%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center; /* vertical center if image is shorter */
+  text-align: center;
   }
 
   /* Image column */
@@ -284,7 +289,7 @@ body, html {
     z-index: 10;
   }
 
-.layout2, .layout0 {
+.layout2 {
     flex-direction: column;
     text-align: center;
   }
@@ -339,3 +344,31 @@ body, html {
     height: 100%;
     z-index: -1; /* Ensure the map is behind the content */
 }
+
+/* External Links */
+.extlink {
+  color: #299988;
+}
+
+.extlink:hover {
+  color: #E7551B;
+}
+
+/* Bulleted List */
+/* ul  {
+  padding-left: 0;
+  margin-left: 0;
+  justify-content: left;
+}
+ul li {
+   list-style-position: inside;
+} */
+
+/* Other Cities */
+.othercity-container {
+  align-items: center;
+}
+
+/* .othercity-image {
+  background-color: #E7551B;
+} */
