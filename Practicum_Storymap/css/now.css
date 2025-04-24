@@ -7,82 +7,81 @@ body, html {
   }
 
   
-/* natigation bar */
+/* 1. Natigation Bar */
 .navbar {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 30px 40px;
-    background-color:  #f2f2f2;
-    transition: top 0.3s;
-    border-bottom: 1px solid #ddd;
-    z-index: 1000;
-  }
+  position: fixed;
+  top: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 40px;
+  background-color:  #f2f2f2;
+  transition: top 0.3s;
+  border-bottom: 1px solid #ddd;
+  z-index: 1000;
+}
 
 .navbar.hidden {
-    top: -100px;
-  }
+  top: -100px;
+}
 
 .logo-title {
-    display: flex;
-    align-items: center;
-  }
+  display: flex;
+  align-items: center;
+}
   
 .logo {
-    height: 40px;
-    margin-right: 8px;
-  }
+  height: 40px;
+  margin-right: 8px;
+}
   
 .project-name {
-    text-decoration: none;
-    color: #299988; 
-    font-weight: bold;
-    font-size: 1em;
-  }
+  text-decoration: none;
+  color: #299988; 
+  font-weight: bold;
+  font-size: 1em;
+}
   
 .project-name:hover {
-    text-decoration: underline;
-    color: #E7551B;
-    font-weight: bold;
-  }
+  text-decoration: underline;
+  color: #E7551B;
+  font-weight: bold;
+}
   
-  .nav-buttons,
-  .about-btn {
-    display: flex;
-    gap: 20px;
-  }
-  
-  .nav-btn {
-    background: none;
-    border: none;
-    font-size: 18px;
-    color: #299988;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-  }
-  
-  .nav-btn:hover {
-    color: #E7551B;
-    font-weight: bold;
-  }
-  
-  .nav-btn.active {
-    font-weight: bolder;
-    border-bottom: 2px solid #299988;
-  }
-  
-  .navbar a {
-    text-decoration: none;
-  }
-  
-  .navbar a:hover,
-  .navbar a:active {
-    text-decoration: underline;
-  }
+.nav-buttons,
+.about-btn {
+  display: flex;
+  gap: 20px;
+}
 
+.nav-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #299988;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-btn:hover {
+  color: #E7551B;
+  font-weight: bold;
+}
+
+.nav-btn.active {
+  font-weight: bolder;
+  border-bottom: 2px solid #299988;
+}
+
+.navbar a {
+  text-decoration: none;
+}
+
+.navbar a:hover,
+.navbar a:active {
+  text-decoration: underline;
+}
 
 .upper-area {
     position: fixed;
@@ -94,7 +93,7 @@ body, html {
   }
 
 
-/* Cover */
+/* 2. Cover */
 
 .title {
   height: 100vh;
@@ -125,6 +124,27 @@ body, html {
   75% { color: #ffffff; }
 }
 
+.title-wrapper {
+  position: absolute;
+  top: 62.5%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #434343;
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+}
+
+.title-subtitle {
+  font-size: 1.25em;
+  margin: 0 0 20px 0; /* Top: 20px, Bottom: 30px */
+}
+
+.title-text {
+  font-size: 1em;
+  margin: 5px 0;
+  /* text-align: left; */
+}
+
 .title-scroll {
   position: absolute;
   top: 80%;
@@ -145,45 +165,8 @@ body, html {
   100% { opacity: 0.5; }
 }
 
-.title-wrapper {
-  position: absolute;
-  top: 62.5%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #434343;
-  font-family: 'Poppins', sans-serif;
-  text-align: center;
-}
-
-.title-subtitle {
-  font-size: 1.25em;
-  margin: 0 0 20px 0; /* Top: 20px, Bottom: 30px */
-  /* text-align: center; */
-}
-
-.title-text {
-  font-size: 1em;
-  margin: 5px 0;
-  /* text-align: left; */
-}
-
-.title-scroll {
-  position: absolute;
-  top: 80%;
-  left: 50%;
-  color:  #4d4d4d;
-  transform: translate(-50%, -50%);
-  font-size: 1.8em;
-  font-style: italic;
-  font-family: 'Playfair Display', serif; 
-}
-
-/* Timeline */
-
-
-
-
-/* slides */
+/* 3. Slides */
+/* will have to edit this once i implement the map background */
 
 .slide {
   min-height: 100vh;
@@ -193,119 +176,113 @@ body, html {
   padding: 80px 40px;
   box-sizing: border-box;
   color: #0D564B;
-  margin-block-end: 50px; /* This was initially 200px */
+  /* margin-block-end: 50px; */
   background-position: center;
   background-size: cover;
   transition: background-image 0.5s ease-in-out;
 }
-  
+
 .layout0, .layout1, .layout2, .layout3 {
   background-color: #f2f2f2;
 }
 
-/* layout0 specifics */
-.layout0 .text {  
-  
- }
-
-.layout0 .image {
-  
-}
-
-/* layout1 specifics */
-.slide.layout1{
-  background-image: ;
-}
-
-.layout1 {
+/* 3A. layout0 specifics */
+.layout0 {
   display: flex;
   gap: 40px;
   margin-left: 10%;
   margin-right: 10%;
+  justify-content: space-between;
+  padding: 40px;
+}
+
+.layout0 .text {
+  width: 50%; /* Set width to 50% for left half of the screen */
+  float: left; /* Align text to the left */
+  flex: none; /* Disable flex behavior */
+  /* margin-bottom: 100px;  */
+}
+
+/* 3B. layout1 specifics */
+.layout1 {
+  display: flex;
+  gap: 40px;
+  margin-left: 20%;
+  margin-right: 20%;
   /* align-items: stretch;allow children to take full height */
   justify-content: space-between;
   padding: 40px;
   align-items: center;
 }
 
-.slide.layout2{
-  background-image: url('../img/');
-}
-
-.slide.layout3{
-  background-image: url('../img/');
-}
-
-.layout3 {
-  display: flex;
-  gap: 40px;
-  margin-left: 10%;
-  margin-right: 10%;
-  /* align-items: stretch;allow children to take full height */
-  justify-content: space-between;
-  padding: 40px;
-  flex-direction: row-reverse;
-}
-
-
-/* Text column */
-.layout1 .text, .layout3 .text {
-  width: 40%;
+.layout1 .text {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center; /* vertical center if image is shorter */
   text-align: center;
-  }
+}
 
-  /* Image column */
-.layout1 .image, .layout3 .image {
-    width: 40%;
-    height: 300px;
-    background-color: transparent;
-    position: relative; /* so the rectangle can position relative to this */
+.layout1 .text-specs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* vertical center if image is shorter */
+  text-align: left;
+}
+
+.layout1 .image {
+  height: 250px;
+  background-color: transparent;
+  position: relative; 
   display: flex;
   align-items: center;
   justify-content: center;
-  }
+}
 
-  /* Image itself */
-.slide.layout1 .image img, .slide.layout3 .image img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-  }
+.layout1 .image img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
 
-  /* Rectangle in top-right corner */
-.slide.layout3 .rectangle {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 40px;
-    height: 6px;
-    background-color: #0D5C4B;
-    border-radius: 2px;
-    display: none; /* hidden by default */
-    z-index: 10;
-  }
-
+/* 3C. layout2 specifics */
 .layout2 {
-    flex-direction: column;
-    text-align: center;
-  }
-  
+  flex-direction: column;
+  text-align: center;
+}
+
 .layout2 .text {
-    margin-bottom: 40px;
-    margin-left: 15%;
-    margin-right: 15%;
-  }
-  
+  margin-bottom: 100px;
+  margin-left: 15%;
+  margin-right: 15%;
+}
+
 .layout2 .image {
-    width: 700px;
-    height: 300px;
-    margin: 0 auto;
-    background-color: transparent;
-  }
+  width: 700px;
+  height: 300px;
+  margin: 0 auto;
+  background-color: transparent;
+}
+
+/* 3D. layout3 specifics */
+.layout3 {
+  flex-direction: column;
+  text-align: center;
+}
+
+.layout3 .text {
+  margin-bottom: 100px;
+  margin-left: 15%;
+  margin-right: 15%;
+}
+
+.layout3 .image {
+  width: 700px;
+  height: 300px;
+  margin: 0 auto;
+  background-color: transparent;
+}
 
 .responsive-img {
     max-width: 100%;
@@ -346,6 +323,15 @@ body, html {
 }
 
 /* External Links */
+.titlelink {
+  color: #0D5C4B;
+  text-decoration: none;
+}
+.titlelink:hover {
+  color: #E7551B;
+  text-decoration: underline;
+}
+
 .extlink {
   color: #299988;
 }
@@ -354,21 +340,68 @@ body, html {
   color: #E7551B;
 }
 
-/* Bulleted List */
-/* ul  {
-  padding-left: 0;
-  margin-left: 0;
-  justify-content: left;
+/* Timeline items */
+.timelineitem {
+  display: block; /* Ensure each item is on its own row */
+  transition: transform 0.2s ease-in-out; /* Smooth scaling effect */
 }
-ul li {
-   list-style-position: inside;
-} */
+
+.timelineitem:hover {
+  transform: scale(1.1); /* Scale the item without affecting layout */
+}
+
+#timeline25:hover, #timeline26:hover, #timeline27:hover, #timeline30:hover {
+  color:#DB5420;
+}
+
+/* once the phase I layer is available, hovering over the #timeline27 and #timeline30 will highlight the phase I layer on the map */
 
 /* Other Cities */
 .othercity-container {
-  align-items: center;
+  display: flex;
+  flex-direction: column; /* Stack elements vertically */
+  gap: 20px;
 }
 
-/* .othercity-image {
-  background-color: #E7551B;
-} */
+.othercity-container .text {
+  width: 100%; /* Regular text takes full width */
+}
+
+.othercity-row {
+  display: flex;
+  justify-content: space-between; /* Space between image and text-specs */
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.othercity-image {
+  width: 66.7%; /* Left two-thirds */
+  height: auto;
+}
+
+.text-specs {
+  width: 33.3%; /* Right one-third */
+  text-align: left;
+}
+
+/* Changing color of text within chunk*/
+.equation {
+  color: #0D5C4B;
+  font-size: 1.5em;
+}
+
+.modelfeatures {
+  color: #0D5C4B;
+}
+
+.modelfeatures ic, .equation ic {
+  color: #ff7700;
+}
+
+.modelfeatures am, .equation am {
+  color: #ffae00;
+}
+
+.modelfeatures lo, .equation lo {
+  color: #ffd883;
+}
