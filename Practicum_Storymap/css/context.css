@@ -1,8 +1,10 @@
 body, html {
   margin: 0;
-  padding: 0;
+  border-width: 0;
+  box-sizing: border-box;
+  height: 100vh;
   font-family: "Rubik", sans-serif;
-  overflow-x: hidden;
+  /* overflow-x: hidden; */
   background-color: #f2f2f2;
 }
 
@@ -158,10 +160,6 @@ animation: flashOpacity 2s infinite ease-in-out; /* Flashing scroll text animati
 100% { opacity: 0.5; }
 }
 
-/* Timeline */
-
-
-
 
 /* 3. Slides */
 
@@ -243,6 +241,7 @@ height: auto;
 margin: 0;
 display: block;
 }
+
 
 /* 3.2 slide background */
 
@@ -366,12 +365,43 @@ justify-content: center;
   text-align: left;
 }
 
-.layout2 .image {
-  width: 700px;
-  height: auto;
-  margin: 0 auto 60px auto; /* bottom margin = spacing after image */
-  background-color: transparent;
+/* Make layout2 match layout0 */
+.slide.layout2 .content {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10%;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: left;
+  box-sizing: border-box;
 }
+
+.slide.layout2 .text {
+  width: 100%;
+  max-width: 1000px; /* match layout0 text */
+  margin: 40px 0;
+  color: #0D564B;
+  font-size: 18px;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.slide.layout2 .image {
+  width: 100%;
+  max-width: 1000px; /* match layout0 image */
+  margin: 40px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.slide.layout2 .image img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 
 .layout0 .image {
   width: 1000px;
@@ -390,44 +420,38 @@ justify-content: center;
 /* 3.4 Problems */
 
 
-/* Container for problem cards */
-.problem-container {
-display: flex;
-justify-content: center;
-gap: 40px;
-padding: 40px;
-flex-wrap: wrap;
+/* -- Cleaner Alignment for Problems Page (layout0) -- */
+.slide.layout0 .content {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10%; /* 10% padding left and right */
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: left; /* key change: left-align the text inside */
 }
 
-.problem-card {
-  width: 300px;
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 20px;
-  text-align: left;
-  transition: transform 0.3s;
-}
-
-.problem-card p {
-  word-wrap: break-word;
-  white-space: normal;
-  overflow-wrap: break-word;
-  font-size: 14px;
-  color: #00352c;
-  margin-top: 10px;
-}
-
-
-.problem-card:hover {
-  transform: translateY(-5px);
-}
-
-.problem-img {
+.slide.layout0 .text {
   width: 100%;
-  height: 150px;
-  background-color: #ddd;
-  margin-bottom: 15px;
+  max-width: 1000px; /* same as image */
+  margin: 40px 0;
+  color: white;
+  font-size: 18px;
+  line-height: 1.6;
+  text-align: left; /* very important: left-align text */
+}
+
+.slide.layout0 .image {
+  width: 100%;
+  max-width: 1000px; /* match text width */
+  margin: 40px 0;
+}
+
+.slide.layout0 .image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
 }
 
 /* Button */
