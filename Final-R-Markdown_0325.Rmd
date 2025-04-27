@@ -500,7 +500,6 @@ hiway_500buff <- st_union(st_buffer(philly_highways, buff500))
 # read in pre-saved file
 prop500 <- st_read("data/philly_prop500_dst2hghwy_250421.geojson") %>% # Aki, (download from Box)
   mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
-
 ```
 
 ```{r map_prop500}
@@ -595,6 +594,10 @@ prop_count <- prop500 %>%
   group_by(closest_highway) %>% 
   summarise(count = n())
 
+prop_count_676 <- prop_count %>% 
+  filter(grepl("676", closest_highway)) %>% 
+  pull(count)
+
 prop_count_us1 <- prop_count %>% 
   filter(grepl("US", closest_highway)) %>% 
   pull(count)
@@ -610,39 +613,13 @@ prop_count_i95 <- prop_count %>%
 
 `r paste0(substr(nrow(prop500), 1, 2), ",", substr(nrow(prop500), 3, 5))` total properties were included in this analysis. We see that the distribution of log sale prices of properties within 500m of highways in Philadelphia generally follow a normal distribution.
 
-Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r prop_count %>% filter(grepl("676", closest_highway)) %>% pull(count)` properties) as there are near the other highways, they are most expensive group with a median property price of **`r paste0('$', substr(med_price_676, 1, 3), ',', substr(med_price_676, 4, 9))`**. 
+Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r prop_count_676` properties) as there are near the other highways, they are most expensive group with a median property price of **`r paste0('$', substr(med_price_676, 1, 3), ',', substr(med_price_676, 4, 9))`**. 
 
 Properties near [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"} are among a similar range of prices with median property prices being **`r paste0('$', substr(med_price_i95, 1, 3), ',', substr(med_price_i95, 4, 9))`** and **`r paste0('$', substr(med_price_i76, 1, 3), ',', substr(med_price_i76, 4, 9))`**, respectively, though there are almost five times as many properties near [I-95]{style="color: #eba075;"} compared to [I-76]{style="color: #eb5600;"} (`r paste0(substr(prop_count_i95,1,1), ",", substr(prop_count_i95, 2,4))` and `r paste0(substr(prop_count_i76,1,1), ",", substr(prop_count_i76, 2,4))` properties around [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"}, respectively). 
 
 Finally, there are many properties within 500m of [US-1]{style="color: #1a9988;"} (`r paste0(substr(prop_count_us1,1,1), ",", substr(prop_count_us1, 2,4))` properties), but the median property price was lowest compared to other highways at **`r paste0('$', substr(med_price_us1, 1, 3), ',', substr(med_price_us1, 4, 9))`**.
 
 ```{r prop500_scatter}
-# correlations
-# cor_us1 <- round(cor(prop500 %>% 
-#                  filter(grepl("US", closest_highway)) %>% 
-#                  pull(log_price), 
-#                prop500 %>% 
-#                  filter(grepl("US", closest_highway)) %>% 
-#                  pull(log_dist_to_closest_highway)), 3)
-# cor_i76 <- round(cor(prop500 %>% 
-#                  filter(grepl("I-76", closest_highway)) %>% 
-#                  pull(log_price), 
-#                prop500 %>% 
-#                  filter(grepl("I-76", closest_highway)) %>% 
-#                  pull(log_dist_to_closest_highway)), 3)
-# cor_i95 <- round(cor(prop500 %>% 
-#                  filter(grepl("I-95", closest_highway)) %>% 
-#                  pull(log_price), 
-#                prop500 %>% 
-#                  filter(grepl("I-95", closest_highway)) %>% 
-#                  pull(log_dist_to_closest_highway)), 3)
-# cor_i676 <- round(cor(prop500 %>% 
-#                   filter(grepl("I-676", closest_highway)) %>% 
-#                   pull(log_price), 
-#                 prop500 %>% 
-#                   filter(grepl("I-676", closest_highway)) %>% 
-#                   pull(log_dist_to_closest_highway)), 3)
-
 # models + beta coefficients
 coef_us1 <- round(
   summary(
@@ -716,16 +693,215 @@ scatter_4highways
 
 ```
 
+### I-95 Exploration
+
+Taking a look at the properties near I-95 to see why we see a different relationship between distance to highway and property price here.
+
+
+```{r i95_exploration}
+# trying to figure out why we see a negative relationship between distance to highway and property price by I-95
+i95_500 <- prop500 %>% 
+  filter(closest_highway == "I-95") # 6547 total properties
+
+# scatter plot to see relationship
+i95_scatter <- ggplot(i95_500, 
+                      aes(x = log_dist_to_closest_highway, y = log_price)) +
+  geom_point(color = "#eba075", alpha = .2, size = 0.3, show.legend = F) +
+  geom_smooth(color = "#eba075", fill = "#eba075", method = "lm", size = 1.2, show.legend = F) +
+  geom_text(aes(label = paste("I-95:", coef_i95),
+                x = 4.75,
+                y = 11.75),
+            color = "#eba075",
+            show.legend = F) +
+  labs(title = "Property Price (log) as a function of Distance to I-95 (log)",
+       subtitle = "Properties within 500m of highways",
+       x = "Log Distance to I-95",
+       y = "Log Property Sale Price") +
+  theme_minimal()
+i95_scatter
+
+```
+
+
 The scatter plot above shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) as we move away from a highway which tracks with our literature review of highway effects on property prices. 
 
 When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, it was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
 
 For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^coef_i676)*100000) - 100000)` more expensive** (assuming a block is about 200m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
 
-The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^coef_i95), 5)*100000)` less expensive**.
+The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^coef_i95), 5)*100000)` less expensive**. We suspect that the negative effect distance to highways have on property price is driven by .....
 
 We now zoom into our **study area** to further understand highway effects in our region of interest.
 
+### Philly Scale Analysis (Residential Properties only)
+
+Now, we conduct the same analyses to explore the relationship between **distance to highway** and **property prices** for residential properties only (excluding residential garages and vacant lots).  We saw the following trends in property prices.
+
+```{r prep_500_res, quiet = TRUE, results = 'hide'}
+# properties within 500 m of highway that are specifically housing related (excluding residential garages and vacant lands)
+prop500_res <- prop500 %>% 
+  filter(grepl("APARTMENTS|MIXED USE|MULTI FAMILY|SINGLE FAMILY", category_code_description))
+# 98.1% of the properties 500 m within highways are residential.
+
+```
+
+```{r prop500_res_faceted}
+prop500_res_faceted <- 
+  ggplot(data = prop500_res,
+         aes(x = log_price, color = closest_highway, fill = closest_highway)) +
+  geom_histogram(bins = 50, show.legend = F) +
+  facet_wrap(~closest_highway, scales = "free_y") +
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  scale_fill_manual(values = c("US-1" = "#1a9988",
+                               "I-76" = "#eb5600",
+                               "I-95" = "#eba075",
+                               "I-676" = "#7fe3d6")) +
+  labs(title = "Distribution of Residential Property Sale Price",
+       subtitle = "Split by Closest Highway",
+       x = "Log Sale Price",
+       y = "Count") +
+  theme_minimal()
+
+prop500_res_faceted
+
+# this one is largely unchanged
+```
+
+```{r prop500_res_med_saleprices}
+# median sale prices to talk about in the text
+med_res_price_us1 <- round(median(prop500_res %>% 
+                          filter(closest_highway == "US-1") %>% 
+                          pull(adj_sale_price)))
+
+med_res_price_i76 <- round(median(prop500_res %>% 
+                          filter(closest_highway == "I-76") %>% 
+                          pull(adj_sale_price)))
+
+med_res_price_i95 <- round(median(prop500_res %>% 
+                          filter(closest_highway == "I-95") %>% 
+                          pull(adj_sale_price)))
+
+med_res_price_676 <- round(median(prop500_res %>% 
+                          filter(closest_highway == "I-676") %>% 
+                          pull(adj_sale_price)))
+
+# count of properties included in analysis 
+prop_res_count <- prop500_res %>% 
+  st_drop_geometry() %>% 
+  group_by(closest_highway) %>% 
+  summarise(count = n())
+
+prop_res_count_676 <- prop_res_count %>% 
+  filter(grepl("676", closest_highway)) %>% 
+  pull(count)
+
+prop_res_count_us1 <- prop_res_count %>% 
+  filter(grepl("US", closest_highway)) %>% 
+  pull(count)
+
+prop_res_count_i76 <- prop_res_count %>% 
+  filter(grepl("-76", closest_highway)) %>% 
+  pull(count)
+
+prop_res_count_i95 <- prop_res_count %>% 
+  filter(grepl("95", closest_highway)) %>% 
+  pull(count)
+```
+
+`r paste0(substr(nrow(prop500_res), 1, 2), ",", substr(nrow(prop500_res), 3, 5))` total properties were included in this analysis. We see that the distribution of log sale prices of properties within 500m of highways in Philadelphia generally follow a normal distribution.
+
+Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r prop_res_count_676` properties) as there are near the other highways, they are most expensive group with a median property price of **`r paste0('$', substr(med_res_price_676, 1, 3), ',', substr(med_res_price_676, 4, 9))`**. 
+
+Properties near [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"} are among a similar range of prices with median property prices being **`r paste0('$', substr(med_res_price_i95, 1, 3), ',', substr(med_res_price_i95, 4, 9))`** and **`r paste0('$', substr(med_res_price_i76, 1, 3), ',', substr(med_res_price_i76, 4, 9))`**, respectively, though there are almost five times as many properties near [I-95]{style="color: #eba075;"} compared to [I-76]{style="color: #eb5600;"} (`r paste0(substr(prop_res_count_i95,1,1), ",", substr(prop_res_count_i95, 2,4))` and `r paste0(substr(prop_res_count_i76,1,1), ",", substr(prop_res_count_i76, 2,4))` properties around [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"}, respectively). 
+
+Finally, there are many properties within 500m of [US-1]{style="color: #1a9988;"} (`r paste0(substr(prop_res_count_us1,1,1), ",", substr(prop_res_count_us1, 2,4))` properties), but the median property price was lowest compared to other highways at **`r paste0('$', substr(med_res_price_us1, 1, 3), ',', substr(med_res_price_us1, 4, 9))`**.
+
+```{r prop500_res_scatter}
+# models + beta coefficients
+coef_res_us1 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway,
+       data = prop500_res %>% 
+         filter(grepl("US", closest_highway)))
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_res_i76 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500_res %>% 
+         filter(grepl("-76", closest_highway)))
+    )$coefficients[2,1], 3) # ** p < 0.05
+
+coef_res_i95 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500_res %>% 
+         filter(grepl("95", closest_highway)))
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_res_i676 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500_res %>%
+         filter(grepl("676", closest_highway)))
+    )$coefficients[2,1], 3) # not statistically significant, p = 0.0693
+
+scatter_4highways_res <- 
+  ggplot(data = prop500_res, 
+       aes(x = log_dist_to_closest_highway, y = log_price, 
+           color = closest_highway, fill = closest_highway)) +
+  geom_point(alpha = .2, size = 0.3, show.legend = F) +
+  geom_smooth(method = "lm", size = 1.2, show.legend = F) +
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  scale_fill_manual(values = c("US-1" = "#1a9988",
+                               "I-76" = "#eb5600",
+                               "I-95" = "#eba075",
+                               "I-676" = "#7fe3d6")) +
+  geom_text(aes(label = paste("US-1:", coef_res_us1),
+                x = 4.25,
+                y = 11.75),
+            color = "#1a9988", 
+            show.legend = F) +
+  geom_text(aes(label = paste("I-76:", coef_res_i76),
+                x = 4.25,
+                y = 12.75),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = paste("I-95:", coef_res_i95),
+                x = 4.25,
+                y = 13.25),
+            color = "#eba075",
+            show.legend = F) +
+  geom_text(aes(label = paste("I-676:", coef_res_i676),
+                x = 4.25,
+                y = 13.75),
+            color = "#7fe3d6",
+            show.legend = F) +
+  labs(title = "Residential Property Price (log) as a function of Distance to Closest Highway (log)",
+       subtitle = "Properties within 500m of highways",
+       x = "Log Distance to Closest Highway",
+       y = "Log Property Price") +
+  theme_minimal()
+
+scatter_4highways_res
+
+```
+
+The scatter plot above shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) as we move away from a highway which tracks with our literature review of highway effects on property prices. 
+
+When predicting property price, the beta coefficient for log distance to highway is `r coef_res_i676`, `r coef_res_i76`, and `r coef_res_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, it was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
+
+For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_res_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^coef_res_i676)*100000) - 100000)` more expensive** (assuming a block is about 200m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_res_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_res_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_res_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_res_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
+
+The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_res_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_res_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^coef_res_i95), 5)*100000)` less expensive**.
+
+We now zoom into our **study area** to further understand highway effects in our region of interest.
 
 ## Study Region Scale Analysis
 
