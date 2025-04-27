@@ -159,7 +159,7 @@ body {
 
 /* 3. Slides */
 
-.slide {
+.layout0 {
   position: relative; /* allow child positioning */
   overflow: hidden;
   min-height: 100vh;
@@ -178,44 +178,44 @@ body {
   
   /* Fixed, full-screen background image */
   .layout0 .background-layer {
-  background-image: url('../img/Storymap-background2.png');
+  background-image: url('../img/Storymap-background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed; /* makes it stay in place */
   }
   
-  .slide.layout0.timeline {
+.layout0.timeline {
   background-color: #279382;
   }
   
-  .slide.layout0 .text {
-  color: #279382;
+.layout0 .text {
+  color: #ffffff;
   font-size: 1.3em;
   text-align: left;
   margin-left: 30%;
   margin-right: 20%;
   }
   
-  .slide.layout0.timeline .image {
+.layout0.timeline .image {
   width: 100%;
   max-width: 100%;
   padding: 0 10%;
   box-sizing: border-box;
   }
   
-  .slide.layout0.timeline .image img {
+.layout0.timeline .image img {
   width: 100%;
   height: auto;
   display: block;
   }
   
-  .slide.layout0.timeline {
+.layout0.timeline {
   padding: 40px 0;
   }
   
   /* Remove all padding and margin from the timeline page */
-  .slide.layout0.timeline .content {
+.layout0.timeline .content {
   padding: 0;
   margin: 0;
   width: 100%;
@@ -224,14 +224,14 @@ body {
   }
   
   /* Make the image fill full width */
-  .slide.layout0.timeline .image {
+.layout0.timeline .image {
   width: 100%;
   margin: 0;
   padding: 0;
   }
   
   /* Remove auto margin and scale image */
-  .slide.layout0.timeline .image img {
+.layout0.timeline .image img {
   width: 100%;
   height: auto;
   margin: 0;
@@ -252,25 +252,14 @@ body {
   z-index: 0; /* stay behind content */
   }
   
-  .layout0, .layout1, .layout2, .layout3 {
+  .layout0{
     background-color: #f2f2f2;
   }
   
-  .slide.layout1 .background-layer{
-  background-image: url('../img/background-callowhill.png');
-  }
-  
-  .slide.layout2 .background-layer{
-  background-image: url('../img/background-vst.png');
-  }
-  
-  .slide.layout3 .background-layer{
-  background-image: url('../img/background-chinatown.png');
-  }
   
   /* 3.3 layouts */
   
-  .slide .content {
+  .layout0 .content {
   position: relative;
   z-index: 1; /* above background */
   width: 100%;
@@ -311,7 +300,62 @@ body {
     margin: 0 auto;
   }
   
-  /* 3.4 Problems */
+
+/* 3.4 use case */
+.future-content {
+  display: flex;
+  flex-direction: column; /* Stack vertically */
+  align-items: center;
+  text-align: center;
+}
+
+.future-content .text {
+  max-width: 800px;
+  margin-bottom: 40px;
+}
+
+.future-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 40px;
+  justify-items: center;
+}
+
+.grid-item {
+  width: 250px;
+  text-align: center;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.grid-item img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+}
+
+.grid-item:hover img {
+  transform: scale(1.05);
+}
+
+.grid-item h3 {
+  margin-top: 10px;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: white;
+  transition: color 0.3s;
+}
+
+.grid-item:hover h3 {
+  color: #ffae00;;
+}
+
+
+
+
+  /* 3.5 Problems */
   
   
   /* Container for problem cards */
@@ -389,3 +433,122 @@ body {
     z-index: 1;
   }
   
+
+  /* 3. map slides */
+
+  .highlight-orange {
+    color: #DB5420; /* Nice orange */
+    font-weight: bold;
+  }
+  
+   .map-container {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    z-index: 0;
+  }
+  
+  .map {
+    height: 100%;
+  }
+  
+  .slide-section {
+    position: relative;
+    margin-top: -30vh;
+    z-index: 100;
+    pointer-events: none;
+  }
+  
+  .slide {
+    margin-top: 90vh;
+    margin-bottom: 90vh;
+    margin-left: auto;
+    margin-right: 2rem;
+    padding: 1rem;
+    box-shadow: -0.5rem 0 1rem rgba(0 0 0 / 50%);
+    border: 2px solid #ffffff;
+    border-radius: 0.5rem;
+    pointer-events: initial;
+  
+    width: 25rem;
+  
+    background-color: white; /* background of the slides*/
+    color: #279382;
+  }
+  
+  
+  .slide:first-child {
+    margin-top: 0;
+  }
+  
+  .slide:last-child {
+    margin-bottom: 40vh;
+  }
+  
+  .slide-controls {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    column-gap: 0.5rem;
+  
+    width: 100%;
+  }
+  
+  .slide-nav-button {
+    transition: all 0.1s;
+  
+    padding: 0;
+    margin: 1rem;
+    width: 4rem;
+    height: 3rem;
+    border: 1px solid #888;
+    border-radius: 0.25rem;
+  
+    background-color: #eee;
+    font-size: 1.5em;
+  }
+  
+  .slide-nav-button:hover {
+    background-color: #444;
+    color: #fff;
+  }
+  
+  .slide-nav-select {
+    min-width: 0;
+  }
+  
+  .slide img {
+    width: 100%;  /* Make the image take the full width of the container */
+    height: auto; /* Automatically adjust height to maintain aspect ratio */
+  }
+  
+  .slide iframe {
+    width: 100%;  
+    height: 170pt; 
+  }
+
+  .label-icon {
+    font-size: 14px;
+    font-weight: bold;
+    color: #444;
+    background: rgba(255,255,255,0.7);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    white-space: nowrap;
+  }
+  
+  h1 {
+    font-weight: bolder;
+    font-size: 2.5em;
+  }
+  
+  h2 {
+    font-weight: bolder;
+    font-size: 2em;
+  }
+  
+  h3 {
+    font-weight: bold;
+    font-size: 1.5em;
+  }
