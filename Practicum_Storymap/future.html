@@ -17,30 +17,32 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" ... />
 
 </head>
+
+
 <body>
-  <div class="upper-area"></div>
-  
-  <!--natigation bar-->
-  <nav id="navbar" class="navbar">
-    <div class="logo-title">
-      <img src="./img/icon.png" alt="logo" class="logo">
-      <span class="project-name">Project Team</span>
-    </div>
-    
-    <div class="nav-buttons">
-      <a class="nav-btn" href="introduction.html">HOME</a>
-      <a class="nav-btn" href="context.html">PAST</a>
-      <a class="nav-btn" herf="now.html">NOW</a>
-      <a class="nav-btn" herf="future.html">FUTURE</a>
-    </div>
-    
-    <div class="about-btn">
-      <a class="nav-btn" data-section="about">About</a>
-    </div>
-  </nav>
-
-
   <main>
+    <div class="upper-area"></div>
+  
+    <!--natigation bar-->
+    <nav id="navbar" class="navbar">
+      <div class="logo-title">
+        <img src="./img/icon.png" alt="logo" class="logo">
+        <span class="project-name">Project Team</span>
+      </div>
+      
+      <div class="nav-buttons">
+        <a class="nav-btn" href="introduction.html">HOME</a>
+        <a class="nav-btn" href="context.html">PAST</a>
+        <a class="nav-btn" href="now.html">NOW</a>
+        <a class="nav-btn" href="future.html">FUTURE</a>
+      </div>
+      
+      <div class="about-btn">
+        <a class="nav-btn" data-section="about">About</a>
+      </div>
+    </nav>
+
+
     <!--Cover-->
 
     <div class ="tittle">
@@ -66,12 +68,15 @@
         <h2>Scenario 0:</h2>
         <h1>Business as Usual</h1>
         <p>A business-as-usual alternative without the construction of Chinatown Stitch. This alternative is provided here as our reference/control group which will be used to compare results from other scenarios to measure the impacts of the Chinatown Stitch on the local house market.</p> 
+        <img src="img/scenario/S0_map.png">
+        <img src="img/scenario/discontinuity_plot_S1.png">
       </article>
 
-      <article class="slide" id="second-slide">
+      <article class="slide" id="property_S1">
         <h2>Scenario 1 - Stitch as a Park</h2>
         <p>An alternative where the Chinatown Stitch completes its construction and serves as a park and mix-use space as promised. In this scenario, part of the Vine Street Expressway will be capped and transitioned into green open space. With the Chinatown Stitch in place, residents and visitors will have better access to recreational spaces that this neighborhood was previously lacking.</p> 
-        <img src="img/Colonial Beginnings.jpeg">
+        <img src="img/scenario/S1_map.png">
+        <img src="img/scenario/discontinuity_plot_S0.png">
       </article>
 
       <article class="slide" id="third-slide">
@@ -93,29 +98,35 @@
     </section>
     
 
-  </main>
-
   <!--Summary-->
-  <section class="slidea">
+  <section class="layout0">
     <div class="background-layer"></div>
     <div class="content">
       <div class="text">
         <h1>SUMMARY</h1>
-        <p>Note that the purpose of this study is to try to discover the potential trends/shifts in the housing market instead of accurately predicting exact value of each property within the study region due to the limitations of the modeling methods as well as other factors beyond our control. These scenarios are alternatives to reality and not the future market as the future is highly unpredictable.  </p>
+        <p>XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX </p>
+        <p>TO BE ADDED </p>
+  
+        <div class="summary-image">
+          <img src="img/scenario/S0_S1_density.png" alt="Price Distribution">
+        </div>
       </div>
     </div>
   </section>
+  
 
   <!--Limitations-->
-  <section class="slidea">
+  <section class="layout0">
     <div class="background-layer"></div>
     <div class="content">
       <div class="text">
         <H1>LIMITATIONS</H1>
         <p>Note that the purpose of this study is to try to discover the potential trends/shifts in the housing market instead of accurately predicting exact value of each property within the study region due to the limitations of the modeling methods as well as other factors beyond our control. These scenarios are alternatives to reality and not the future market as the future is highly unpredictable.  </p>
+        <p></p>
       </div>
     </div>
   </section>
+  </main>
 
   <script src="js/topbar.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

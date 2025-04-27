@@ -10,15 +10,17 @@ class SlideDeck {
     this.currentSlideIndex = 0;
   }
 
+  // Site  boundary
   loadPhiladelphiaLayer() {
     fetch('data/studyarea.json')
       .then(response => response.json())
       .then(data => {
         L.geoJSON(data, {
           style: {
-            color: 'black',
+            color: '#299988',
             dashArray: '5, 5',  
-            weight: 2
+            weight: 2,
+            fillOpacity: 0,
           }
         }).addTo(this.map);
       })
@@ -39,24 +41,79 @@ class SlideDeck {
    * @return {L.GeoJSONLayer} The new GeoJSON layer that has been added to the
    *                          data layer group.
    */
+  // updateDataLayer(data) {
+  //   this.dataLayer.clearLayers();
+  //   const geoJsonLayer = L.geoJSON(data, {
+  //     pointToLayer: (p, latlng) => L.marker(latlng),
+  //     style: (feature) => ({
+  //       color: '#299988', 
+  //       // fillColor: '#a6c038', 
+  //       weight: feature.properties.weight || 1,
+  //       opacity: feature.properties.opacity || 1,
+  //       fillOpacity: feature.properties.fillOpacity || 0.5
+  //     }),
+  //   })
+  //   .bindTooltip((l) => l.feature.properties.label)
+  //   .addTo(this.dataLayer);
+
+  //   return geoJsonLayer;
+  // }
+
   updateDataLayer(data) {
     this.dataLayer.clearLayers();
+  
+    // Get min/max prices from GeoJSON features
+    const prices = data.features
+      .filter(f => f.geometry.type === 'Point')
+      .map(f => f.properties.predicted_price || 0);
+  
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+  
+    // Interpolate between #299988 → #E7551B
+    const interpolateColor = (price) => {
+      const t = Math.max(0, Math.min(1, (price - minPrice) / (maxPrice - minPrice)));
+      const start = { r: 41, g: 153, b: 136 };  // #299988
+      const end = { r: 231, g: 85, b: 27 };     // #E7551B
+      const r = Math.round(start.r + (end.r - start.r) * t);
+      const g = Math.round(start.g + (end.g - start.g) * t);
+      const b = Math.round(start.b + (end.b - start.b) * t);
+      return `rgb(${r},${g},${b})`;
+    };
+  
     const geoJsonLayer = L.geoJSON(data, {
-      pointToLayer: (p, latlng) => L.marker(latlng),
-      style: (feature) => ({
-        color: '#a6c038', 
-        fillColor: '#a6c038', 
-        weight: feature.properties.weight || 1,
-        opacity: feature.properties.opacity || 1,
-        fillOpacity: feature.properties.fillOpacity || 0.5
-      }),
-    })
-    .bindTooltip((l) => l.feature.properties.label)
-    .addTo(this.dataLayer);
-
+      pointToLayer: (feature, latlng) => {
+        const price = feature.properties.predicted_price || 0;
+        return L.circleMarker(latlng, {
+          radius: 5,
+          fillColor: interpolateColor(price),
+          color: '#fff',
+          weight: 0.5,
+          fillOpacity: 0.9
+        });
+      },
+      style: (feature) => {
+        if (feature.geometry.type === 'Polygon') {
+          return {
+            color: '#279382',
+            weight: 2,
+            fillOpacity: 0.2
+          };
+        }
+      },
+      onEachFeature: (feature, layer) => {
+        if (feature.properties && feature.properties.label) {
+          layer.bindTooltip(feature.properties.label);
+        }
+      }
+    });
+  
+    geoJsonLayer.addTo(this.dataLayer);
     return geoJsonLayer;
   }
-
+  
+  
+  
 
   /**
    * ### getSlideFeatureCollection

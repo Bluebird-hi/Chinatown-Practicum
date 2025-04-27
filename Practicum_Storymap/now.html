@@ -18,20 +18,21 @@
 
   <!--natigation bar-->
   <nav id="navbar" class="navbar">
-      <div class="logo-title">
-        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/0/0d/Penn_logo.svg/1280px-Penn_logo.svg.png" alt="logo" class="logo">
-        <a class="project-name" href="introduction.html">Project Team</a>
-      </div>
-
-      <div class="nav-center">
-        <a class="nav-btn" href="context.html">Past</a>
-        <a class="nav-btn" href="now.html">Now</a>
-        <a class="nav-btn" href="scenario.html">Future</a>
-      </div>
-
-      <div class="about-btn">
-        <a class="nav-btn" href="#about">About</a>
-      </div>
+    <div class="logo-title">
+      <img src="/img/icon.png" alt="logo" class="logo">
+      <span class="project-name">Project Team</span>
+    </div>
+    
+    <div class="nav-buttons">
+      <a class="nav-btn" href="introduction.html">HOME</a>
+      <a class="nav-btn" href="context.html">PAST</a>
+      <a class="nav-btn" href="now.html">NOW</a>
+      <a class="nav-btn" href="future.html">FUTURE</a>
+    </div>
+    
+    <div class="about-btn">
+      <a class="nav-btn" data-section="about">About</a>
+    </div>
   </nav>
 
   <!--Cover-->
@@ -54,11 +55,22 @@
     <!-- <section class="slide0StitchIntro">  -->
     <section class="slide layout0">
       <div class="text">
-        <h1>1. The Chinatown Stitch</h1>
+        <h1>1. <a class="titlelink" href="https://www.phila.gov/programs/complete-streets/projects/the-chinatown-stitch-reconnecting-philadelphia-to-vine-street/">The Chinatown Stitch</a></h1>
         <h3>Project Summary</h3>
-        <p>This project seeks to reconnect Chinatown by building a cap over the Vine Street Expressway (I-676) between 10th and 13th streets.</p>
-        <p>Goals of project</p>
-        <p>Collaborators</p>
+        <p>Under the leadership of Philadelphia's Office of Transportation and Infrastructure Systems (OTIS), this project seeks to reconnect Chinatown by building a cap over the Vine Street Expressway (I-676) between 10th and 13th streets.</p>
+        <h4>Project Goals (taken directly from <a class="extlink" href="https://www.phila.gov/media/20250421144603/Chinatown-Stitch-April-2025-Project-Updates-En.pdf">April 2025 newsletter</a>)</h4>
+        <ul class="bulletlist">
+          <li>Create an inviting public green space with trees and plants</li>
+          <li>Create a safe street design that extends the Chinatown neighborhood feel</li>
+          <li>Prioritize the needs of the elderly, young, and those with disabilities</li>
+          <li>Include public buildings and businesses that serve community needs</li>
+        </ul>
+        <h4>Collaborators and Partners</h4>
+        <ul class="bulletlist">
+          <li>Philadelphia Chinatown Development Corporation (PCDC)</li>
+          <li>PennDOT District 6-0</li>
+          <li>Federal Highway Administration</li>
+        </ul>
       </div>
       <!-- There will be a map of the study area with the Stitch being highlighted-->
       <!-- <div id="studyareamap" class="map"></div> -->
@@ -73,12 +85,18 @@
       <!-- <div id="stitchmap" class="map"></div> -->
       <div class="text">
         <h3>Chinatown Stitch Construction Timeline</h3>
-        <p>2023</p>
-        <p>2024</p>
-        <p>2025</p>
-        <p>2026</p>
-        <p>2027</p>
-        <p>2030</p>
+
+        <p class="timelineitem" style="color: #299988;"><strong>2023</strong> <br> Engagement and brainstorming</p>
+
+        <p class="timelineitem" style="color: #299988;"><strong>2024</strong> <br> Initial data collection, analysis and engineering</p>
+
+        <p class="timelineitem" id="timeline25"><strong>2025</strong> <br> Refining the Concept in community. Look out for <a class="extlink" href="https://www.phila.gov/the-latest/all-events/?category=Office%20of%20Transportation,%20Infrastructure%20and%20Sustainability">pop-up events</a> to stay involved!</p>
+
+        <p class="timelineitem" id="timeline26"><strong>2026</strong> <br> Design Finalization</p>
+
+        <p class="timelineitem" id="timeline27"><strong>2027</strong> <br> Phase I construction begins</p>
+        
+        <p class="timelineitem" id="timeline30"><strong>2030</strong> <br> Phase I construction expected to finish</p>
       </div>
     </section>
 
@@ -97,61 +115,112 @@
 
     <!--slide 3: Klyde Warren Park-->
     <section class="slide layout1">
-      <div class="text">
-        <h2>Klyde Warren Park</h2>
-        <h3>Dallas, TX</h3>
-        <p>Summary of impacts</p>
-        <p>As we add other factors like distance to Center City and [feature 2], distance to highway has less influence on property prices.</p>
-        <p>When only considering distance to I-676, property prices increase $XX per square foot as we move 100m [or other more commonly understood measurement of space like a block]. When we add other aspects of a property,property prices increase $XX per square foot as we move 100m.</p>
-        <!--TODO: need to add something visual to demonstrate this last sentence. Also, this last sentence can possibly be its own slide as well-->
+      <div class="othercity-container">
+        <div class="text">
+          <h2>Klyde Warren Park</h2>
+          <h3>Dallas, TX</h3>
+          <p>This project <strong>connected</strong> the predominantly Black Uptown neighborhood with the arts district and Downtown while also providing a <strong>community gathering space</strong> with free programming year-round. Since its opening in 2012, the park has <strong>enhanced the land value</strong> in the surrounding area, creating a positive economic impact on the City of Dallas. Dallas also experienced <strong>faster office and multifamily construction growth</strong> after the construction of the lid. However, it brought up concerns of <strong>“green gentrification”</strong> which benefits the interests of developers over displaced communities.</p>
+        </div>
+        <div class="othercity-row">
+          <div class="othercity-image">
+            <figure>
+              <img src="img/KlydeWarrenPark.png" alt="Image of Klyde Warren Park" class="responsive-img">
+              <figcaption>
+                <i class="photo-credit">Photo from <a href="https://www.klydewarrenpark.org/">klydewarrenpark.org</a></i>
+              </figcaption>
+            </figure>
+          </div>
+          <div class="text-specs">
+            <p><strong>Completion date:</strong> <br> 2013</p>
+            <p><strong>Area Covered:</strong> <br> 5.4 acres (235,000 sqft)</p>
+            <p><strong>Cost:</strong> <br> $112 million</p>
+            <p><strong>Type of project:</strong> <br> Park/Open Space</p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!--slide 4: Other Predictors: internal features-->
+    <!--Transition: map moves to Columbus, OH-->
+
+    <!--slide 4: Cap at Union Station-->
+    <section class="slide layout1">
+      <div class="othercity-container">
+        <div class="text">
+          <h2>Cap at Union Station</h2>
+          <h3>Columbus, OH</h3>
+          <p>The project addressed the 40-year scar that was created by the construction of the inner-belt highway (I-670) by <strong>reconnecting</strong> the Columbus downtown area and the Short North neighborhood. The cap acts as a <strong>bridge for through traffic</strong> across I-670 while also providing leasable spaces to many retail shops and restaurants, ultimately <strong>providing an inviting urban streetscape</strong>.
+          </p>
+        </div>
+        <div class="othercity-row">
+          <div class="othercity-image">
+            <figure>
+              <img src="img/CapUnionStation.png" alt="Image of Cap at Union Station" class="responsive-img">
+              <figcaption>
+                <i class="photo-credit">Photo from <a href="https://www.crexi.com/properties/1653293/ohio-the-cap-at-union-station">crexi.com</a></i>
+              </figcaption>
+            </figure>
+          </div>
+          <div class="text-specs">
+            <p><strong>Completion date:</strong> <br> Completion date: 2004</p>
+            <p><strong>Area Covered:</strong> <br> Area Covered: 25,500 sqft</p>
+            <p><strong>Cost:</strong> <br> Cost: $7.8 million</p>
+            <p><strong>Type of project:</strong> <br> Type of project: Commercial</p>
+          </div>
+        </div>
+        
+      </div>
+    </section>
+
+    <!--Transition: map moves to Boston, MA-->
+
+    <!--slide 5: The Big Dig at the Central Artery -->
+    <section class="slide layout1">
+      <div class="othercity-container">
+        <div class="text">
+          <h2>The Big Dig at the Central Artery</h2>
+          <h3>Boston, MA</h3>
+          <p>Creating more than 300 acres of open land with <strong>over 45 parks and public plazas</strong>, the Big Dig project replaced the deteriorating I-93 (Central Artery) with an underground expressway that links downtown Boston to the Boston Logan airport. This project also <strong>improved the North End and Waterfront neighborhoods' access to downtown Boston</strong> and <strong>reduced traffic congestion</strong>, providing ~$168 million per year in time and cost savings.</p>
+        </div>
+        <div class="othercity-row">
+          <div class="othercity-image">
+            <figure>
+              <img src="img/CentralArtery.png" alt="Image of The Big Dig at the Central Artery" class="responsive-img">
+              <figcaption>
+                <i class="photo-credit">Photo from <a href="https://themindcircle.com/boston-big-dig/">themindcircle.com</a></i>
+              </figcaption>
+            </figure>
+          </div>
+          <div class="text-specs">
+            <p><strong>Completion date:</strong> <br> 2007</p>
+            <p><strong>Area Covered:</strong> <br> 2,350 acres</p>
+            <p><strong>Cost:</strong> <br> $14.8 billion</p>
+            <p><strong>Type of project:</strong> <br> Mixed Use</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!--Transition: Banner moves up to cover map of Boston-->
+
+    <!--slide 6: Summary and comparison to Chinatown Stitch -->
     <section class="slide layout2">
       <div class="text">
-        <h1>3. What else impacts property price?</h1>
-        <h3>Property Features</h3>
-        <p>[Description of a couple of internal characteristics of properties that influence price]</p>
-      </div>
-      <div class="image">
-          <img src="img/" alt="" class="responsive-img">
+        <h3>Summary and comparison to Chinatown Stitch</h3>
+        <p>A common thread across the impacts of caps in other cities is <strong>neighborhood access and connection</strong> as well as <strong>increased value of land</strong>. The <strong>Chinatown Stitch</strong> will not only reconnect Chinatown North to Chinatown, but also provide much needed open, green space for the community. A potential challenge after the construction of the Chinatown Stitch will be <strong>balancing</strong> the positive effects of higher land value and the <strong>activation of commercial and residential opportunities</strong> with <strong>affordability and cultural preservation</strong> of the character of Philadelphia's Chinatown.</p>
+        <p>In our analyses, we explore how <strong>property price may change</strong> in three imagined futures after the implementation of the Chinatown Stitch.</p>
       </div>
     </section>
 
-    <!--slide 5: Other Predictors: amenities-->
-    <section class="slide layout2">
-      <div class="text">
-        <h3>Public Amenities</h3>
-        <p>[Description of a couple of amenities (probably distance to park and distance to center city) that influence price]</p>
-      </div>
-      <div class="image">
-          <img src="img/" alt="" class="responsive-img">
-      </div>
-    </section>
+    <!--Transition: Banner moves up to reveal background image-->
 
-    <!--slide 5: Other Predictors: spatial process-->
+    <!--slide 7: Model-->
     <section class="slide layout3">
       <div class="text">
-        <h3>"City of Neighborhoods"</h3>
-        <p>Philadelphia is often described as a "city of neighborhoods". [More about how price of properties with similar qualities may differ across neighborhoods]</p>
-      </div>
-      <div class="image">
-          <img src="img/" alt="" class="responsive-img">
-      </div>
-    </section>
-
-    <!--slide 6: Model-->
-    <section class="slide layout4">
-      <div class="text">
-        <h3>Putting it all together...</h3>
-        <h1>Our Model</h1>
-        <p>We incorporate all these features (internal characteristics like number of bedrooms, amenities like distance to City Hall, and neighborhood names) of properties to predict property prices.</p>
-        <p>Price (per square foot) = Internal Features + Amenities + Location</p>
-        <p>[Transition sentence]</p>
-      </div>
-      <div class="image">
-          <img src="img/" alt="" class="responsive-img">
+        <h1>3. Our Prediction Model</h1>
+        <p class="modelfeatures">We trained a model that incorporates many <strong>features of properties</strong> (<ic>internal characteristics</ic> like number of bedrooms, <am>amenities</am> like distance to City Hall, and <lo>location</lo> like neighborhood names) to predict property prices using the following formula:</p>
+        <p class="equation">Price = <ic>Internal Characteristics</ic> + <am>Amenities</am> + <lo>Location</lo></p>
+        <p class="footnote">Please refer to our <a class="extlink" href="">markdown</a> for more detailed information on our data analysis and modeling process.</p>
+        <p>Click "Next" to explore how we <strong>predict property prices</strong> to change as a result of the Chinatown Stitch!</p>
       </div>
 
       <a class="next-button" href="future.html">NEXT</a>
