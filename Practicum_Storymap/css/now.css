@@ -203,6 +203,7 @@ h4 {
   z-index: 100;
   pointer-events: none;
   border-bottom: 1px solid rgb(0 0 0 / 10%);
+  margin-bottom: 0; /* Remove any bottom margin from the slide-section */
 }
 
 .slide {
@@ -353,8 +354,8 @@ h4 {
 
 /* 4B. Banner specifics */
 .banner {
-  margin-top: 30vh;
-  margin-bottom: 30vh;
+  margin-top: 15vh;
+  margin-bottom: 15vh;
   margin-left: auto;
   margin-right: auto;
 
@@ -379,6 +380,28 @@ h4 {
 #othercaps .text, #othercapssum .text {
   text-align: center; 
   padding: 5% 20%;
+}
+
+#othercaps .text {
+  color: white;
+}
+
+#othercaps {
+  background-image: url('../img/othercities_background.png'); /* Set the background image */
+  background-size: cover; /* Ensure the image covers the entire banner */
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Prevent the image from repeating */
+  height: 100%;
+}
+
+#othercapssum {
+  background-image: url('../img/othercap_summary_background.png');
+  background-size: cover; /* Ensure the image covers the entire banner */
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Prevent the image from repeating */
+  height: 100vh; /* Make the banner fill the entire screen height */
+  margin: 0; 
+  padding: 0; 
 }
 
 /* 3C. Model Slide specifics */
