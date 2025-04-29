@@ -1,0 +1,31 @@
+{
+  "displayFieldName" : "",
+  "fieldAliases" : {
+    "OBJECTID" : "OBJECTID",
+    "Shape_Length" : "Shape_Length",
+    "Shape_Area" : "Shape_Area"
+  },
+  "geometryType" : "esriGeometryPolygon",
+  "spatialReference" : {
+    "wkid" : 102100,
+    "latestWkid" : 3857
+  },
+  "fields" : [
+    {
+      "name" : "OBJECTID",
+      "type" : "esriFieldTypeOID",
+      "alias" : "OBJECTID"
+    },
+    {
+      "name" : "Shape_Length",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Shape_Length"
+    },
+    {
+      "name" : "Shape_Area",
+      "type" : "esriFieldTypeDouble",
+      "alias" : "Shape_Area"
+    }
+  ],
+  "features" : [{"attributes":{"OBJECTID":1,"Shape_Length":1308.9865113523406,"Shape_Area":39575.574127921791},"geometry":{"rings":[[[-8366910.3043000009,4859839.3954999968],[-8366330.9883999992,4859741.2863999978],[-8366342.8565999996,4859676.639700003],[-8366921.7664999999,4859771.2475999966],[-8366910.3043000009,4859839.3954999968]]]}}]
+}
