@@ -1,231 +1,185 @@
 class SlideDeck {
-  constructor(slides, map) {
+  
+  constructor(container, slides, map, slideOptions = {}) {
+    this.container = container;
     this.slides = slides;
     this.map = map;
+    this.slideOptions = slideOptions;
+
     this.dataLayer = L.layerGroup().addTo(map);
-    this.labelLayer = L.layerGroup().addTo(map); // Separate layer for labels
-    this.loadBaseLayers();
     this.currentSlideIndex = 0;
   }
 
-  loadBaseLayers() {
-    // Load Philadelphia base outline once
-    fetch('data/Philly.json')
-      .then(response => response.json())
-      .then(data => {
-        L.geoJSON(data, {
-          style: {
-            color: '#279382',
-            weight: 2,
-            dashArray: '5,5',
-            fill: false,
-            fillOpacity: 0
-          }
-        }).addTo(this.map);
-      });
+  /**
+   * ### updateDataLayer
+   *
+   * The updateDataLayer function will clear any markers or shapes previously
+   * added to the GeoJSON layer on the map, and replace them with the data
+   * provided in the `data` argument. The `data` should contain a GeoJSON
+   * FeatureCollection object.
+   *
+   * @param {object} data A GeoJSON FeatureCollection object
+   * @param {object} options Options to pass to L.geoJSON
+   * @return {L.GeoJSONLayer} The new GeoJSON layer that has been added to the
+   *                          data layer group.
+   */
+  updateDataLayer(data, options) {
+    this.dataLayer.clearLayers();
+
+    const defaultOptions = {
+      pointToLayer: (p, latlng) => L.marker(latlng),
+      style: (feature) => feature.properties.style,
+    };
+    const geoJsonLayer = L.geoJSON(data, options || defaultOptions)
+        .bindTooltip((l) => l.feature.properties.label)
+        .addTo(this.dataLayer);
+
+    return geoJsonLayer;
   }
 
+  /**
+   * ### getSlideFeatureCollection
+   *
+   * Load the slide's features from a GeoJSON file.
+   *
+   * @param {HTMLElement} slide The slide's HTML element. The element id should match the key for the slide's GeoJSON file
+   * @return {object} The FeatureCollection as loaded from the data file
+   */
   async getSlideFeatureCollection(slide) {
     const resp = await fetch(`data/${slide.id}.json`);
     const data = await resp.json();
     return data;
   }
 
-  updateDataLayer(data) {
-    this.dataLayer.clearLayers();
-    const prices = data.features
-      .filter(f => f.geometry.type === 'Point')
-      .map(f => f.properties.predicted_price || 0);
-
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-
-    const interpolateColor = (price) => {
-      const t = Math.max(0, Math.min(1, (price - minPrice) / (maxPrice - minPrice)));
-      const start = { r: 41, g: 153, b: 136 };
-      const end = { r: 231, g: 85, b: 27 };
-      const r = Math.round(start.r + (end.r - start.r) * t);
-      const g = Math.round(start.g + (end.g - start.g) * t);
-      const b = Math.round(start.b + (end.b - start.b) * t);
-      return `rgb(${r},${g},${b})`;
-    };
-
-    const geoJsonLayer = L.geoJSON(data, {
-      pointToLayer: (feature, latlng) => {
-        const price = feature.properties.predicted_price || 0;
-        return L.circleMarker(latlng, {
-          radius: 5,
-          fillColor: interpolateColor(price),
-          color: '#fff',
-          weight: 0.5,
-          fillOpacity: 0.9
-        });
-      }
-    });
-
-    geoJsonLayer.addTo(this.dataLayer);
-    return geoJsonLayer;
-  }
-
-  async syncMapToSlide(slide) {
-    this.dataLayer.clearLayers();
-    this.labelLayer.clearLayers();
-
-    if (slide.id === 'philly') {
-      // Slide 0: Philadelphia boundary + studyarea (orange) + centered labels
-
-      const phillyResp = await fetch('data/Philly.json');
-      const phillyData = await phillyResp.json();
-      const phillyLayer = L.geoJSON(phillyData, {
-        style: {
-          color: '#279382',
-          weight: 2,
-          dashArray: '5,5',
-          fill: false,
-          fillOpacity: 0
-        }
-      }).addTo(this.dataLayer);
-
-      const studyResp = await fetch('data/studyarea.json');
-      const studyData = await studyResp.json();
-      const studyLayer = L.geoJSON(studyData, {
-        style: {
-          color: '#E7551B',
-          weight: 2,
-          dashArray: null,
-          fill: false,
-          fillOpacity: 0
-        }
-      }).addTo(this.dataLayer);
-
-      // Center label for Philly
-      const phillyCenter = phillyLayer.getBounds().getCenter();
-      L.marker(phillyCenter, {
-        icon: L.divIcon({
-          className: 'label-icon',
-          html: `<div>Philadelphia</div>`
-        })
-      }).addTo(this.labelLayer);
-
-      // Center label for Study Area
-      const studyCenter = studyLayer.getBounds().getCenter();
-      L.marker(studyCenter, {
-        icon: L.divIcon({
-          className: 'label-icon',
-          html: `<div>Study Area</div>`
-        })
-      }).addTo(this.labelLayer);
-
-      this.map.fitBounds(phillyLayer.getBounds());
-
-    } else if (slide.id === 'studyarea') {
-      // Slide 1: Study Area + neighborhoods + labels
-
-      const loadAndStyle = async (url, styleOptions, labelText) => {
-        const resp = await fetch(url);
-        const data = await resp.json();
-        const layer = L.geoJSON(data, { style: styleOptions }).addTo(this.dataLayer);
-
-        const center = layer.getBounds().getCenter();
-        L.marker(center, {
-          icon: L.divIcon({
-            className: 'label-icon',
-            html: `<div>${labelText}</div>`
-          })
-        }).addTo(this.labelLayer);
-
-        return layer;
-      };
-
-      // Load all four neighborhoods
-      await loadAndStyle('data/callowhill.json', {
-        color: '#279382',
-        weight: 2,
-        fill: true,
-        fillColor: '#279382',
-        fillOpacity: 0.1,
-        dashArray: '5,5'
-      }, 'Callowhill');
-
-      await loadAndStyle('data/chinatown.json', {
-        color: '#279382',
-        weight: 2,
-        fill: true,
-        fillColor: '#279382',
-        fillOpacity: 0.1,
-        dashArray: '5,5'
-      }, 'Chinatown');
-      
-      await loadAndStyle('data/viaduct.json', {
-        color: '#279382',
-        weight: 2,
-        fill: true,
-        fillColor: '#279382',
-        fillOpacity: 1,
-        dashArray: null
-      }, 'Viaduct');
-
-      await loadAndStyle('data/stitch.json', {
-        color: '#E7551B',
-        weight: 2,
-        fill: true,
-        fillColor: '#E7551B',
-        fillOpacity: 1,
-      }, 'Stitch Project');
-
-      // Draw Study Area outline (grey dashed, no label needed here)
-      const studyResp = await fetch('data/studyarea.json');
-      const studyData = await studyResp.json();
-      const studyLayer = L.geoJSON(studyData, {
-        style: {
-          color: false,
-          weight: 2,
-          fill: false,
-          fillOpacity: 1,
-          dashArray: '5,5'
-        }
-      }).addTo(this.dataLayer);
-
-      this.map.fitBounds(studyLayer.getBounds());
-
-    } else {
-      // Other slides - property points
-      const collection = await this.getSlideFeatureCollection(slide);
-      const layer = this.updateDataLayer(collection);
-
-      if (collection.bbox) {
-        this.map.fitBounds(this.boundsFromBbox(collection.bbox));
-      } else {
-        this.map.fitBounds(layer.getBounds());
-      }
+  /**
+   * ### hideAllSlides
+   *
+   * Add the hidden class to all slides' HTML elements.
+   *
+   * @param {NodeList} slides The set of all slide elements, in order.
+   */
+  hideAllSlides() {
+    for (const slide of this.slides) {
+      slide.classList.add('hidden');
     }
   }
 
+  /**
+   * ### syncMapToSlide
+   *
+   * Go to the slide that mathces the specified ID.
+   *
+   * @param {HTMLElement} slide The slide's HTML element
+   */
+  async syncMapToSlide(slide) {
+    const collection = await this.getSlideFeatureCollection(slide);
+    const options = this.slideOptions[slide.id];
+    const layer = this.updateDataLayer(collection, options);
+
+    /**
+     * Create a bounds object from a GeoJSON bbox array.
+     * @param {Array} bbox The bounding box of the collection
+     * @return {L.latLngBounds} The bounds object
+     */
+    const boundsFromBbox = (bbox) => {
+      const [west, south, east, north] = bbox;
+      const bounds = L.latLngBounds(
+          L.latLng(south, west),
+          L.latLng(north, east),
+      );
+      return bounds;
+    };
+
+    /**
+     * Create a temporary event handler that will show tooltips on the map
+     * features, after the map is done "flying" to contain the data layer.
+     */
+    const handleFlyEnd = () => {
+      if (slide.showpopups) {
+        layer.eachLayer((l) => {
+          l.bindTooltip(l.feature.properties.label, { permanent: true });
+          l.openTooltip();
+        });
+      }
+      this.map.removeEventListener('moveend', handleFlyEnd);
+    };
+
+    this.map.addEventListener('moveend', handleFlyEnd);
+    if (collection.bbox) {
+      this.map.flyToBounds(boundsFromBbox(collection.bbox));
+    } else {
+      this.map.flyToBounds(layer.getBounds());
+    }
+  }
+
+  /**
+   * Show the slide with ID matched by currentSlideIndex. If currentSlideIndex is
+   * null, then show the first slide.
+   */
   syncMapToCurrentSlide() {
     const slide = this.slides[this.currentSlideIndex];
     this.syncMapToSlide(slide);
   }
 
+  /**
+   * Increment the currentSlideIndex and show the corresponding slide. If the
+   * current slide is the final slide, then the next is the first.
+   */
+  goNextSlide() {
+    this.currentSlideIndex++;
+
+    if (this.currentSlideIndex === this.slides.length) {
+      this.currentSlideIndex = 0;
+    }
+
+    this.syncMapToCurrentSlide();
+  }
+
+  /**
+   * Decrement the currentSlideIndes and show the corresponding slide. If the
+   * current slide is the first slide, then the previous is the final.
+   */
+  goPrevSlide() {
+    this.currentSlideIndex--;
+
+    if (this.currentSlideIndex < 0) {
+      this.currentSlideIndex = this.slides.length - 1;
+    }
+
+    this.syncMapToCurrentSlide();
+  }
+
+  /**
+   * ### preloadFeatureCollections
+   *
+   * Initiate a fetch on all slide data so that the browser can cache the
+   * requests. This way, when a specific slide is loaded it has a better chance
+   * of loading quickly.
+   */
   preloadFeatureCollections() {
     for (const slide of this.slides) {
       this.getSlideFeatureCollection(slide);
     }
   }
 
+  /**
+   * Calculate the current slide index based on the current scroll position.
+   */
   calcCurrentSlideIndex() {
-    let newSlideIndex = this.currentSlideIndex;
-    for (let i = 0; i < this.slides.length; i++) {
-      const rect = this.slides[i].getBoundingClientRect();
-      const middleOfScreen = window.innerHeight / 2;
+    const scrollPos = window.scrollY - this.container.offsetTop;
+    const windowHeight = window.innerHeight;
 
-      if (rect.top <= middleOfScreen && rect.bottom >= middleOfScreen) {
-        newSlideIndex = i;
+    let i;
+    for (i = 0; i < this.slides.length; i++) {
+      const slidePos =
+        this.slides[i].offsetTop - scrollPos + windowHeight * 0.7;
+      if (slidePos >= 0) {
         break;
       }
     }
 
-    if (newSlideIndex !== this.currentSlideIndex) {
-      this.currentSlideIndex = newSlideIndex;
+    if (i !== this.currentSlideIndex) {
+      this.currentSlideIndex = i;
       this.syncMapToCurrentSlide();
     }
   }
