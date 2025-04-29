@@ -49,10 +49,11 @@ body, html {
   font-weight: bold;
 }
   
-.nav-buttons,
-.about-btn {
+.nav-buttons {
   display: flex;
-  gap: 20px;
+  justify-content: center; /* Center the buttons horizontally */
+  gap: 20px; /* Add spacing between buttons */
+  flex-grow: 1; 
 }
 
 .nav-btn {
@@ -196,9 +197,6 @@ body, html {
 
   padding: 1rem;
 
-  box-shadow: -0.5rem 0 1rem rgba(0 0 0 / 50%);
-  
-  border: 1px solid gray;
   border-radius: 0.5rem;
   
   pointer-events: initial;
@@ -251,50 +249,44 @@ body, html {
   min-width: 0;
 } */
 
-/* old code */
-/* .slide {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 40px;
-  box-sizing: border-box;
-  color: #0D564B;
-  background-position: center;
-  background-size: cover;
-  transition: background-image 0.5s ease-in-out;
-} */
-
 .layout0, .layout1, .layout2, .layout3 {
   background-color: #f2f2f2;
 }
 
-/* 3A. layout0 specifics */
-.layout0 {
+/* 4A. Chinatown Intro and Timeline specifics */
+#stitchintro, #stitchtimeline {
   display: flex;
   gap: 40px;
   margin-left: 5%;
   margin-right: 5%;
   justify-content: space-between;
   padding: 20px 20px;
+  
+  box-shadow: 0.5rem 0.25rem 0.75rem rgba(0 0 0 / 50%);
 }
 
-.layout0 .text {
-  width: 100%; /* Set width to 50% for left half of the screen */
-  float: left; /* Align text to the left */
-  flex: none; /* Disable flex behavior */
-  /* margin-bottom: 100px;  */
-}
+/* 4B. Banner specifics */
+.banner {
+  margin-top: 30vh;
+  margin-bottom: 30vh;
+  margin-left: auto;
+  margin-right: auto;
 
-/* 3B. layout1 specifics */
-.layout1 {
+  padding: 1rem;
+
+  pointer-events: initial;
+
+  background-color: white;
+  color: #0D564B;
+
+  transition: background-image 0.5s ease-in-out;
+
+
   display: flex; /* Enable flexbox */
   flex-direction: column; /* Stack elements vertically */
   justify-content: center; /* Center vertically */
   align-items: center; /* Center horizontally */
   gap: 40px; /* Add spacing between elements */
-  margin-left: auto;
-  margin-right: auto;
   padding: 20px;
 }
 
@@ -485,7 +477,7 @@ body, html {
   transform: scale(1.05); /* Scale the item without affecting layout */
 }
 
-#timeline25:hover, #timeline26:hover, #timeline27:hover, #timeline30:hover {
+#timeline26:hover, #timeline27:hover, #timeline30:hover {
   color:#DB5420;
 }
 

@@ -30,30 +30,32 @@
       <a class="nav-btn" href="future.html">FUTURE</a>
     </div>
     
-    <div class="about-btn">
-      <a class="nav-btn" data-section="about">About</a>
-    </div>
   </nav>
 
+  <main>
   <!--Cover-->
   <div class="Cover">
-      <img src="img/now_cover_10plaza.png" style="width:100%;"  alt="10th St. Plaza over I-676" >
-      <div class="title-title">What is the Chinatown Stitch going to do?</div>
-      <div class="title-wrapper">
-        <div class="title-subtitle">Understanding the potential impacts of the Chinatown Stitch.</div>
-        <div class="title-text">1. What is the Chinatown Stitch?</div>
-        <div class="title-text">2. What effects do highway caps have in other cities?</div>
-        <div class="title-text">3. How are we predicting the potential impact of the Chinatown Stitch?</div>
-      </div>
+    <img src="img/now_cover_10plaza.png" style="width:100%;"  alt="10th St. Plaza over I-676" >
+    <div class="title-title">What is the Chinatown Stitch going to do?</div>
+    <div class="title-wrapper">
+      <div class="title-subtitle">Understanding the potential impacts of the Chinatown Stitch.</div>
+      <div class="title-text">1. What is the Chinatown Stitch?</div>
+      <div class="title-text">2. What effects do highway caps have in other cities?</div>
+      <div class="title-text">3. How are we predicting the potential impact of the Chinatown Stitch?</div>
+    </div>
+    <div class="title-scroll">Scroll to Explore</div>
   </div>
 
-  <div class="title-scroll">Scroll to Explore</div>
-
   <!--slides-->
-  <main>
+  <div class="map-container">
+    <div class="map" id="map"></div>
+  </div>
+
+  <section class="slide-section">
+
     <!--slide 0: The Chinatown Stitch Intro-->
-    <!-- <section class="slide0StitchIntro">  -->
-    <section class="slide layout0">
+    <!-- Map of study area -->
+    <article class="slide" id="stitchintro">
       <div class="text">
         <h1>1. <a class="titlelink" href="https://www.phila.gov/programs/complete-streets/projects/the-chinatown-stitch-reconnecting-philadelphia-to-vine-street/">The Chinatown Stitch</a></h1>
         <h3>Project Summary</h3>
@@ -72,17 +74,13 @@
           <li>Federal Highway Administration</li>
         </ul>
       </div>
-      <!-- There will be a map of the study area with the Stitch being highlighted-->
-      <!-- <div id="studyareamap" class="map"></div> -->
-    </section>
+    </article>
 
     <!--Transition: zoom in further to Stitch-->
 
     <!--slide 1: The Chinatown Stitch Timeline-->
-    <!-- <section class="slide1StitchTimeline"> -->
-    <section class="slide layout0">
-      <!-- Map that highlights the Stitch + emphasizes phase I section -->
-      <!-- <div id="stitchmap" class="map"></div> -->
+    <!-- Map that highlights the Stitch + emphasizes phase I section -->
+    <article class="slide" id="stitchtimeline">
       <div class="text">
         <h3>Chinatown Stitch Construction Timeline</h3>
 
@@ -90,7 +88,7 @@
 
         <p class="timelineitem" style="color: #299988;"><strong>2024</strong> <br> Initial data collection, analysis and engineering</p>
 
-        <p class="timelineitem" id="timeline25"><strong>2025</strong> <br> Refining the Concept in community. Look out for <a class="extlink" href="https://www.phila.gov/the-latest/all-events/?category=Office%20of%20Transportation,%20Infrastructure%20and%20Sustainability">pop-up events</a> to stay involved!</p>
+        <p class="timelineitem" style="color: #DB5420;" id="timeline25"><strong>2025</strong> <br> Refining the Concept in community. Look out for <a class="extlink" href="https://www.phila.gov/the-latest/all-events/?category=Office%20of%20Transportation,%20Infrastructure%20and%20Sustainability">pop-up events</a> to stay involved!</p>
 
         <p class="timelineitem" id="timeline26"><strong>2026</strong> <br> Design Finalization</p>
 
@@ -98,22 +96,23 @@
         
         <p class="timelineitem" id="timeline30"><strong>2030</strong> <br> Phase I construction expected to finish</p>
       </div>
-    </section>
+    </article>
+
 
     <!--Transition: map covered by banner-->
 
-    <!--slide 2: Other Caps Intro-->
-    <section class="slide layout2">
-      <!-- <div id="map-slide2" class="map"></div> -->
+    <!-- Banner 1: Other Caps Intro -->
+    <!-- banner that covers map -->
+     <article class="banner" id="othercaps">
       <div class="text">
         <h1>2. Highway Caps in Other Cities</h1>
         <h3>What can we learn from Highway Caps built in other cities?</h3>
       </div>
-    </section>
-
+     </article>
+    
     <!--Transition: banner moves up to reveal map of Texas-->
 
-    <!--slide 3: Klyde Warren Park-->
+    <!--slide 2: Klyde Warren Park-->
     <section class="slide layout1">
       <div class="othercity-container">
         <div class="text">
@@ -142,7 +141,7 @@
 
     <!--Transition: map moves to Columbus, OH-->
 
-    <!--slide 4: Cap at Union Station-->
+    <!--slide 3: Cap at Union Station-->
     <section class="slide layout1">
       <div class="othercity-container">
         <div class="text">
@@ -173,7 +172,7 @@
 
     <!--Transition: map moves to Boston, MA-->
 
-    <!--slide 5: The Big Dig at the Central Artery -->
+    <!--slide 4: The Big Dig at the Central Artery -->
     <section class="slide layout1">
       <div class="othercity-container">
         <div class="text">
@@ -202,7 +201,7 @@
 
     <!--Transition: Banner moves up to cover map of Boston-->
 
-    <!--slide 6: Summary and comparison to Chinatown Stitch -->
+    <!-- Banner 2: Summary and comparison to Chinatown Stitch -->
     <section class="slide layout2">
       <div class="text">
         <h3>Summary and comparison to Chinatown Stitch</h3>
@@ -211,9 +210,13 @@
       </div>
     </section>
 
+
+
+  </section>
+
     <!--Transition: Banner moves up to reveal background image-->
 
-    <!--slide 7: Model-->
+    <!--slide 5: Model-->
     <section class="slide layout3">
       <div class="text">
         <h1>3. Our Prediction Model</h1>
@@ -231,7 +234,6 @@
   </main>
   
   <script src="js/topbar.js"></script>
-  <script src="js/slidedeck.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script type="module" src="js/now.js"></script>
 
