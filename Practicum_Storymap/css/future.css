@@ -412,3 +412,8 @@ body {
   color: #ffbf00; /* Nice orange */
   font-weight: bold;
 }
+
+.small-white{
+  color: rgb(255, 255, 255);
+  font-size: 0.8em;
+}
