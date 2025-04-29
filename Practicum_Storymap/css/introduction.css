@@ -302,45 +302,57 @@ body {
   
 
 /* 3.4 use case */
-.future-content {
+.new-usecase-layout {
   display: flex;
-  flex-direction: column; /* Stack vertically */
+  flex-direction: column;
   align-items: center;
+  text-align: center;
+  gap: 40px;
+}
+
+.usecase-text {
+  max-width: 800px;
+  color: #ffffff;
+  font-size: larger;
+}
+
+/* Only center the h1 inside usecase-text */
+.usecase-text h1 {
   text-align: center;
 }
 
-.future-content .text {
-  max-width: 800px;
-  margin-bottom: 40px;
+/* Left-align all the paragraphs */
+.usecase-text p {
+  text-align: left;
 }
 
-.future-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 40px;
-  justify-items: center;
+.future-horizontal {
+  display: flex;
+  justify-content: center;
+  gap: 40px; /* Space between cards */
 }
 
-.grid-item {
-  width: 250px;
+.future-horizontal .grid-item {
+  width: 250px; /* Same size as your original cards */
   text-align: center;
   text-decoration: none;
   color: #ffffff;
 }
 
-.grid-item img {
+.future-horizontal .grid-item img {
   width: 100%;
-  height: auto;
+  height: 180px;
+  object-fit: cover;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s;
 }
 
-.grid-item:hover img {
+.future-horizontal .grid-item:hover img {
   transform: scale(1.05);
 }
 
-.grid-item h3 {
+.future-horizontal .grid-item h3 {
   margin-top: 10px;
   font-size: 1.2em;
   font-weight: bold;
@@ -348,15 +360,16 @@ body {
   transition: color 0.3s;
 }
 
-.grid-item:hover h3 {
-  color: #ffae00;;
+.future-horizontal .grid-item:hover h3 {
+  color: #ffae00;
 }
 
 
 
 
+
+
   /* 3.5 Problems */
-  
   
   /* Container for problem cards */
   .problem-container {
@@ -434,10 +447,18 @@ body {
   }
   
 
+
+
+
   /* 3. map slides */
 
   .highlight-orange {
     color: #DB5420; /* Nice orange */
+    font-weight: bold;
+  }
+
+  .highlight-yellow {
+    color: #ffbf00; /* Nice orange */
     font-weight: bold;
   }
   
