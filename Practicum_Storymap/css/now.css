@@ -6,7 +6,23 @@ body, html {
     background-color: #f2f2f2;
   }
 
-  
+h1 {
+  font-size: 2em;
+}
+
+h2 {
+  font-size: 1.5em;
+}
+
+h3 {
+  font-size: 1.17em;
+}
+
+h4 {
+  font-size: 1em;
+}
+
+
 /* 1. Natigation Bar */
 .navbar {
   position: fixed;
@@ -249,10 +265,6 @@ body, html {
   min-width: 0;
 } */
 
-.layout0, .layout1, .layout2, .layout3 {
-  background-color: #f2f2f2;
-}
-
 /* 4A. Chinatown Intro and Timeline specifics */
 #stitchintro, #stitchtimeline {
   display: flex;
@@ -264,6 +276,80 @@ body, html {
   
   box-shadow: 0.5rem 0.25rem 0.75rem rgba(0 0 0 / 50%);
 }
+
+#othercity1, #othercity3 {
+  display: flex;
+  width: 40rem;
+  gap: 40px;
+  margin-left: 50%;
+  margin-right: 5%;
+  justify-content: space-between;
+  padding: 20px 20px;
+  text-align: center;
+  
+  box-shadow: -0.5rem 0.25rem 0.75rem rgba(0 0 0 / 50%);
+}
+
+#othercity2 {
+  display: flex;
+  width: 40rem;
+  gap: 40px;
+  margin-left: 5%;
+  margin-right: 5%;
+  justify-content: space-between;
+  padding: 20px 20px;
+  text-align: center;
+  
+  box-shadow: 0.5rem 0.25rem 0.75rem rgba(0 0 0 / 50%);
+}
+
+.othercity-container {
+  width: 100%; /* Adjust width as needed */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center horizontally */
+  justify-content: center; /* Center vertically */
+  gap: 20px;
+}
+
+.othercity-container .text {
+  width: 100%; /* Regular text takes full width */
+}
+
+.othercity-row {
+  display: flex;
+  justify-content: space-between; /* Space between image and text-specs */
+  align-items: stretch; /* Align items to stretch to the same height */
+}
+
+.othercity-image {
+  width: 66.7%; /* Left two-thirds */
+  height: auto;
+}
+
+.othercity-image .responsive-img {
+  height: 100%; /* Match the height of the parent container */
+  object-fit: cover; /* Ensure the image covers the container without distortion */
+}
+
+.text-specs {
+  width: 33.3%; /* Right one-third */
+  text-align: left;
+  height: 100%; 
+}
+
+.photo-credit {
+  font-size: 0.25em;
+}
+
+.responsive-img {
+  max-width: 100%;
+  height: 100%; /* Match the height of the parent container */
+  object-fit: cover; /* Ensure the image covers the container without distortion */
+  display: block;
+  margin: 0 auto;
+}
+
 
 /* 4B. Banner specifics */
 .banner {
@@ -285,138 +371,83 @@ body, html {
   display: flex; /* Enable flexbox */
   flex-direction: column; /* Stack elements vertically */
   justify-content: center; /* Center vertically */
-  align-items: center; /* Center horizontally */
+  align-items: center;
   gap: 40px; /* Add spacing between elements */
   padding: 20px;
 }
 
-.layout1 .text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* vertical center if image is shorter */
-  text-align: center;
+#othercaps .text, #othercapssum .text {
+  text-align: center; 
+  padding: 5% 20%;
 }
 
-.layout1 .image {
-  height: 250px;
-  background-color: transparent;
-  position: relative; 
+/* 3C. Model Slide specifics */
+/* Fixed, full-screen background image */
+.modelslide .background-layer {
+  background-image: url('../img/Storymap-background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* makes it stay in place */
+}
+
+.layout0 .content {
+  position: relative;
+  z-index: 1; /* above background */
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding-left: 10%;
+  padding-right: 10%;
+  margin-right: 10%;
+}
+
+.modelslide {
+  position: relative; /* allow child positioning */
+  overflow: hidden;
+  min-height: 100vh;
+  width: 100vw;
+
+  flex-direction: column;
+  text-align: center;
+
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 80px 0; /* remove side padding to allow full-width background */
+  box-sizing: border-box;
+  
+  color: #0D564B;
 }
 
-.layout1 .image img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
-/* Other Cities */
-.othercity-container {
-  width: 100%; /* Adjust width as needed */
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Center horizontally */
-  justify-content: center; /* Center vertically */
-  gap: 20px;
-}
-
-.othercity-container .text {
-  width: 100%; /* Regular text takes full width */
-}
-
-.othercity-row {
-  display: flex;
-  justify-content: space-between; /* Space between image and text-specs */
-  align-items: flex-start;
-}
-
-.othercity-image {
-  width: 66.7%; /* Left two-thirds */
-  height: auto;
-}
-
-.text-specs {
-  width: 33.3%; /* Right one-third */
+.modelslide .text {
+  margin-top: 10%;
+  margin-left: 20%;
+  margin-right: 20%;
   text-align: left;
 }
 
-/* 3C. layout2 specifics */
-.layout2 {
-  flex-direction: column;
-  text-align: center;
-
-  margin-top: 90vh;
-  margin-bottom: 90vh;
-  margin-left: auto;
-  margin-right: auto;
-
-  padding: 2.5rem;
-
-  box-shadow: none;
-  
-  border: none;
-  border-radius: none;
-  
-  pointer-events: initial;
-
-  width: 100%;
-  width: 100%;
-
-  background-color: white;
-  /* I will eventually put an image here */
-  /* background-image: ""; */
-
-  transition: background-image 0.5s ease-in-out;
-}
-
-.layout2 .text {
-  /* margin-bottom: 100px; */
-  margin-left: 15%;
-  margin-right: 15%;
-}
-
-.layout2 .image {
-  width: 700px;
-  height: 300px;
-  margin: 0 auto;
-  background-color: transparent;
-}
-
-/* 3D. layout3 specifics */
-.layout3 {
-  display: flex; /* Enable flexbox */
-  flex-direction: column; /* Stack elements vertically */
-  justify-content: center; /* Center vertically */
-  align-items: center; /* Center horizontally */
-  gap: 40px; /* Add spacing between elements */
-  margin-left: auto;
-  margin-right: auto;
-  padding: 20px;
+.equation {
+  color: #0D5C4B;
+  font-size: 1.5em;
   text-align: center;
 }
 
-.layout3 .text {
-  margin-bottom: 100px;
-  margin-left: 15%;
-  margin-right: 15%;
+.modelfeatures {
+  color: #0D5C4B;
 }
 
-.layout3 .image {
-  width: 700px;
-  height: 300px;
-  margin: 0 auto;
-  background-color: transparent;
+.modelfeatures ic, .equation ic {
+  color: #ff7700;
 }
 
-.responsive-img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    margin: 0 auto;
-  }
+.modelfeatures am, .equation am {
+  color: #ffae00;
+}
+
+.modelfeatures lo, .equation lo {
+  color: #ffd883;
+}
 
 /* Next Button */
 .next-button {
@@ -437,16 +468,6 @@ body, html {
 .next-button:hover {
   background-color: #DB5420;
   color: white;
-}
-
-/* Map container */
-.map {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1; /* Ensure the map is behind the content */
 }
 
 /* External Links */
@@ -482,25 +503,3 @@ body, html {
 }
 
 /* once the phase I layer is available, hovering over the #timeline27 and #timeline30 will highlight the phase I layer on the map */
-
-/* Changing color of text within chunk*/
-.equation {
-  color: #0D5C4B;
-  font-size: 1.5em;
-}
-
-.modelfeatures {
-  color: #0D5C4B;
-}
-
-.modelfeatures ic, .equation ic {
-  color: #ff7700;
-}
-
-.modelfeatures am, .equation am {
-  color: #ffae00;
-}
-
-.modelfeatures lo, .equation lo {
-  color: #ffd883;
-}
