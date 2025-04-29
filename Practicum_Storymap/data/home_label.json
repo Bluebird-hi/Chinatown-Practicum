@@ -1,0 +1,22 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": { "name": "Philadelphia" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [-75.1635, 39.9526]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Study Area" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [-75.161, 39.958]
+        }
+      }
+    ]
+  }
+  

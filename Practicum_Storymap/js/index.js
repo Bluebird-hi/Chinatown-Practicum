@@ -31,28 +31,31 @@ const legend = L.control({ position: 'bottomleft' });
 
 legend.onAdd = function () {
   const div = L.DomUtil.create('div', 'info legend');
-  const priceRanges = [0, 100000, 200000, 300000, 400000, 500000, 600000];
 
-  const getColor = (t) => {
-    const interpolate = (start, end) => Math.round(start + (end - start) * t);
-    const r = interpolate(41, 231);   
-    const g = interpolate(153, 85);   
-    const b = interpolate(136, 27);   
-    return `rgb(${r}, ${g}, ${b})`;
-  };
+  // SAME price breaks and colors as updateDataLayer
+  const priceBreaks = [0, 15126.36, 234573, 351408, 461629.4, 841995.8];
+  const quintileColors = [
+    '#0D564B', // low
+    '#299988',
+    '#ffd883',
+    '#ffae00',
+    '#E7551B'  // high
+  ];
 
   div.innerHTML += '<b>Predicted Price</b><br>';
 
-  for (let i = 0; i < priceRanges.length - 1; i++) {
-    const t = i / (priceRanges.length - 2);
+  for (let i = 0; i < priceBreaks.length - 1; i++) {
     div.innerHTML += `
-      <i style="background:${getColor(t)}; width: 18px; height: 18px; display:inline-block; margin-right:6px;"></i>
-      $${(priceRanges[i] / 1000).toFixed(0)}k–$${(priceRanges[i + 1] / 1000).toFixed(0)}k<br>
+      <i style="background:${quintileColors[i]}; width: 18px; height: 18px; display:inline-block; margin-right:6px;"></i>
+      $${priceBreaks[i].toLocaleString(undefined, {maximumFractionDigits:0})}
+      – 
+      $${priceBreaks[i + 1].toLocaleString(undefined, {maximumFractionDigits:0})}
+      <br>
     `;
   }
 
   return div;
 };
 
-
 legend.addTo(map);
+

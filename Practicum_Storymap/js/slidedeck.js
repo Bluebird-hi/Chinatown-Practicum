@@ -62,23 +62,22 @@ class SlideDeck {
   updateDataLayer(data) {
     this.dataLayer.clearLayers();
   
-    // Get min/max prices from GeoJSON features
-    const prices = data.features
-      .filter(f => f.geometry.type === 'Point')
-      .map(f => f.properties.predicted_price || 0);
+    const quintileColors = [
+      '#0D564B' ,// low
+      '#299988',
+      '#ffd883',
+      '#ffae00',
+      '#E7551B'// high
+    ];
   
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
+    const priceBreaks = [0, 15126.36, 234573, 351408 , 461629.4, 841995.8]; // ← your fixed breaks
   
-    // Interpolate between #299988 → #E7551B
-    const interpolateColor = (price) => {
-      const t = Math.max(0, Math.min(1, (price - minPrice) / (maxPrice - minPrice)));
-      const start = { r: 41, g: 153, b: 136 };  // #299988
-      const end = { r: 231, g: 85, b: 27 };     // #E7551B
-      const r = Math.round(start.r + (end.r - start.r) * t);
-      const g = Math.round(start.g + (end.g - start.g) * t);
-      const b = Math.round(start.b + (end.b - start.b) * t);
-      return `rgb(${r},${g},${b})`;
+    const getColorByPrice = (price) => {
+      if (price <= priceBreaks[1]) return quintileColors[0];
+      if (price <= priceBreaks[2]) return quintileColors[1];
+      if (price <= priceBreaks[3]) return quintileColors[2];
+      if (price <= priceBreaks[4]) return quintileColors[3];
+      return quintileColors[4];
     };
   
     const geoJsonLayer = L.geoJSON(data, {
@@ -86,20 +85,11 @@ class SlideDeck {
         const price = feature.properties.predicted_price || 0;
         return L.circleMarker(latlng, {
           radius: 5,
-          fillColor: interpolateColor(price),
+          fillColor: getColorByPrice(price),
           color: '#fff',
           weight: 0.5,
           fillOpacity: 0.9
         });
-      },
-      style: (feature) => {
-        if (feature.geometry.type === 'Polygon') {
-          return {
-            color: '#279382',
-            weight: 2,
-            fillOpacity: 0.2
-          };
-        }
       },
       onEachFeature: (feature, layer) => {
         if (feature.properties) {
@@ -113,12 +103,13 @@ class SlideDeck {
           `;
           layer.bindPopup(popupContent);
         }
-      }      
+      }
     });
   
     geoJsonLayer.addTo(this.dataLayer);
     return geoJsonLayer;
   }
+  
   
   
   
