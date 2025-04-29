@@ -1,0 +1,427 @@
+---
+title: "Scenario2&3"
+author: "Luming"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(tidyverse)
+library(leaflet)
+library(mapview)
+```
+
+# Property data
+
+```{r}
+property_S1_no_fe <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/property_S1_no_fe") %>%
+  st_transform("EPSG:2272")
+```
+
+```{r}
+table(check$category_code)
+```
+
+
+## Check landuse & zoning & category code
+
+```{r}
+check <- property_S1_no_fe %>%
+  dplyr::select(category_code_description,category_code)
+table(property_S1_no_fe$category_code_description)
+table(property_S1_no_fe$category_code)
+property_S2_no_fe <- property_S1_no_fe %>%
+  mutate(category_code_chain = case_when(
+    category_code == '1 ' ~ "1:Single Family",
+    category_code == '10' ~ "10:Offices",
+    category_code == '12' ~ "12:Vacant Land - Non-residential",
+    category_code == '14' ~ "14:Apartments > 4 units",
+    category_code == '15' ~ "15:Retail",
+    category_code == '16' ~ "16:NA",
+    category_code == '2 ' ~ "2:Multi Family",
+    category_code == '3 ' ~ "3:Mixed Use",
+    category_code == '4 ' ~ "4:Commercial",
+    category_code == '5 ' ~ "5:Industrial",
+    category_code == '6 ' ~ "6:Vacant Land",
+    category_code == '7 ' ~ "7:Garage - Commercial",
+    category_code == '8 ' ~ "8:Garage - Residential",
+    category_code == '9 ' ~ "9:Hotel",
+  ))
+landuse <- 
+  st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/landuse_clip/Land_Use_ClipLayer.shp") %>%
+  st_transform('EPSG:2272')
+studyarea <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/studyarea/StudyArea.shp") %>%
+  st_transform('EPSG:2272')
+discontinuity <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/studyarea-sub/discontinuity.shp") %>%
+  st_transform('EPSG:2272')
+Chinatown_Stitch <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/Chinatown_Stitch/Chinatown_Stitch.shp") %>%
+  st_transform('EPSG:2272')
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data = landuse, fill = "white", color = "gray85", size = 0.05) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 2) +
+  geom_sf(data = discontinuity, fill = "#eb5600", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch, fill = "#1a9988", alpha = 0.8) +
+  geom_sf(data = property_S2_no_fe, aes(color = category_code_chain), size = 1) +
+  # scale_colour_manual(values = c("black", "#B67352")) +
+  labs(title="Category_code_chain") +
+  theme_void() +
+  theme(
+        plot.title = element_text(size = 18, face = "bold"))
+
+ggplot() +
+  geom_sf(data = landuse, fill = "white", color = "gray85", size = 0.05) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 2) +
+  geom_sf(data = discontinuity, fill = "#eb5600", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch, fill = "#1a9988", alpha = 0.8) +
+  geom_sf(data = property_S2_no_fe, aes(color = landuse), size = 1) +
+  # scale_colour_manual(values = c("black", "#B67352")) +
+  labs(title="Landuse") +
+  theme_void() +
+  theme(
+        plot.title = element_text(size = 18, face = "bold"))
+
+ggplot() +
+  geom_sf(data = landuse, fill = "white", color = "gray85", size = 0.05) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 2) +
+  geom_sf(data = discontinuity, fill = "#eb5600", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch, fill = "#1a9988", alpha = 0.8) +
+  geom_sf(data = property_S2_no_fe, aes(color = zoning), size = 1) +
+  # scale_colour_manual(values = c("black", "#B67352")) +
+  labs(title="Zoning") +
+  theme_void() +
+  theme(
+        plot.title = element_text(size = 18, face = "bold"))
+```
+
+```{r}
+# Prepare popup content
+property_S2_no_fe <- property_S2_no_fe %>%
+  mutate(popup = paste0(
+    "<b>Object ID:</b> ", objectid, "<br>",
+    "<b>Sale Price:</b> ", sale_price, "<br>",
+    "<b>Category Code:</b> ", category_code_chain, "<br>",
+    "<b>Land Use:</b> ", landuse, "<br>",
+    "<b>Zoning:</b> ", zoning
+  ),
+    popup = as.character(popup)) %>% st_transform('EPSG:4326')
+```
+
+
+```{r}
+zoning_pal <- colorFactor(
+  palette = "Set3",    # Use a built-in palette
+  domain = unique(property_S2_no_fe$category_code)  # Apply to unique zoning categories
+)
+scenario2_check <- leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  # Add landuse background
+  addPolygons(data = landuse %>% st_transform('EPSG:4326'), fillColor = "white", color = "gray85", weight = 0.5, fillOpacity = 0.5) %>%
+  
+  # Add study area with dashed border
+  addPolygons(data = studyarea %>% st_transform('EPSG:4326'), fill = FALSE, color = "grey", weight = 2, dashArray = "5,5") %>%
+  
+  # Add discontinuity area
+  addPolygons(data = discontinuity %>% st_transform('EPSG:4326'), fillColor = "#eb5600", fillOpacity = 0.8, color = NA) %>%
+  
+  # Add Chinatown Stitch area
+  addPolygons(data = Chinatown_Stitch %>% st_transform('EPSG:4326'), fillColor = "#1a9988", fillOpacity = 0.8, color = NA) %>%
+  # Add property points with popup
+  addCircleMarkers(
+    data = property_S2_no_fe,
+    radius = 2,
+    stroke = FALSE,
+    fillOpacity = 0.8,
+    color = ~zoning_pal(category_code),
+    popup = ~popup
+  )
+scenario2_check
+```
+
+## CHANGE FEATURES
+
+```{r}
+property_S2S3_no_fe <- property_S1_no_fe %>%
+  mutate(landuse = case_when(
+    category_code == '4 ' & landuse == 'Transportation' ~ "Commercial Consumer",
+    category_code == '10' & landuse == "Vacant" ~ "Commercial Business/Professional",
+    objectid == "587297487" ~ "Commercial Business/Professional" & category_code == '4 ',
+    category_code == '1 ' & landuse == "Commercial Business/Professional" ~ category_code == '3 ',
+    category_code == '4 ' & landuse == "Other/Unknown" ~ "Commercial Consumer",
+    category_code == '6 ' & landuse = c("Commercial Business/Professional", "Commercial Mixed Residential") ~ category_code == '3 ',
+    zoning == "ICMX" & category_code == '3 ' ~ zoning = "CMX3",
+    category_code == '6 ' & landuse == "Transportation" & zoning = starts_with("CMX") ~ category_code == '4 ', landuse = "Commercial Consumer",
+    category_code == '3 ' & landuse == "Industrial" & zoning = starts_with("CMX") ~ "Commercial Consumer",
+    category_code != '3 ' & landuse == "Industrial" & zoning = starts_with("CMX") ~ category_code == '4 ', landuse = "Commercial Consumer",
+    category_code == '6 ' & landuse == "Industrial" & zoning == "I2" ~ category_code == '4 ', landuse = "Commercial Consumer", zoning = "CMX3",
+    category_code == '3 ' & zoning == "RMX3" ~ zoning = "CMX3",
+    category_code == '3 ' & landuse == "Industrial" & zoning == "IRMX" ~ category_code == '2 ', landuse = "Residential Medium", zoning = "RMX3",
+    TRUE ~ landuse
+  ))
+```
+
+```{r}
+library(dplyr)
+
+property_S2S3_no_fe <- property_S1_no_fe %>%
+  mutate(landuse = case_when(
+    category_code == '4 ' & landuse == 'Transportation' ~ "Commercial Consumer",
+    category_code == '10' & landuse == "Vacant" ~ "Commercial Business/Professional",
+    objectid == "587297487" & category_code == '4 ' ~ "Commercial Business/Professional",
+    category_code == '4 ' & landuse == "Other/Unknown" ~ "Commercial Consumer",
+    category_code == '3 ' & landuse == "Industrial" & grepl("^CMX", zoning) ~ "Commercial Consumer",
+    category_code != '3 ' & landuse == "Industrial" & grepl("^CMX", zoning) ~ "Commercial Consumer",
+    category_code == '6 ' & landuse == "Transportation" & grepl("^CMX", zoning) ~ "Commercial Consumer",
+    category_code == '6 ' & landuse == "Industrial" & zoning == "I2" ~ "Commercial Consumer",
+    TRUE ~ landuse
+  )) %>%
+  mutate(category_code = case_when(
+    category_code == '1 ' & landuse == "Commercial Business/Professional" ~ '3 ',
+    category_code == '6 ' & landuse %in% c("Commercial Business/Professional", "Commercial Mixed Residential") ~ '3 ',
+    category_code == '6 ' & landuse == "Transportation" & grepl("^CMX", zoning) ~ '4 ',
+    category_code == '3 ' & landuse == "Industrial" & zoning == "IRMX" ~ '2 ',
+    TRUE ~ category_code
+  )) %>%
+  mutate(zoning = case_when(
+    zoning == "ICMX" & category_code == '3 ' ~ "CMX3",
+    category_code == '6 ' & landuse == "Industrial" & zoning == "I2" ~ "CMX3",
+    category_code == '3 ' & zoning == "RMX3" ~ "CMX3",
+    category_code == '3 ' & landuse == "Industrial" & zoning == "IRMX" ~ "RMX3",
+    TRUE ~ zoning
+  ))
+
+```
+
+
+
+## Feature Engineering
+```{r FE countinued , quiet=TRUE, results='hide'}
+median_bedroom <- median(as.numeric(as.character(property_S1_no_fe$number_of_bedrooms)), na.rm = TRUE)
+median_bathroom <- median(as.numeric(as.character(property_S1_no_fe$number_of_bathrooms)), na.rm = TRUE)
+
+property_S1_fe <- property_S1_no_fe %>%
+#  filter(!zoning %in% c("I2", "SPPOA"))%>%
+  mutate(
+        # Neighborhood Name
+    nhoods_name = case_when(
+      nhoods_name %in% c("CENTER_CITY", "LOGAN_SQUARE") ~ "WEST_PART",
+      TRUE ~ nhoods_name
+    ),
+
+    # LPSS Category
+#    LPSS_PER1000 = case_when(
+#      LPSS_PER1000 < 45 ~ "low",
+#      LPSS_PER1000 >= 45 & LPSS_PER1000 <= 60.70941337 ~ "mid",
+#      LPSS_PER1000 %in% c(60.70941337, 131.86813187) ~ "high",
+#      TRUE ~ "Unknown"
+#    ),
+#    LPSS_PER1000 = factor(LPSS_PER1000, levels = c("low", "mid", "Unknown")),
+
+    # HPSS Category
+#    HPSS_PER1000 = case_when(
+#      HPSS_PER1000 < 5.6 ~ "low",
+#     HPSS_PER1000 >= 5.6 & HPSS_PER1000 <= 7.3 ~ "mid",
+#      HPSS_PER1000 >= 7.3 ~ "high",
+#      TRUE ~ "Unknown"
+#    ),
+#    HPSS_PER1000 = factor(HPSS_PER1000, levels = c("low", "mid", "Unknown")),
+
+    # Year Built
+    year_built = as.numeric(year_built),
+    year_built_missing = ifelse(is.na(year_built), 1, 0),
+#    year_built = case_when(
+#      is.na(year_built) ~ "Unknown",
+#      TRUE ~ as.character(year_built)
+#    ),
+#    year_built = factor(year_built),
+    year_built_group = case_when(
+       is.na(year_built) ~ "Unknown",
+       year_built < 1940 ~ "Pre-War",
+       year_built < 2000 ~ "Post-War Mid",
+       year_built < 2020 ~ "Modern",
+       year_built >= 2020 ~ "New"
+    ),
+    year_built_group = factor(year_built_group, levels = c("Pre-War", "Post-War Mid", "Modern", "New", "Unknown")),
+#    year_built_group = case_when(
+#     year_built < 1900 | year_built >= 1930 & year_built < 1970 ~ "1900 Before & 1930 - 1970",
+#     year_built >= 1900 & year_built < 1930  ~ "1900- 1930",
+#     year_built >= 1930 & year_built < 1970 ~ "1930 - 1970",
+#     year_built >= 1970 & year_built < 2010 ~ "1970 - 2010",
+#     year_built >= 2010 ~ "2010+",
+#      TRUE ~ "Unknown"
+#    ),
+#    year_built_group = factor(year_built_group, levels = c("1900 Before & 1930 - 1970","1900- #1930","1970 - 2010","2010+","Unknown")),
+
+    # Log Transforms
+    log_price = log(sale_price),
+    log_dist_highway = log(distance_to_I676 + 1),
+
+    # Central Air
+    central_air = case_when(
+      central_air %in% c("Y", "1")  ~ "Y",
+      central_air %in% c("N", "0") ~ "N",
+      TRUE ~ "Unknown"
+    ),
+    central_air = factor(central_air),
+    central_air_missing = ifelse(central_air == "Unknown", 1, 0),
+
+    # Garage Spaces
+    garage_spaces_missing = ifelse(is.na(garage_spaces), 1, 0),
+    garage_spaces = case_when(
+#      is.na(garage_spaces) ~ "Unknown",
+      garage_spaces == 0 | garage_spaces == 1 ~ "less than 2",
+      TRUE ~ "2 or more"
+    ),
+    garage_spaces = factor(garage_spaces),
+
+    # Bedrooms
+    number_of_bedrooms = as.numeric(as.character(number_of_bedrooms)),
+    number_of_bedrooms_missing = ifelse(is.na(number_of_bedrooms), 1, 0),
+    number_of_bedrooms_filled = ifelse(is.na(number_of_bedrooms), median_bedroom, number_of_bedrooms),
+    number_of_bedrooms = case_when(
+      is.na(number_of_bedrooms) ~ "Unknown",
+      number_of_bedrooms == 0 ~ "0",
+      number_of_bedrooms == 1 ~ "1",
+      number_of_bedrooms %in% c(2, 3) ~ "2",
+      number_of_bedrooms %in% c(5, 6) ~ "3",
+      number_of_bedrooms == 4 ~"4",
+      number_of_bedrooms %in% c(7, 9, 12) ~ "5"
+    ),
+    number_of_bedrooms = factor(number_of_bedrooms),
+
+    # Bathrooms
+    number_of_bathrooms = as.numeric(as.character(number_of_bathrooms)),
+    number_of_bathrooms_missing = ifelse(is.na(number_of_bathrooms), 1, 0),
+    number_of_bathrooms_filled = ifelse(is.na(number_of_bathrooms), median_bathroom, number_of_bathrooms),
+    number_of_bathrooms = case_when(
+      number_of_bathrooms == 0 ~ "0",
+      number_of_bathrooms == 1 ~ "1",
+      number_of_bathrooms == 2 ~ "2",
+      number_of_bathrooms %in% c(3, 4, 5) ~ "3-5",
+      number_of_bathrooms == 6 ~ "6",
+      number_of_bathrooms == 7 ~ "7",
+      TRUE ~ "Unknown"
+    ),
+    number_of_bathrooms = factor(number_of_bathrooms),
+
+    # Total Livable Area
+    total_livable_area = ifelse(is.na(total_livable_area) | total_livable_area == 1, 0, total_livable_area),
+
+    # Quality Grade
+    quality_grade = case_when(
+      quality_grade %in% c("A ", "A-") | is.na(quality_grade) ~ "Good",
+      quality_grade %in% c("3 ", "C+", "C")  ~ "Average",
+      TRUE ~ "Below Average"
+    ),
+    quality_grade = factor(quality_grade, levels = c("Good", "Average", "Below Average")),
+    quality_grade_missing = ifelse(is.na(quality_grade), 1, 0),
+
+    # Construction
+    general_construction = as.character(general_construction),
+    general_construction = case_when(
+      is.na(general_construction) ~ "Unknown",
+      TRUE ~ general_construction
+    ),
+    general_construction = factor(general_construction),
+    general_construction_missing = ifelse(general_construction == "Unknown", 1, 0),
+
+    # Separate Utilities
+    separate_utilities = case_when(
+      is.na(separate_utilities) ~ "Unknown",
+      TRUE ~ separate_utilities
+    ),
+    separate_utilities = factor(separate_utilities, levels = c("A", "B", "C", "Unknown")),
+    separate_utilities_missing = ifelse(separate_utilities == "Unknown", 1, 0),
+
+    # Exterior Condition
+    exterior_condition = case_when(
+      exterior_condition == 2 ~ "Good",
+      exterior_condition %in% c(1, 6, 7) | is.na(exterior_condition) ~ "Average",
+      exterior_condition %in% c(3, 4, 5) ~ "Below Average"
+ #     TRUE ~ "Unknown"
+    ),
+    exterior_condition = factor(exterior_condition),
+
+    # Interior Condition
+    interior_condition = case_when(
+      interior_condition %in% c(1,2,7) | is.na(interior_condition) ~ "Good",
+      interior_condition %in% c(3,4,5) ~ "Average",
+      interior_condition %in% c(6) ~ "Below Average",
+      TRUE ~ "Unknown"
+    ),
+    interior_condition = factor(interior_condition),
+
+    # Category Code
+    category_code_original = as.character(category_code),
+    category_code_group = case_when(
+      category_code == "12" ~ "6 ",
+      category_code == "14" ~ "2 ",
+      category_code == "10" ~ "4 ",
+      category_code == "15" ~ "5 ",
+      category_code == "16" ~ "4 ",
+      category_code == "7 "  ~ "4 ",
+      category_code == "8 "  ~ "6 ",
+      category_code == "9 "  ~ "2 ",
+      category_code %in% c("1 ", "2 ", "3 ", "4 ", "5 ", "6 ") ~ category_code,
+      TRUE ~ "Other"
+    ),
+    category_code = factor(category_code_group),
+
+    # Land Use
+    landuse = case_when(
+      landuse %in% c("Park/Open Space", "Other/Unknown", "Commercial Business/Professional") ~ "Open Space/Business",
+      landuse %in% c("Commercial Consumer", "Commercial Mixed Residential",
+                     "Industrial", "Transportation", "Culture/Amusement") ~ "Commercial",
+      landuse %in% c("Civic/Institution", "Residential High") ~ "Residential High/Civic",
+      TRUE ~ landuse
+    ),
+
+    # Zoning
+    zoning_group = case_when(
+      zoning %in% c("CMX5") ~ "CMX5",
+      zoning %in% c("IRMX") ~ "IRMX",
+      zoning %in% c("RM1", "RM2", "RM4") ~ "RM",
+      zoning %in% c("RMX3") ~ "RMX3",
+      zoning %in% c("RSA5") ~ "RSA5",
+      zoning %in% c("ICMX") ~ "ICMX",
+      zoning %in% c("SPPOA") ~ "SPPOA",
+      zoning %in% c("I2") ~ "I2",
+      zoning %in% c("CMX2.5", "CMX2", "CMX1") ~ "CMX(1,2,2.5)",
+      zoning %in% c("CMX3", "CMX4") ~ "CMX(3,4)",
+      TRUE ~ "Other"
+    ),
+    zoning_group = factor(zoning_group),
+
+    zoning = case_when(
+      is.na(zoning) ~ "Unknown",
+      TRUE ~ zoning
+    ),
+    zoning = factor(zoning),
+    zip_code = factor(zip_code)
+  )
+
+st_write(property_S2_fe, "property_S2_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+
+
+
+# Predict
+
+```{r predict sale price for scenario 2, quiet=TRUE, results='hide'}
+rf_model <- readRDS("E:/Spring/Practicum/DataAnalysis/Chinatown/Modeling/results/rf_model.rds")
+rf_workflow <- readRDS("E:/Spring/Practicum/DataAnalysis/Chinatown/Modeling/results/rf_workflow.rds")
+predicted_log_price_S2 <- predict(rf_workflow, new_data = property_modeling_s2)$.pred
+property_S2_fe$predicted_price <- exp(predicted_log_price_S2) - 1
+```
+
+```{r}
+#summary(property_S2_fe$predicted_price)
+#st_write(property_S2_fe, "property_S2_predicted.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
