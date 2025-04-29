@@ -227,6 +227,12 @@ display: flex;
 justify-content: center; /* center the image horizontally */
 }
 
+.slide.layout0 .content .text p {
+  font-size: 1.2em;
+  line-height: 1.6;
+}
+
+
 /* Make the image fill full width */
 .slide.layout0.timeline .image {
 width: 100%;
@@ -340,6 +346,10 @@ justify-content: center;
   display: block;
 }
 
+.layout1 .text, .layout3 .image{
+  color: #007563;
+}
+
 /* Rectangle in top-right corner */
 .slide.layout3 .rectangle {
   position: absolute;
@@ -381,7 +391,7 @@ justify-content: center;
   width: 100%;
   max-width: 1000px; /* match layout0 text */
   margin: 40px 0;
-  color: #0D564B;
+  color: #007563;
   font-size: 18px;
   line-height: 1.6;
   text-align: left;
@@ -481,4 +491,14 @@ justify-content: center;
 .next-button {
   position: relative;
   z-index: 1;
+}
+
+.highlight-orange {
+  color: #DB5420; /* Nice orange */
+  font-weight: bold;
+}
+
+.highlight-yellow {
+  color: #ffbf00; /* Nice orange */
+  font-weight: bold;
 }
