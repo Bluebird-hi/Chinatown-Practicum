@@ -58,14 +58,14 @@ knitr::opts_knit$set(root.dir = "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Ch
 wd <- "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/"
 
 nhoods_4326 <- 
-  # st_read("DataWrangling/data/philadelphia-neighborhoods.geojson") %>% # Luming
-  st_read("data/philadelphia-neighborhoods.geojson") %>% # Aki
+  # st_read("DataWrangling/akidata/philadelphia-neighborhoods.geojson") %>% # Luming
+  st_read("akidata/philadelphia-neighborhoods.geojson") %>% # Aki
   st_transform('EPSG:4326')
 
 # philly properties (from Sijia)
 # from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
-philly_properties <- st_read("data/property_philly.geojson") # Aki, from most recent update, 4/21/25, 88,571 rows
-# philly_properties <- st_read("DataWrangling/data/property_philly_cleaned.geojson") # Luming
+philly_properties <- st_read("akidata/property_philly.geojson") # Aki, from most recent update, 4/21/25, 88,571 rows
+# philly_properties <- st_read("DataWrangling/akidata/property_philly_cleaned.geojson") # Luming
 
 ```
 
@@ -190,8 +190,8 @@ park_4326 <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
   st_transform('EPSG:4326')
 
 # nhoods_4326 <- 
-#   st_read("DataWrangling/data/philadelphia-neighborhoods.geojson") %>%
-#   # st_read("data/philadelphia-neighborhoods.geojson") %>%
+#   st_read("DataWrangling/akidata/philadelphia-neighborhoods.geojson") %>%
+#   # st_read("akidata/philadelphia-neighborhoods.geojson") %>%
 #   st_transform('EPSG:4326')
 
 Chinatown_Callowhill <- nhoods_4326 %>%
@@ -283,7 +283,7 @@ TODO: include description of qualitative analysis
 -   [Land use 2023](https://opendataphilly.org/datasets/land-use/)
 
 ```{r property_data, quiet = TRUE, results = 'hide'}
-# property <- st_read("DataWrangling/data/opa_properties_public.geojson") %>%
+# property <- st_read("DataWrangling/akidata/opa_properties_public.geojson") %>%
 #   st_transform('EPSG:2272')
 # 
 # property_studyarea <- st_intersection(property, studyarea)
@@ -319,7 +319,7 @@ landuse_rename <- landuse %>%
 
 # philly properties (from Sijia)
 # from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
-# philly_properties <- st_read("data/property_philly_250318.geojson")
+# philly_properties <- st_read("akidata/property_philly_250318.geojson")
 ```
 
 ## Census Data
@@ -498,7 +498,7 @@ buff500 <- 500 * 3.28084
 hiway_500buff <- st_union(st_buffer(philly_highways, buff500))
 
 # read in pre-saved file
-prop500 <- st_read("data/philly_prop500_dst2hghwy_250421.geojson") %>% # Aki, (download from Box)
+prop500 <- st_read("akidata/philly_prop500_dst2hghwy_250421.geojson") %>% # Aki, (download from Box)
   mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
 ```
 
@@ -693,6 +693,23 @@ scatter_4highways
 
 ```
 
+The scatter plot above shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) as we move away from a highway which tracks with our literature review of highway effects on property prices. 
+
+When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, it was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
+
+For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^coef_i676)*100000) - 100000)` more expensive** (assuming a block is about 200m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
+
+The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^coef_i95), 5)*100000)` less expensive**. We suspect that the negative effect distance to highways have on property price is driven by .....
+
+We now zoom into our **study area** to further understand highway effects in our region of interest.
+
+### same interpretation but with 100m instead of 200m
+
+For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((2^coef_i676)*100000) - 100000)` more expensive** (assuming a block is about 100m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((2^coef_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((2^coef_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
+
+The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((2^coef_i95), 5)*100000)` less expensive**.
+
+
 ### I-95 Exploration
 
 Taking a look at the properties near I-95 to see why we see a different relationship between distance to highway and property price here.
@@ -722,16 +739,6 @@ i95_scatter
 
 ```
 
-
-The scatter plot above shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) as we move away from a highway which tracks with our literature review of highway effects on property prices. 
-
-When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, it was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
-
-For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^coef_i676)*100000) - 100000)` more expensive** (assuming a block is about 200m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
-
-The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^coef_i95), 5)*100000)` less expensive**. We suspect that the negative effect distance to highways have on property price is driven by .....
-
-We now zoom into our **study area** to further understand highway effects in our region of interest.
 
 ### Philly Scale Analysis (Residential Properties only)
 
@@ -1412,7 +1419,7 @@ This demonstrates that in our study area, the **highway has a very small influen
 #                              .default = NA))
 
 # save output and read in the prefiltered to save time
-# st_write(prop500, "data/philly_prop500_dst2hghwy_250421.geojson")
+# st_write(prop500, "akidata/philly_prop500_dst2hghwy_250421.geojson")
 
 ```
  

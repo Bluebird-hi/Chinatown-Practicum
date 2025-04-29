@@ -222,7 +222,7 @@ h4 {
   background-color: white;
   color: #0D564B;
 
-  transition: background-image 0.5s ease-in-out;
+  /* transition: background-image 0.5s ease-in-out; */
 }
 
 .slide:first-child {
@@ -232,8 +232,8 @@ h4 {
 .slide:last-child {
   margin-bottom: 40vh;
 }
-/* these will maybe come into play later */
-/* .slide-controls {
+
+.slide-controls {
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -263,7 +263,7 @@ h4 {
 
 .slide-nav-select {
   min-width: 0;
-} */
+}
 
 /* 4A. Chinatown Intro and Timeline specifics */
 #stitchintro, #stitchtimeline {
@@ -365,9 +365,6 @@ h4 {
   background-color: white;
   color: #0D564B;
 
-  transition: background-image 0.5s ease-in-out;
-
-
   display: flex; /* Enable flexbox */
   flex-direction: column; /* Stack elements vertically */
   justify-content: center; /* Center vertically */
@@ -378,7 +375,7 @@ h4 {
 
 #othercaps .text, #othercapssum .text {
   text-align: center; 
-  padding: 5% 20%;
+  padding: 5% 25%;
 }
 
 #othercaps .text {
@@ -404,17 +401,6 @@ h4 {
 }
 
 /* 3C. Model Slide specifics */
-.layout0 .content {
-  position: relative;
-  z-index: 1; /* above background */
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  padding-left: 10%;
-  padding-right: 10%;
-  margin-right: 10%;
-}
-
 .modelslide {
   position: relative; /* allow child positioning */
   overflow: hidden;
@@ -456,6 +442,7 @@ h4 {
   text-align: left;
   color: white;
   z-index: 1; 
+  padding: 0% 5%;
 }
 
 .equation {
