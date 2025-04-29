@@ -102,10 +102,18 @@ class SlideDeck {
         }
       },
       onEachFeature: (feature, layer) => {
-        if (feature.properties && feature.properties.label) {
-          layer.bindTooltip(feature.properties.label);
+        if (feature.properties) {
+          let popupContent = `
+            <b>ObjectID:</b> ${feature.properties.objectid || 'N/A'}<br>
+            <b>Sale Price:</b> $${(feature.properties.predicted_price || feature.properties.adj_sale_price || 0).toLocaleString()}<br>
+            <b>Property Category:</b> ${feature.properties.category_code_description || 'N/A'}<br>
+            <b>Land Use:</b> ${feature.properties.landuse || 'N/A'}<br>
+            <b>Zoning Code:</b> ${feature.properties.zoning || 'N/A'}<br>
+            <b>Location:</b> ${feature.properties.location || 'N/A'}
+          `;
+          layer.bindPopup(popupContent);
         }
-      }
+      }      
     });
   
     geoJsonLayer.addTo(this.dataLayer);

@@ -31,26 +31,28 @@ const legend = L.control({ position: 'bottomleft' });
 
 legend.onAdd = function () {
   const div = L.DomUtil.create('div', 'info legend');
-  const grades = [0, 0.25, 0.5, 0.75, 1]; // percent scale
+  const priceRanges = [0, 100000, 200000, 300000, 400000, 500000, 600000];
 
   const getColor = (t) => {
-    // t = 0 → low price, t = 1 → high price
     const interpolate = (start, end) => Math.round(start + (end - start) * t);
-    const r = interpolate(41, 231);   // Red: #29 → #E7
-    const g = interpolate(153, 85);   // Green: #99 → #55
-    const b = interpolate(136, 27);   // Blue: #88 → #1B
+    const r = interpolate(41, 231);   
+    const g = interpolate(153, 85);   
+    const b = interpolate(136, 27);   
     return `rgb(${r}, ${g}, ${b})`;
   };
 
   div.innerHTML += '<b>Predicted Price</b><br>';
-  grades.forEach(t => {
-    const percent = Math.round(t * 100);
+
+  for (let i = 0; i < priceRanges.length - 1; i++) {
+    const t = i / (priceRanges.length - 2);
     div.innerHTML += `
       <i style="background:${getColor(t)}; width: 18px; height: 18px; display:inline-block; margin-right:6px;"></i>
-      ${percent}%<br>`;
-  });
+      $${(priceRanges[i] / 1000).toFixed(0)}k–$${(priceRanges[i + 1] / 1000).toFixed(0)}k<br>
+    `;
+  }
 
   return div;
 };
+
 
 legend.addTo(map);
