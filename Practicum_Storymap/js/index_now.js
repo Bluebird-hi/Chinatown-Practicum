@@ -1,3 +1,5 @@
+import { SlideDeck } from './slidedeck_home.js';
+
 // Initialize the map object
 const map = L.map('map', { scrollWheelZoom: false }).setView([39.95487450323784, -75.19999447856563], 13);
 
@@ -14,13 +16,15 @@ L.tileLayer(`https://api.mapbox.com/styles/v1/${mapboxStyle}/tiles/512/{z}/{x}/{
 }).addTo(map);
 
 // ## Interface Elements
-const slides = document.querySelectorAll('.slide');
 const container = document.querySelector('.slide-section');
+const slides = document.querySelectorAll('.slide');
 
-const deck = new SlideDeck(slides, map);
+// Initialize the SlideDeck with the container, slides, and map
+const deck = new SlideDeck(container, slides, map);
 
 // Scroll triggers slide change
 document.addEventListener('scroll', () => deck.calcCurrentSlideIndex());
 
+// Preload slide data and synchronize the map to the current slide
 deck.preloadFeatureCollections();
 deck.syncMapToCurrentSlide();

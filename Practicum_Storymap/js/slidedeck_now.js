@@ -1,28 +1,38 @@
 class SlideDeck {
-  
-  constructor(container, slides, map, slideOptions = {}) {
+  constructor(container, slides, map) {
     this.container = container;
     this.slides = slides;
     this.map = map;
-    this.slideOptions = slideOptions;
 
     this.dataLayer = L.layerGroup().addTo(map);
+    this.labelLayer = L.layerGroup().addTo(map);
+    this.loadBaseLayers();
     this.currentSlideIndex = 0;
   }
 
-  /**
-   * ### updateDataLayer
-   *
-   * The updateDataLayer function will clear any markers or shapes previously
-   * added to the GeoJSON layer on the map, and replace them with the data
-   * provided in the `data` argument. The `data` should contain a GeoJSON
-   * FeatureCollection object.
-   *
-   * @param {object} data A GeoJSON FeatureCollection object
-   * @param {object} options Options to pass to L.geoJSON
-   * @return {L.GeoJSONLayer} The new GeoJSON layer that has been added to the
-   *                          data layer group.
-   */
+  loadBaseLayers() {
+    // Load Philadelphia base outline once
+    fetch('data/Philly.json')
+      .then(response => response.json())
+      .then(data => {
+        L.geoJSON(data, {
+          style: {
+            color: '#279382',
+            weight: 2,
+            dashArray: '5,5',
+            fill: false,
+            fillOpacity: 0
+          }
+        }).addTo(this.map);
+      });
+  }
+
+  async getSlideFeatureCollection(slide) {
+    const resp = await fetch(`data/${slide.id}.json`);
+    const data = await resp.json();
+    return data;
+  }
+
   updateDataLayer(data, options) {
     this.dataLayer.clearLayers();
 
@@ -36,86 +46,118 @@ class SlideDeck {
 
     return geoJsonLayer;
   }
-
-  /**
-   * ### getSlideFeatureCollection
-   *
-   * Load the slide's features from a GeoJSON file.
-   *
-   * @param {HTMLElement} slide The slide's HTML element. The element id should match the key for the slide's GeoJSON file
-   * @return {object} The FeatureCollection as loaded from the data file
-   */
-  async getSlideFeatureCollection(slide) {
-    const resp = await fetch(`data/${slide.id}.json`);
-    const data = await resp.json();
-    return data;
-  }
-
-  /**
-   * ### hideAllSlides
-   *
-   * Add the hidden class to all slides' HTML elements.
-   *
-   * @param {NodeList} slides The set of all slide elements, in order.
-   */
+  
   hideAllSlides() {
     for (const slide of this.slides) {
       slide.classList.add('hidden');
     }
   }
 
-  /**
-   * ### syncMapToSlide
-   *
-   * Go to the slide that mathces the specified ID.
-   *
-   * @param {HTMLElement} slide The slide's HTML element
-   */
   async syncMapToSlide(slide) {
+    this.dataLayer.clearLayers();
+    this.labelLayer.clearLayers();
+
+    if (slide.id === 'stitchintro') {
+      // Slide 0: Map of Philly zoomed in to study area with study area and cap outlined
+
+      const loadAndStyle = async (url, styleOptions, labelText) => {
+        const resp = await fetch(url);
+        const data = await resp.json();
+        const layer = L.geoJSON(data, { style: styleOptions }).addTo(this.dataLayer);
+
+        const center = layer.getBounds().getCenter();
+        L.marker(center, {
+          icon: L.divIcon({
+            className: 'label-icon',
+            html: `<div>${labelText}</div>`
+          })
+        }).addTo(this.labelLayer);
+
+        return layer;
+      };
+
+      // Load all four neighborhoods
+      await loadAndStyle('data/callowhill.json', {
+        color: '#279382',
+        weight: 2,
+        fill: true,
+        fillColor: '#279382',
+        fillOpacity: 0.1,
+        dashArray: '5,5'
+      }, 'Callowhill');
+
+      await loadAndStyle('data/chinatown.json', {
+        color: '#279382',
+        weight: 2,
+        fill: true,
+        fillColor: '#279382',
+        fillOpacity: 0.1,
+        dashArray: '5,5'
+      }, 'Chinatown');
+      
+      await loadAndStyle('data/viaduct.json', {
+        color: '#279382',
+        weight: 2,
+        fill: true,
+        fillColor: '#279382',
+        fillOpacity: 1,
+        dashArray: null
+      }, 'Viaduct');
+
+      await loadAndStyle('data/stitch.json', {
+        color: '#E7551B',
+        weight: 2,
+        fill: true,
+        fillColor: '#E7551B',
+        fillOpacity: 1,
+      }, 'Stitch Project');
+
+      // Draw Study Area outline (grey dashed, no label needed here)
+      const studyResp = await fetch('data/studyarea.json');
+      const studyData = await studyResp.json();
+      const studyLayer = L.geoJSON(studyData, {
+        style: {
+          color: false,
+          weight: 2,
+          fill: false,
+          fillOpacity: 1,
+          dashArray: '5,5'
+        }
+      }).addTo(this.dataLayer);
+
+      this.map.fitBounds(studyLayer.getBounds());
+
+    } else if (slide.id === 'stitchtimeline') {
+      // Center the map around the specified coordinates with zoom level 17
+      this.map.setView([39.957421693546706, -75.15870220061866], 17);
+    } else if (slide.id === 'othercity1') {
+
+      // coordinates for Klyde Warren Park: [32.78972514811879, -96.80168277640266]
+
+      // Center the map so that Klyde Warren Park is to the left of center
+      this.map.setView([32.786726130661414, -96.7570779807717], 13);
+    } else if (slide.id === 'othercity2') {
+
+      // coordinates for cap at union station: [39.97604981494547, -83.00304477130415]
+
+      // Center the map so that the Cap at Union Park is to the right of center
+      this.map.setView([39.98369303341038, -83.17023983952679], 17);
+    } else if (slide.id === 'othercity3') {
+      
+      // coordinates for the Central Artery: [42.35865074744755, -71.05180621461585]
+
+      // Center the map so that the Central Artery is to the left of center
+      this.map.setView([42.355878771896904, -71.02043983440369], 17);
+    } else {
+      
+    }
+
     const collection = await this.getSlideFeatureCollection(slide);
     const options = this.slideOptions[slide.id];
     const layer = this.updateDataLayer(collection, options);
 
-    /**
-     * Create a bounds object from a GeoJSON bbox array.
-     * @param {Array} bbox The bounding box of the collection
-     * @return {L.latLngBounds} The bounds object
-     */
-    const boundsFromBbox = (bbox) => {
-      const [west, south, east, north] = bbox;
-      const bounds = L.latLngBounds(
-          L.latLng(south, west),
-          L.latLng(north, east),
-      );
-      return bounds;
-    };
-
-    /**
-     * Create a temporary event handler that will show tooltips on the map
-     * features, after the map is done "flying" to contain the data layer.
-     */
-    const handleFlyEnd = () => {
-      if (slide.showpopups) {
-        layer.eachLayer((l) => {
-          l.bindTooltip(l.feature.properties.label, { permanent: true });
-          l.openTooltip();
-        });
-      }
-      this.map.removeEventListener('moveend', handleFlyEnd);
-    };
-
-    this.map.addEventListener('moveend', handleFlyEnd);
-    if (collection.bbox) {
-      this.map.flyToBounds(boundsFromBbox(collection.bbox));
-    } else {
-      this.map.flyToBounds(layer.getBounds());
-    }
   }
 
-  /**
-   * Show the slide with ID matched by currentSlideIndex. If currentSlideIndex is
-   * null, then show the first slide.
-   */
   syncMapToCurrentSlide() {
     const slide = this.slides[this.currentSlideIndex];
     this.syncMapToSlide(slide);
@@ -149,22 +191,12 @@ class SlideDeck {
     this.syncMapToCurrentSlide();
   }
 
-  /**
-   * ### preloadFeatureCollections
-   *
-   * Initiate a fetch on all slide data so that the browser can cache the
-   * requests. This way, when a specific slide is loaded it has a better chance
-   * of loading quickly.
-   */
   preloadFeatureCollections() {
     for (const slide of this.slides) {
       this.getSlideFeatureCollection(slide);
     }
   }
 
-  /**
-   * Calculate the current slide index based on the current scroll position.
-   */
   calcCurrentSlideIndex() {
     const scrollPos = window.scrollY - this.container.offsetTop;
     const windowHeight = window.innerHeight;
