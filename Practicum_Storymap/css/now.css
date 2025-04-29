@@ -183,34 +183,33 @@ h4 {
 }
 
 /* 3. Map settings */
-.map-container {
+/* .map-container {
   position: sticky;
   top: 0;
+  left: 0;
   height: 100vh;
   z-index: 0;
+  width: 100%;
 }
 
 .map {
   height: 100%;
-}
+} */
 
 /* 4. Slides */
-/* will have to edit this once i implement the map background */
-
 .slide-section {
   position: relative;
   margin-top: -30vh;
-  z-index: 100;
+  z-index: 1;
   pointer-events: none;
   margin-bottom: 0;
 }
 
 .slide {
-  margin-top: 90vh;
-  margin-bottom: 90vh;
+  margin-top: 0vh;
+  margin-bottom: 40vh;
   margin-left: auto;
   margin-right: 2rem;
-
   padding: 1rem;
 
   border-radius: 0.5rem;
@@ -218,6 +217,7 @@ h4 {
   pointer-events: initial;
 
   width: 25rem;
+  display: flex;
 
   background-color: white;
   color: #0D564B;
@@ -273,8 +273,54 @@ h4 {
   margin-right: 5%;
   justify-content: space-between;
   padding: 20px 20px;
-  
+
   box-shadow: 0.5rem 0.25rem 0.75rem rgba(0 0 0 / 50%);
+}
+
+/* temporary code for still maps on background of slides */
+#stitchintro .background-layer, #stitchtimeline .background-layer, #othercity1 .background-layer, #othercity2 .background-layer, #othercity3 .background-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0; 
+}
+
+#stitchintro .background-layer {
+  background-image: url('../img/background-chinatownstitch.png');
+}
+
+#stitchtimeline .background-layer {
+  background-image: url('../img/background-phases.png');
+}
+
+#othercity1 .background-layer {
+  background-image: url('../img/background-KWP.png');
+}
+
+#othercity2 .background-layer {
+  background-image: url('../img/background-CUS.png');
+}
+
+#othercity3 .background-layer {
+  background-image: url('../img/background-CA.png');
+}
+
+#stitchintro .text, #stitchtimeline .text,
+#othercity1 .text,
+#othercity2 .text,
+#othercity3 .text,
+#othercity-row .text {
+  position: relative; /* Ensure it is positioned relative to the slide */
+  z-index: 1; /* Place it above the background-layer */
+  background-color: white; /* Add a white background to the text box */
+  padding: 20px; /* Add padding inside the text box */
+  border-radius: 8px; /* Optional: Add rounded corners */
+  box-shadow: 0.5rem 0.25rem 0.75rem rgba(0, 0, 0, 0.5); /* Add box-shadow */
 }
 
 #othercity1, #othercity3 {
@@ -396,8 +442,8 @@ h4 {
   background-position: center; /* Center the image */
   background-repeat: no-repeat; /* Prevent the image from repeating */
   height: 100vh; /* Make the banner fill the entire screen height */
-  margin: 0; 
-  padding: 0; 
+  /* margin: 0; 
+  padding: 0;  */
 }
 
 /* 3C. Model Slide specifics */
