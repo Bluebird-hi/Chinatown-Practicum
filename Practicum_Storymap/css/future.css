@@ -402,3 +402,13 @@ body {
   margin-right: 8px;
   opacity: 0.9;
 }
+
+.highlight-orange {
+  color: #DB5420; /* Nice orange */
+  font-weight: bold;
+}
+
+.highlight-yellow {
+  color: #ffbf00; /* Nice orange */
+  font-weight: bold;
+}
