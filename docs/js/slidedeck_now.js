@@ -31,39 +31,17 @@ class SlideDeck {
     return data;
   }
 
-  updateDataLayer(data) {
+  updateDataLayer(data, options) {
     this.dataLayer.clearLayers();
-    const prices = data.features
-      .filter(f => f.geometry.type === 'Point')
-      .map(f => f.properties.predicted_price || 0);
 
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-
-    const interpolateColor = (price) => {
-      const t = Math.max(0, Math.min(1, (price - minPrice) / (maxPrice - minPrice)));
-      const start = { r: 41, g: 153, b: 136 };
-      const end = { r: 231, g: 85, b: 27 };
-      const r = Math.round(start.r + (end.r - start.r) * t);
-      const g = Math.round(start.g + (end.g - start.g) * t);
-      const b = Math.round(start.b + (end.b - start.b) * t);
-      return `rgb(${r},${g},${b})`;
+    const defaultOptions = {
+      pointToLayer: (p, latlng) => L.marker(latlng),
+      style: (feature) => feature.properties.style,
     };
+    const geoJsonLayer = L.geoJSON(data, options || defaultOptions)
+        .bindTooltip((l) => l.feature.properties.label)
+        .addTo(this.dataLayer);
 
-    const geoJsonLayer = L.geoJSON(data, {
-      pointToLayer: (feature, latlng) => {
-        const price = feature.properties.predicted_price || 0;
-        return L.circleMarker(latlng, {
-          radius: 5,
-          fillColor: interpolateColor(price),
-          color: '#fff',
-          weight: 0.5,
-          fillOpacity: 0.9
-        });
-      }
-    });
-
-    geoJsonLayer.addTo(this.dataLayer);
     return geoJsonLayer;
   }
 
