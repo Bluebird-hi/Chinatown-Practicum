@@ -1,0 +1,243 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: "Rubik", sans-serif;
+    overflow-x: hidden;
+    background-color: #f2f2f2;
+  }
+
+h1 {
+  font-size: 2em;
+}
+
+h2 {
+  font-size: 1.5em;
+}
+
+h3 {
+  font-size: 1.17em;
+}
+
+h4 {
+  font-size: 1em;
+}
+
+
+/* 1. Natigation Bar */
+.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 40px;
+  background-color:  #f2f2f2;
+  transition: top 0.3s;
+  border-bottom: 1px solid #ddd;
+  z-index: 1000;
+}
+
+.navbar.hidden {
+  top: -100px;
+}
+
+.logo-title {
+  display: flex;
+  align-items: center;
+}
+  
+.logo {
+  height: 40px;
+  margin-right: 8px;
+}
+  
+.nav-buttons {
+  display: flex;
+  justify-content: center; /* Center the buttons horizontally */
+  gap: 20px; /* Add spacing between buttons */
+  flex-grow: 1; 
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #299988;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-btn:hover {
+  color: #E7551B;
+  font-weight: bold;
+}
+
+.nav-btn.active {
+  font-weight: bolder;
+  border-bottom: 2px solid #299988;
+}
+
+.navbar a {
+  text-decoration: none;
+}
+
+.navbar a:hover,
+.navbar a:active {
+  text-decoration: underline;
+}
+
+.upper-area {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 120px;
+  width: 100%;
+  z-index: 1000;
+}
+
+/* wrapper for fixed background */
+.wrapper {
+  height: 100%;
+}
+
+.fixed-bg {
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center center;
+  height: 100vh;
+  width: 100%;
+  text-align: center;
+  display: table;
+  z-index: -1; 
+}
+
+.bg-1 {
+  background-image: url('../img/background_project_team1.png'); /* Ensure the path is correct */
+}
+
+.fixed-bg .title-title {
+  display: table-cell;
+  transform: translate(-50%, -50%);
+  color: #299988;
+  font-size: 3em;
+  font-weight: bold; 
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  text-shadow: 0px 2px 5px white; 
+  animation: flashColor 2s infinite steps(1, end);
+}
+
+.fixed-bg .title-title {
+  display: table-cell;
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #299988;
+  font-size: 3em;
+  font-weight: bold; 
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  text-shadow: 0px 2px 5px white; 
+  animation: flashColor 2s infinite steps(1, end);
+
+  z-index: 1;
+}
+
+@keyframes flashColor {
+  0%   { color: #279382; }
+  25%  { color: #DB5420; }
+  50% { color: #D09A27; }
+  75% { color: #0D564B; }
+}
+
+.fixed-bg .title-wrapper {
+  position: absolute;
+  top: 42.5%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #434343;
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+  
+  z-index: 1;
+}
+
+.fixed-bg .title-subtitle {
+  font-size: 1.25em;
+}
+
+.extlink {
+  color: #299988;
+  text-decoration: none;
+}
+
+.extlink2 {
+  color: #299988;
+  text-decoration: none;
+}
+
+.extlink:hover, .extlink2:hover {
+  color: #E7551B;
+}
+
+.scroll-bg {
+  background-color: #0f0f0a;
+  padding: 10px 70px;
+  color: #676767;
+  
+  z-index: 1;
+}
+
+/* Team Bios */
+.bio-container {
+  position: relative;
+  margin-top: 32.5em;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+
+  z-index: 1;
+}
+
+.bio-container .grid-item {
+  flex: 1 1 calc(25% - 20px);
+  max-width: 250px;
+  text-align: center;
+  text-decoration: none;
+  color: ##299988;
+}
+
+
+.bio-container .grid-item img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+}
+
+.bio-container .grid-item:hover img {
+  transform: scale(1.05);
+}
+
+.bio-container .grid-item h3 {
+  margin-top: 10px;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #0D5C4B;
+  transition: color 0.3s;
+}
+
+.bio-container .grid-item h4, .bio-container .grid-item p {
+  transition: color 0.3s;
+}
+
+.bio-container .grid-item:hover h3 {
+  color: #ffae00;
+}
