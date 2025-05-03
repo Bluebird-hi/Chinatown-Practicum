@@ -45,7 +45,7 @@ packages = c(
   # Newer extensions
   "finetune", "themis", "applicable", "vetiver",
   # Existing packages
-  "bayesplot", "lme4", "RcppEigen", "AmesHousing"
+  "bayesplot", "lme4", "RcppEigen"
 )
 
 for(i in seq_along(packages)){
@@ -176,6 +176,7 @@ model_rec <- recipe(log_adj_sale_price ~ ., data = property_modeling) %>%
 ```
 
 
+
 ```{r message=FALSE, warning=FALSE}
 # Moedl Specifications
 lm_plan <- 
@@ -191,24 +192,25 @@ glmnet_plan <-
 rf_plan <- rand_forest() %>%
   set_args(mtry  = tune()) %>%
   set_args(min_n = tune()) %>%
-  set_args(trees = 1000) %>% 
+  set_args(trees = 1000) %>% # 3000 
   set_engine("ranger", importance = "impurity") %>% 
   set_mode("regression")
 
 XGB_plan <- boost_tree() %>%
   set_args(mtry  = tune()) %>%
   set_args(min_n = tune()) %>%
-  set_args(trees = 100) %>% 
+  set_args(trees = 100) %>% # smaller
   set_engine("xgboost") %>% 
   set_mode("regression")
 
 # Hyperparameter grid for glmnet (penalization)
+
 glmnet_grid <- expand.grid(penalty = seq(0, 1, by = .25), 
                            mixture = seq(0,1,0.25))
 rf_grid <- expand.grid(mtry = c(2,5,10,13,30,45), 
-                       min_n = c(5,50,100,500))
+                       min_n = c(5,50,100,500)) # 50-250
 xgb_grid <- expand.grid(mtry = c(3,5),
-                        min_n = c(1,5))
+                        min_n = c(1,5)) # same as rf
 
 # create workflow
 lm_wf <-
@@ -251,7 +253,7 @@ metrics <- metric_set(rmse, rsq, mape, smape)
 ```
 
 
-```{r eval=FALSE}
+```{r}
 # fit model to workflow and calculate metrics
 lm_tuned <- lm_wf %>%
   tune::fit_resamples(.,
@@ -330,6 +332,12 @@ xgb_val_fit_geo <- xgb_best_wf %>%
 ```
 
 ```{r}
+property_final <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/property_final.geojson") %>%
+  st_transform('EPSG:2272')
+```
+
+
+```{r}
 property_train_geo <- property_train %>%
   st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326) %>%
   st_transform('EPSG:2272')
@@ -351,6 +359,12 @@ ggplot() +
   labs(title = glue("<span style='color:#eb5600;'>Train</span> & <span style='color:#1a9988;'>Test</span> Set")) +
   theme_void() +
   theme(plot.title = ggtext::element_markdown(size = 16, face = "bold"))
+
+ggplot() +
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
+  geom_sf(data = property_final%>%st_transform("EPSG:2272"), color = "#eb5600") +
+  theme_void()
 ```
 
 
@@ -432,7 +446,7 @@ OOF_plot1 <- ggplot(data = OOF_preds %>%
   geom_path(color = "#1a9988") +
   geom_label(aes(label = paste0("$", round(MAE)))) +
   labs(title = "MAE | MAPE by Model Specification",
-       subtitle = "Cross validation") +
+       subtitle = "Training set cross validation") +
   theme_minimal() +
   theme(plot.title = ggtext::element_markdown(size = 16, face = "bold"),
         axis.title = element_blank(),
@@ -458,7 +472,7 @@ OOF_plot3 <- ggplot(OOF_preds, aes(x = log_adj_sale_price, y = .pred, group = mo
   facet_wrap(~model, nrow = 2) +
   labs(title = glue("<span style='color:#1a9988;'>Perfect</span> vs. <span style='color:#eb5600;'>Model</span> Prediction"),
        x = "Observed value", y = "Predicted value",
-       subtitle = "Cross validation") +
+       subtitle = "Training set cross validation") +
   theme_minimal() +
   theme(plot.title = ggtext::element_markdown(size = 16, face = "bold"),
         axis.text = element_blank())
@@ -503,9 +517,39 @@ val_plot1 | val_plot2
 OOF_plot3 | val_plot3
 ```
 
+Putting the validation results of train and test set altogether, **Random Forest model** shows the best and a stable performance among the four models. Though the Regularized Linear Regression (RLS) model behaves well with a MAPE of 50.92%, it predicts 10% more error than the RF model, indicating a low level of stability. Within the test set, **the price predictions of the RF model are off by 34.48% ($229,765) on average**, which is still a little high requiring further examination.
+
+Predicted and observed prices are compared by the scatter plots. The orange and green lines are closer in the RF model, indicating a better performance overall. However, the deviation suggests that, on average, the model’s predictions are lower than the observed prices. Examining the data points further reveals that prediction accuracy decreases as prices rise, confirming our concerns about the variability in the higher price ranges of the dataset. The intersection point suggests that our RF model performs better for lower-valued housing prices around $418,761.
+
+```{r}
+library(dplyr)
+library(broom)
+library(kableExtra)
+
+intersections <- val_preds %>%
+  group_by(model) %>%
+  do({
+    fit <- lm(.pred ~ log_adj_sale_price, data = .)
+    coefs <- coef(fit)
+    x_log <- coefs[1] / (1 - coefs[2])  # x = a / (1 - b)
+    # y_log <- x_log
+    price_orig <- exp(x_log) - 1  # Adjusted for log(price + 1)
+    tibble(x_log = x_log, price = price_orig)
+  })
+
+intersections %>% 
+  kbl(align = c("l", rep("c", 2)),
+      caption = "Intersections between Model Predictions and Observed Prices",
+      col.names = c("Model", "Log Price", "Property Price")) %>% 
+  kable_styling() %>% 
+  kable_classic(full_width = F, html_font = "Cambria") %>% 
+  row_spec(3, bold = T, background = "#7fe3d6")
+```
+
+
 ### Random Forest Model
 
-
+Of 1528 properties in the study area, 460 properties are used for model validation. Except for general statistics of the prediction errors, we further examine the Random Forest model's generalizability across space and zoning. The results indicate a 
 
 ```{r}
 # join test data back to make spatial
@@ -519,16 +563,11 @@ val_pred_sf <- val_preds %>%
            remove = FALSE,
            crs = 4326)
 
-studyarea_4326 <- st_transform(studyarea, crs = 4326)
+val_pred_sf_plot <- val_pred_sf %>%
+  filter(model == "RF")
+Mean_MAPE <- mean(val_pred_sf_plot$MAPE)
 
-# map errors by point
-mapview(filter(val_pred_sf, model == "RF"), zcol = "MAPE", cex = 5,
-        layer.name = "RF MAPE")
-```
-
-
-```{r message=FALSE}
-# aggregate val error to Neighborhood 
+# aggregate val error to zoning_group 
 val_MAPE_by_zoning <- val_preds %>% 
   group_by(zoning_group, model) %>% 
   summarise(RMSE = yardstick::rmse_vec(actual_price, predicted_price),
@@ -536,10 +575,77 @@ val_MAPE_by_zoning <- val_preds %>%
     MAPE = mean(abs(predicted_price - actual_price) / actual_price)) %>% 
   ungroup() 
 
+studyarea_4326 <- st_transform(studyarea, crs = 4326)
+```
+
+```{r}
+ggplot(data = val_pred_sf_plot,aes(x = MAPE)) +
+  geom_histogram(color = "white", fill = "#1a9988") +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 20)
+                     ) +
+  labs(title = "Distribution of MAPE", 
+       subtitle = "Test set validation",
+       # caption = "Figure 4.2",
+       x = "Mean Absolute Percentage Error (MAPE)", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 18, face = "bold"),
+        plot.subtitle = element_text(size = 12),
+        plot.caption = element_text(hjust = 0)) +
+  geom_vline(aes(xintercept=mean(MAPE, na.rm=T)),
+               color="#eb5600", linetype="dashed", size=1) +
+  annotate(geom = "text", label = paste("Mean of MAPE:", paste0(round(Mean_MAPE*100, 2),"%")), # Insert correlation here
+    x = .6, y = 120,
+    hjust = 0, size = 4, color = "#eb5600")
+```
+
+
+```{r}
+library(leaflet)
+# Create a continuous color palette for MAPE
+pal_mape <- colorNumeric(
+  palette = colorRampPalette(c("#7fe3d6","#eba075","#eb5600"))(50),
+  domain = val_pred_sf_plot$MAPE
+)
+
+leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addPolygons(data = studyarea_4326,
+              color = "black",       # Black border
+              weight = 4,            # Border thickness
+              dashArray = "8,12",     # Dashed line pattern (5px on, 5px off)
+              fill = FALSE) %>%
+  # Points colored by MAPE
+  addCircleMarkers(
+    data = val_pred_sf_plot,
+    color = ~pal_mape(MAPE),
+    weight = 0.8,
+    fillColor = ~pal_mape(MAPE),
+    fillOpacity = 0.7,
+    radius = 3.5,
+    popup = ~paste(
+  "MAPE:", round(MAPE, 3), "<br>",
+  "Zoning:", zoning_group, "<br>",
+  "Property Price:", round(actual_price, 2), "<br>",
+  "Predicted Price:", round(predicted_price, 2)
+)) %>%
+  
+  # Add a legend for MAPE
+  addLegend(
+    pal = pal_mape,
+    values = val_pred_sf_plot$MAPE,
+    title = "MAPE",
+    position = "bottomright"
+  )
+
+```
+
+
+
+```{r message=FALSE}
 # plot MAPE by Hood
 ggplot(val_MAPE_by_zoning, aes(x = reorder(zoning_group, MAPE), y = MAPE)) +
   geom_bar(stat = "identity", fill = "#1a9988", width = .8, alpha = .7) +
-  # scale_y_continuous(breaks = seq(0,10,1)) +
+  scale_y_continuous(breaks = seq(0,6,0.5)) +
   labs(x = "Re-categorized zoning type",
        title = "MAPE by Zoning Group") +
   theme_minimal() +
@@ -551,6 +657,24 @@ ggplot(val_MAPE_by_zoning, aes(x = reorder(zoning_group, MAPE), y = MAPE)) +
 ```{r}
 table(property_modeling$zoning_group)
 ```
+
+```{r}
+val_pred_sf_plot %>% 
+  filter (!zoning_group %in% c("IRMX","CMX5","ICMX")) %>% 
+  st_drop_geometry() %>%
+  group_by(model) %>%
+  summarise(
+    RMSE = yardstick::rmse_vec(actual_price, predicted_price),
+    MAE  = yardstick::mae_vec(actual_price, predicted_price),
+    MAPE = paste0(round(mean(abs(predicted_price - actual_price) / actual_price),2), "%")
+  ) %>%
+  kbl(align = c(rep("c", 3)),
+      caption = "Validation Results without IRMX & CMX5 & ICMX") %>% 
+  kable_styling() %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+```
+
 
 we don't focus on IRMX and CMX5 so our model behaves well for the situation here.
 
