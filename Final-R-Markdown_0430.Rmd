@@ -4393,6 +4393,9 @@ ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/final
        units = "in",
        dpi = 300)
 ```
+
+
+
 ## more data visulizations for future sections...........
 filter unselling properties for s0&s1&s2&changed
 ```{r}
@@ -4423,7 +4426,7 @@ property_S2 <- property_S4_predict %>%
          !objectid %in% undesired_objectids)
 
 property_S2 <- property_S2 %>%
-  mutate(alternative_feature = case_when(
+  mutate(alternate_feature = case_when(
     parcel_number %in% property_S2_comm$parcel_number ~ "Commercial",
     parcel_number %in% property_S2_res$parcel_number ~ "Multi-Family",
     TRUE ~ "Unchanged"
@@ -4627,8 +4630,6 @@ mapview(duplicated_grouped,
         layer.name = "Duplicated Geometry Points")
 ```
 
-
-
 ```{r}
 property_S2_perc_change <- property_S2 %>%
   filter(!is.na(adj_sale_price), adj_sale_price > 100) %>%
@@ -4665,7 +4666,7 @@ property_S2_perc_change <- property_S2 %>%
   filter(!is.na(property_category)) %>%
   mutate(property_category = factor(property_category, levels = c("Commercial", "Residential", "Retail"))) %>%
   select(
-    parcel_number, objectid, perc_change, perc_bucket, size_bucket, property_category,alternative_feature, geometry,
+    parcel_number, objectid, perc_change, perc_bucket, size_bucket, property_category,alternate_feature, geometry,
     predicted_price, zoning, category_code, landuse, property_category, everything()
   )
 mapview(property_S2_perc_change,
@@ -4690,7 +4691,7 @@ price_change_s1s2 <- property_S1_perc_change %>%
   select(objectid, predicted_price_s1 = predicted_price) %>%
   inner_join(
     property_S2_perc_change %>%
-      select(objectid, parcel_number, location, landuse, category_code, zoning, alternative_feature, geometry, predicted_price_s2 = predicted_price),
+      select(objectid, parcel_number, location, landuse, category_code, zoning, alternate_feature, geometry, predicted_price_s2 = predicted_price),
     by = "objectid"
   ) %>%
   mutate(
@@ -4731,10 +4732,153 @@ st_write(price_change_s1s2, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicu
 ```
 
 
+```{r}
+S0_S1_density <- ggplot() +
+  
+  # Scenario 0: true adjusted sale price
+  geom_density(data = property_S1_perc_change %>% filter(adj_sale_price > 100),
+               aes(x = adj_sale_price),
+               fill = "#eb5600", alpha = 0.6, color = "transparent") +
+  
+  # Scenario 1: predicted price
+  geom_density(data = property_S1_perc_change,
+               aes(x = predicted_price),
+               fill = "#1a9988", alpha = 0.6, color = "transparent") +
+
+  # median lines
+  geom_vline(data = property_S1_perc_change %>% filter(adj_sale_price > 100),
+             aes(xintercept = median(adj_sale_price, na.rm = TRUE)),
+             linetype = "dashed", color = "#eb5600") +
+  
+  geom_vline(data = property_S1_perc_change,
+             aes(xintercept = median(predicted_price, na.rm = TRUE)),
+             linetype = "dashed", color = "#1a9988") +
+
+  # log-scale x-axis
+  scale_x_log10(labels = dollar) +
+  
+  # title with markdown color
+  labs(
+    x = "Price",
+    y = "Density",
+    title = glue::glue("<span style='color:#eb5600;'>Scenario 0</span> vs. <span style='color:#1a9988;'>Scenario 1</span>")
+  ) +
+  
+  theme_minimal() +
+  theme(
+    plot.title = element_markdown(size = 16, face = "bold"),
+    legend.position = "none"
+  )
+
+# 保存图片
+ggsave(
+  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S1_median_density.png",
+  plot = S0_S1_density,
+  height = 5,
+  width = 8.5,
+  units = "in",
+  dpi = 300
+)
+```
 
 
+```{r}
+S0_S2_density <- ggplot() +
+  
+  # Scenario 0: true adjusted sale price
+  geom_density(data = property_S2_perc_change %>% filter(adj_sale_price > 100),
+               aes(x = adj_sale_price),
+               fill = "#eb5600", alpha = 0.6, color = "transparent") +
+  
+  # Scenario 1: predicted price
+  geom_density(data = property_S2_perc_change,
+               aes(x = predicted_price),
+               fill = "#1a9988", alpha = 0.6, color = "transparent") +
 
+  # median lines
+  geom_vline(data = property_S2_perc_change %>% filter(adj_sale_price > 100),
+             aes(xintercept = median(adj_sale_price, na.rm = TRUE)),
+             linetype = "dashed", color = "#eb5600") +
+  
+  geom_vline(data = property_S2_perc_change,
+             aes(xintercept = median(predicted_price, na.rm = TRUE)),
+             linetype = "dashed", color = "#1a9988") +
 
+  # log-scale x-axis
+  scale_x_log10(labels = dollar) +
+  
+  # title with markdown color
+  labs(
+    x = "Price",
+    y = "Density",
+    title = glue::glue("<span style='color:#eb5600;'>Scenario 0</span> vs. <span style='color:#1a9988;'>Scenario 2</span>")
+  ) +
+  
+  theme_minimal() +
+  theme(
+    plot.title = element_markdown(size = 16, face = "bold"),
+    legend.position = "none"
+  )
+
+# 保存图片
+ggsave(
+  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S2_median_density.png",
+  plot = S0_S2_density,
+  height = 5,
+  width = 8.5,
+  units = "in",
+  dpi = 300
+)
+```
+
+```{r}
+S1_S2_density <- ggplot() +
+  
+  # Scenario 0: true adjusted sale price
+  geom_density(data = price_change_s0s1 %>% filter(predicted_price > 100),
+               aes(x = predicted_price_s1),
+               fill = "#eb5600", alpha = 0.6, color = "transparent") +
+  
+  # Scenario 1: predicted price
+  geom_density(data = price_change_s0s1,
+               aes(x = predicted_price_s2),
+               fill = "#1a9988", alpha = 0.6, color = "transparent") +
+
+  # median lines
+  geom_vline(data = price_change_s0s1 %>% filter(adj_sale_price > 100),
+             aes(xintercept = median(predicted_price_s1, na.rm = TRUE)),
+             linetype = "dashed", color = "#eb5600") +
+  
+  geom_vline(data = price_change_s0s1,
+             aes(xintercept = median(predicted_price_s2, na.rm = TRUE)),
+             linetype = "dashed", color = "#1a9988") +
+
+  # log-scale x-axis
+  scale_x_log10(labels = dollar) +
+  
+  # title with markdown color
+  labs(
+    x = "Price",
+    y = "Density",
+    title = glue::glue("<span style='color:#eb5600;'>Scenario 0</span> vs. <span style='color:#1a9988;'>Scenario 1</span>")
+  ) +
+  
+  theme_minimal() +
+  theme(
+    plot.title = element_markdown(size = 16, face = "bold"),
+    legend.position = "none"
+  )
+
+# 保存图片
+ggsave(
+  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S1_median_density.png",
+  plot = S0_S1_density,
+  height = 5,
+  width = 8.5,
+  units = "in",
+  dpi = 300
+)
+```
 
 
 
