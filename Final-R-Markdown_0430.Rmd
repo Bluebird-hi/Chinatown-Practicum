@@ -4421,6 +4421,13 @@ property_S2_res <- S3_changed %>%
 property_S2 <- property_S4_predict %>%
   filter(!building_code_description_new %in% undesired_types,
          !objectid %in% undesired_objectids)
+
+property_S2 <- property_S2 %>%
+  mutate(alternative_feature = case_when(
+    parcel_number %in% property_S2_comm$parcel_number ~ "Commercial",
+    parcel_number %in% property_S2_res$parcel_number ~ "Multi-Family",
+    TRUE ~ "Unchanged"
+  ))
 ```
 
 
@@ -4658,7 +4665,7 @@ property_S2_perc_change <- property_S2 %>%
   filter(!is.na(property_category)) %>%
   mutate(property_category = factor(property_category, levels = c("Commercial", "Residential", "Retail"))) %>%
   select(
-    parcel_number, objectid, perc_change, perc_bucket, size_bucket, property_category,geometry,
+    parcel_number, objectid, perc_change, perc_bucket, size_bucket, property_category,alternative_feature, geometry,
     predicted_price, zoning, category_code, landuse, property_category, everything()
   )
 mapview(property_S2_perc_change,
@@ -4683,7 +4690,7 @@ price_change_s1s2 <- property_S1_perc_change %>%
   select(objectid, predicted_price_s1 = predicted_price) %>%
   inner_join(
     property_S2_perc_change %>%
-      select(objectid, parcel_number, location, landuse, category_code, zoning, geometry, predicted_price_s2 = predicted_price),
+      select(objectid, parcel_number, location, landuse, category_code, zoning, alternative_feature, geometry, predicted_price_s2 = predicted_price),
     by = "objectid"
   ) %>%
   mutate(
