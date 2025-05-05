@@ -1,0 +1,4800 @@
+---
+title: "Envisioning Neighborhood Futures After the Chinatown Stitch"
+author: "Aki Di Sandro, Ray Ma, Luming Xu, Sijia Zhang, Yixuan Zhou"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    theme: sandstone
+    toc_float: true
+    code_folding: hide
+    toc_depth: 3
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{css format, echo = FALSE}
+.center-leaflet {
+  display: flex;
+  justify-content: center;
+}
+
+```
+
+```{r setup_general, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
+    fig.align = "center") 
+options(scipen=999)
+
+library(tidyverse)
+library(dplyr)
+library(tibble)
+library(glue)
+library(broom)
+library(car)
+library(units)
+library(ggplot2)
+library(ggtext)
+library(ggforce)
+library(patchwork)
+library(corrplot)
+library(RColorBrewer)
+library(grid)
+library(sf)
+library(ranger)
+library(lwgeom)
+library(leaflet)
+library(mapview)
+library(geosphere)
+library(geojsonio)
+library(osmdata)
+library(showtext)
+library(sysfonts)
+library(knitr)
+library(kableExtra)
+library(stargazer)
+library(modelsummary)
+library(FNN)
+library(Metrics)
+library(rsample)
+library(htmltools)  # For div() function
+library(googleway)
+library(tidycensus)
+library(workflows)
+library(parsnip)
+library(ranger)
+library(jsonlite)
+library(classInt)
+library(kableExtra)
+palette5 <- colorRampPalette(c("#1a9988", "#eb5600"))(5)
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+```
+
+```{r setup_wd, message = FALSE, quiet = TRUE, results = 'hide'}
+# Change to your own workspace
+# knitr::opts_knit$set(root.dir = "E:/Spring/Practicum/DataAnalysis/Chinatown") # Luming
+# wd <- "E:/Spring/Practicum/DataAnalysis/Chinatown"
+
+# Aki
+#knitr::opts_knit$set(root.dir = "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/")
+#wd <- "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/"
+
+# sijia
+knitr::opts_knit$set(root.dir = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum")
+#setwd("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum/")  # for interactive chunks
+wd <- "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum"
+
+nhoods_4326 <- 
+  # st_read("DataWrangling/akidata/philadelphia-neighborhoods.geojson") %>% # Luming
+ # st_read("akidata/philadelphia-neighborhoods.geojson") %>% # Aki
+  st_read("Dataset/philly_neighborhoods.geojson")%>%
+  st_transform('EPSG:4326')
+
+# philly properties (from Sijia)
+# from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
+#philly_properties <- st_read("akidata/property_philly.geojson") # Aki, from most recent update, 4/21/25, 88,571 rows
+# philly_properties <- st_read("DataWrangling/akidata/property_philly_cleaned.geojson") # Luming
+philly_properties <- st_read("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/DataWrangling/property_philly.geojson") #sijia
+```
+
+# Use Case
+
+## Background
+
+It is hard to talk about the history of the **Philadelphia Chinatown** without the construction of **I-676**, also known as the **Vine Street Expressway**. Although the highway serves as a significant thoroughfare through Center City Philadelphia, the indispensable repercussion on the adjacent neighborhoods still lingers today. Consequences of the highway such as demolishment of buildings, pedestrian safety threats, traffic congestion, as well as noise and air pollutions had been harming Chinatown and its surrounding neighborhoods over the past decades and are yet to be addressed.
+
+Standing in opposition to the issues, [City of Philadelphia Office of Transportation and Infrastructure and Sustainability (OTIS)](https://www.phila.gov/departments/office-of-transportation-and-infrastructure-systems/) brought forth the plan of capping sections of the expressway as a solution to address its historical harms on the Chinatown region. This “cap”, named **the Chinatown Stitch project**, aimed to create a safe and equitable green space for the public that would reconnect areas north and south to the Vine Street expressway. Receiving funds from the US department of Transportation and the local organizations, the construction of the Chinatown Stitch will start in 2027 and is expected to be completed in early 2030.
+
+This purpose of this study is to help OTIS **understand the housing market of Philadelphia Chinatown region before and after the implementation of the Chinatown Stitch**. The first part of the study will focus the effects of highways on sales prices in the study region as well as the entire Philadelphia. House prices will then be estimated using **three predictive models under three different future scenarios**: business as usual without the implementation of the Chinatown Stitch, business as usual with the implementation of the Chinatown Stitch, and an alternative future in which the Chinatown Stitch significantly reshapes the urban landscape of the study region.
+
+![](Final%20R%20Markdown/Images/background.png)
+
+## Study Area
+
+```{r StudyArea_data, quiet = TRUE, results = 'hide'}
+Philly_blockgroup <- st_read("Dataset/Philly_blockgroup/Philly_blockgroup.shp") %>%
+  st_transform('EPSG:2272')
+
+# philly bounds
+philly_bounds <- st_union(Philly_blockgroup)
+
+studyarea <- st_read("Dataset/studyarea/StudyArea.shp") %>%
+  st_transform('EPSG:2272')
+
+studyarea_blockgroup <- st_read("Dataset/studyarea/StudyArea_blockgroup_tract.shp") %>%
+  st_transform('EPSG:2272')
+
+studyarea_north <- st_read("Dataset/studyarea-sub/studyarea_north.shp") %>%
+  st_transform('EPSG:2272')
+
+studyarea_south <- st_read("Dataset/studyarea-sub/studyarea_south.shp") %>%
+  st_transform('EPSG:2272')
+
+I_676 <- st_read("Dataset/Highways/I_676.shp") %>%
+  st_transform('EPSG:2272')
+
+discontinuity <- st_read("Dataset/studyarea-sub/discontinuity.shp") %>%
+  st_transform('EPSG:2272')
+
+Chinatown_Stitch <- st_read("Dataset/Chinatown_Stitch/Chinatown_Stitch.shp") %>%
+  st_transform('EPSG:2272')
+
+property_original <- st_read("Dataset/original_property_studyarea.geojson") %>%
+  st_transform('EPSG:2272')
+
+property_north <- property_original %>%
+  st_intersection(studyarea_north)
+
+property_south <- property_original %>%
+  st_intersection(studyarea_south)
+
+# philly hydrology for mapping (bounded by philly_bounds; source: https://opendataphilly.org/datasets/hydrology/)
+hydro <- st_read("https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Hydrographic_Features_Poly/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson") %>% 
+    st_transform(crs = 'EPSG:2272') %>% 
+  st_intersection(philly_bounds)
+
+philly_highways <- st_read("Dataset/Highways/Casestudy_Highways.shp") %>% 
+  st_transform('EPSG:2272')
+
+# cleaned and feature engineered property data for study area
+property_studyarea_FE <- st_read("Dataset/property_CT_FE.geojson")
+
+```
+
+```{r read_data, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+property <- st_read("Dataset/property/opa_properties_public2.geojson") %>%
+  st_transform('EPSG:2272')
+
+property2 <- st_read("Dataset/property/property2.geojson") %>%
+  st_transform('EPSG:2272')
+
+property_park <- st_read("Dataset/property/property_park.geojson")%>%
+  st_transform('EPSG:2272')
+
+newpark <- st_read("Dataset/ParksModified/Park_join_I676_1.geojson")%>%
+  st_transform('EPSG:2272')
+property2$distance_to_nearest_park <- property_park$distance_to_nearest_park
+
+nhood <- st_read("~/Documents/Upenn/Practicum/2025/Data/philly_neighborhoods.geojson")  #######change here!!!!!!!!!!!!!!!!!!!!!!
+
+landuse <- st_read("Dataset/landuse_clip/Land_Use_ClipLayer.shp")
+
+I676_2 <- st_read("Dataset/studyarea/discontinuity.shp")%>%
+  st_transform('EPSG:2272')
+
+cpi_data <- st_read("Dataset/property/cpi_data.csv")
+
+property_final <- st_read("Dataset/property/property_final.geojson")%>%
+  st_transform('EPSG:2272')
+```
+
+
+
+
+Three study areas are used in the analysis to reveal the effects of I-676 on the land market of the Chinatown region.
+
+-   **Referable study area (Philadelphia):** to analyse the impact of different highways on the surrounding land markets in the context of the city.
+-   **Main study area (10 block groups):** to figure out the correlation between I-676 and property sales price and make future predictions based on three potential scenarios.
+-   **Compared study area (north and south sides):** to investigate the different situations of the Chinatown region under the construction of I-676.
+
+```{r StudyArea_plot}
+StudyArea_plot1 <- ggplot() +
+  geom_sf(data = Philly_blockgroup, fill = "transparent", color = "grey90", linewidth = .2) +
+  geom_sf(data = studyarea, fill = "#eb5600", color = "#eb5600") +
+  geom_sf(data = hydro, fill = "#DFF3E3", color = "transparent") +
+  geom_sf(data = philly_bounds, fill = "transparent", color = "grey60", linewidth = 1, linetype = "dashed") +
+  theme_void() +
+  labs(title = "Three Study Areas:",
+       subtitle = "Philadelphia | 10 Block Groups around the Chinatown Stitch | North and South Sides",
+       caption = "Source: ACS Census Data and OPA Data.") +
+  theme(plot.title = element_text(size = 16, face = "bold",margin = margin(b = 6)),
+        plot.subtitle = element_text(margin = margin(b = 10)),
+        plot.caption = element_text(hjust = 0, margin = margin(t = 10)))
+
+StudyArea_plot2 <- ggplot() +
+  geom_sf(data = studyarea_north, fill = alpha("#eb5600", .1), color = "transparent") +
+  geom_sf(data = studyarea_south, fill = alpha("#1a9988", .1), color = "transparent") +
+  # geom_sf(data = discontinuity, fill = "black", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch, fill = "grey", color = "transparent", linetype = "dashed", linewidth = 1) +
+  geom_sf(data = studyarea_blockgroup, fill = "transparent", color = "grey", linewidth = .8, linetype = "dashed") +
+  geom_sf(data = property_north, color = "#eb5600", size = .6) +
+  geom_sf(data = property_south, color = "#1a9988", size = .6) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey60", linewidth = 1.2, linetype = "dashed") +
+  theme_void()
+
+StudyArea_plot1 | StudyArea_plot2
+
+```
+
+```{r UseCase_data, quiet = TRUE, results = 'hide'}
+studyarea_4326 <- st_transform(studyarea, crs = 4326)
+bbox <- as.list(st_bbox(studyarea_4326))
+
+ChinatownStitch_4326 <- st_read("Dataset/Chinatown_Stitch/Chinatown_Stitch.shp") %>%
+  st_transform('EPSG:4326')
+
+I676_4326 <- st_transform(I_676, crs = 4326)
+
+landuse_4326 <- st_read("Dataset/landuse_clip/Land_Use_ClipLayer.shp") %>%
+  st_transform('EPSG:4326')
+
+landuse_4326_plot <- landuse_4326 %>%
+  filter(C_DIG2DESC != 51 & C_DIG2DESC != 71)
+
+landuse_park_ing <- landuse_4326 %>%
+  filter(OBJECTID_1 == 514214)
+
+park_4326 <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
+  st_transform('EPSG:4326')
+
+# nhoods_4326 <- 
+#   st_read("DataWrangling/akidata/philadelphia-neighborhoods.geojson") %>%
+#   # st_read("akidata/philadelphia-neighborhoods.geojson") %>%
+#   st_transform('EPSG:4326')
+
+Chinatown_Callowhill <- nhoods_4326 %>%
+  filter(NAME %in% c("CHINATOWN", "CALLOWHILL"))
+```
+
+In the vision of **a city park** in the future, the Chinatown Stitch will bring vitality to local residents and visitors along with other green spaces. Connected with the Stitch, the **Rail Park** in the [north (Callowhill neighborhood)]{style="color: #eb5600;"} is still in construction and will make an impact years later. With a foundation of **cultural and commercial resources**, the [southern part (Chinatown neighborhood)]{style="color: #1a9988;"} will provide services to the surrounding area, including the city center of Philadelphia.
+
+```{r UseCase_plot}
+UseCase <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addPolygons(data = studyarea_4326,
+              color = "black",       # Black border
+              weight = 4,            # Border thickness
+              dashArray = "8,12",     # Dashed line pattern (5px on, 5px off)
+              fill = FALSE) %>%
+    addPolygons(data = landuse_4326_plot,
+              color = "grey",
+              weight = 0.8,
+              fillColor = "#DFF3E3",
+              fillOpacity = 0.4) %>%
+  addPolygons(data = Chinatown_Callowhill,
+              color = "#eb5600",
+              weight = 1,
+              opacity = 0.5,
+              dashArray = "5,5",
+              fillColor = "#eb5600",
+              fillOpacity = 0.1) %>%
+  addPolygons(data = park_4326,
+              color = "#1a9988",
+              weight = 1,
+              fillOpacity = 0.6,
+              fillColor = "#1a9988") %>%
+  addPolygons(data = landuse_park_ing,
+              color = "#1a9988",
+              weight = 2,
+              opacity = 0.8,
+              fill = FALSE) %>%
+  addPolylines(data = I676_4326,
+               color = "#eb5600",
+               opacity = 1,
+               weight = 2) %>%
+  addPolygons(data = ChinatownStitch_4326,
+              color = "#eb5600",
+              weight = 2,
+              opacity = 1,
+              fillColor = "#1a9988",
+              fillOpacity = 0.8
+              # fill = alpha("#1a9988", 0.5)
+              ) %>%
+  fitBounds(
+    lng1 = bbox$xmin, 
+    lat1 = bbox$ymin, 
+    lng2 = bbox$xmax, 
+    lat2 = bbox$ymax
+  )
+
+div(class = "center-leaflet", UseCase)
+```
+
+```{r StudyArea_pictures, echo=FALSE}
+# Create a table with images and captions
+kable(
+  data.frame(
+    Callowhill = c("![](Final R Markdown/Images/Callowhill.png){height=350px}", "Callowhill"),
+    Chinatown = c("![](Final R Markdown/Images/Chinatown.png){height=350px}", "Chinatown")
+  ),
+  format = "html",
+  align = "c",
+  col.names = NULL
+) %>%
+  kable_styling(position = "center")
+
+```
+
+## Methodology
+
+To achieve the goal of **a data-rich story map**, the methodology is structured around **a robust model construction process**. By incorporating illustrative data visualizations throughout the data analysis, the story map features engaging maps and compelling narratives.
+
+![](Final%20R%20Markdown/Images/methodology.png)
+
+TODO: include description of qualitative analysis
+
+# Data Wrangling
+## Data Source
+
+![](Final%20R%20Markdown/Images/datasource.png)
+## Property Data
+
+-   [Philadelphia Properties and Assessment History](https://opendataphilly.org/datasets/philadelphia-properties-and-assessment-history/)
+-   [Land use 2023](https://opendataphilly.org/datasets/land-use/)
+
+```{r property_data, quiet = TRUE, results = 'hide'}
+# property <- st_read("DataWrangling/akidata/opa_properties_public.geojson") %>%
+#   st_transform('EPSG:2272')
+# 
+# property_studyarea <- st_intersection(property, studyarea)
+# 
+# st_write(property_studyarea %>% st_transform('EPSG:3857'), "Dataset/original_property_studyarea.geojson", driver = "GeoJSON")
+
+property_studyarea <- st_read("Dataset/original_property_studyarea.geojson") %>%
+  st_transform('EPSG: 2272')
+
+landuse <- st_read("Dataset/landuse_clip/Land_Use_ClipLayer.shp") %>%
+  st_transform('EPSG:2272')
+
+landuse_rename <- landuse %>%
+  mutate(landuse = 
+           case_when(
+    C_DIG2DESC == 11 ~ "Residential Low",
+    C_DIG2DESC == 12 ~ "Residential Medium",
+    C_DIG2DESC == 13 ~ "Residential High",
+    C_DIG2DESC == 21 ~ "Commercial Consumer",
+    C_DIG2DESC == 22 ~ "Commercial Business/Professional",
+    C_DIG2DESC == 23 ~ "Commercial Mixed Residential",
+    C_DIG2DESC == 31 ~ "Industrial",
+    C_DIG2DESC == 41 ~ "Civic/Institution",
+    C_DIG2DESC == 51 ~ "Transportation",
+    C_DIG2DESC == 61 ~ "Culture/Amusement",
+    C_DIG2DESC == 62 ~ "Active Recreation",
+    C_DIG2DESC == 71 ~ "Park/Open Space",
+    C_DIG2DESC == 72 ~ "Cemetery",
+    C_DIG2DESC == 81 ~ "Water",
+    C_DIG2DESC == 91 ~ "Vacant",
+    C_DIG2DESC == 92 ~ "Other/Unknown"
+  ))
+
+# philly properties (from Sijia)
+# from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
+# philly_properties <- st_read("akidata/property_philly_250318.geojson")
+```
+
+```{r message=FALSE, warning=FALSE, quiet = TRUE}
+#### clean data for city wise - sale price
+colnames(cpi_data) <- c("half1", "half2", "cpi_date")
+cpi_long <- cpi_data %>%
+  mutate(
+    Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
+    Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
+  ) %>%
+  select(-half1, -half2) %>%
+  pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
+  mutate(
+    Month = match(Month, month.abb),
+    date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
+  ) %>%
+  select(date, CPI)
+
+property_philly <-property%>%
+  mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+  filter(sale_date >= as.Date("2020-01-01") & sale_date <= as.Date("2024-12-31"))%>%
+  filter(!is.na(sale_price), !is.na(total_livable_area))%>%
+  mutate(
+    sale_month = floor_date(sale_date, "month"))%>%
+  left_join(cpi_long, by = c("sale_month" = "date"))%>%
+  mutate(CPI = as.numeric(CPI))%>%
+  mutate(adj_sale_price = sale_price * (340.331/CPI))%>%
+  select(-sale_month, -recording_date,  -other_building, 
+         -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of)
+
+#mean_price <- mean(property_philly$adj_sale_price, na.rm = TRUE)
+#sd_price <- sd(property_philly$adj_sale_price, na.rm = TRUE)
+#extreme_outlier <- mean_price + 5 * sd_price
+price_filtered_philly <- property_philly %>%
+  filter(adj_sale_price >= 100)
+
+q_philly <- quantile(price_filtered_philly$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+
+property_philly2 <- property_philly %>%
+  filter(adj_sale_price >= q_philly[1], adj_sale_price <= q_philly[2])
+
+#property_philly <- property_philly%>%
+#  filter(adj_sale_price > 30000, adj_sale_price < extreme_outlier) %>%
+#  filter(total_livable_area >= 100)
+
+property_philly <- st_transform(property_philly2, crs = 2272)
+
+#st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+
+#### clean data for study area - sale price 
+#study area intersection
+property_studyarea <- st_intersection(property, studyarea)
+
+#sale price clean up and inflation adjusted
+colnames(cpi_data) <- c("half1", "half2", "cpi_date")
+cpi_long <- cpi_data %>%
+  mutate(
+    Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
+    Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
+  ) %>%
+  select(-half1, -half2) %>%
+  pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
+  mutate(
+    Month = match(Month, month.abb),
+    date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
+  ) %>%
+  select(date, CPI)
+
+property_data <-property_studyarea%>%
+  mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+  filter(!is.na(sale_price))%>%
+  filter(sale_date <= as.Date("2024-12-31"))%>%
+  mutate(
+    sale_date = as.Date(sale_date, format = "%Y-%m-%d"), 
+    sale_month = floor_date(sale_date, "month"))%>%
+  left_join(cpi_long, by = c("sale_month" = "date"))%>%
+  mutate(CPI = as.numeric(CPI))%>%
+  mutate(adj_sale_price = sale_price * (340.331/CPI)) %>%
+  select(-sale_month,-recording_date,  -other_building, 
+         -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of, -state_code)%>%
+  relocate(adj_sale_price, sale_price, .after = 2)
+
+price_filtered <- property_data %>%
+  filter(adj_sale_price >= 100)
+
+q <- quantile(price_filtered$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+
+property_data2 <- property_data %>%
+  filter(adj_sale_price >= q[1], adj_sale_price <= q[2])
+
+property1 <- st_transform(property_data2, crs = 2272)
+
+#join attributes - I676(NS) - nhood1 (neighborhoods in study area)
+property1 <- rbind(
+    property1 %>% st_intersection(studyarea_north["geometry"]) %>%
+      mutate(I676_NS = "north"),
+    property1 %>% st_intersection(studyarea_south["geometry"]) %>%
+      mutate(I676_NS = "south")
+  )
+nhood1 <- st_intersection(nhood, studyarea)
+
+#Features clean up for future FE and modeling
+## Zoning
+property1 <- property1%>%
+  select(1:2, zoning, location, everything())
+
+property1 <- property1 %>%
+  mutate(zoning = case_when(
+    location == "1310-16 VINE ST" ~ "CMX4",   
+    location == "252-56 N 13TH ST" ~ "CMX4",
+    location == "255-57 N BROAD ST" ~ "CMX4",
+    location == "451 N 12TH ST" ~ "CMX3",
+    location == "453 N 12TH ST" ~"CMX3",
+    location == "447 N 12TH ST" ~ "CMX3",
+    location == "1108 BUTTONWOOD ST" ~ "CMX3",
+    location == "1104 BUTTONWOOD ST" ~ "CMX3",
+    location == "256-60 N MARVINE ST" ~ "CMX4",
+    location == "820 VINE ST" ~ "CMX4",
+    TRUE ~ zoning                        
+  ))
+
+## central air
+target_locations_N <- c(
+                      "1232 SUMMER ST",	
+                      "1030 BRANDYWINE ST",
+                      "214 N 12TH ST",
+                      "1021 SPRING ST")
+
+property1 <- property1 %>%
+  mutate(
+    central_air = ifelse(location %in% target_locations_N & central_air == "N", "Y", central_air)
+  )
+## year built - clean up values of 1 and delete the other rows which are parking plot properties that have no year_built data
+valid_locations <- c(
+  "305-09 N 12TH ST",
+  "1008-16 WOOD ST",
+  "1004-06 WOOD ST",
+  "211 N CAMAC ST",
+  "231-33 N BROAD ST",
+  "225-27 N 12TH ST"
+)
+property1 <- property1 %>%
+  filter(location != "711-39 SPRING GARDEN ST") %>%
+  mutate(year_built = as.numeric(year_built)) %>%
+  mutate(
+    year_built = case_when(
+      location == "305-09 N 12TH ST" & year_built < 1750 ~ 1950,
+      location == "1008-16 WOOD ST" & year_built < 1750 ~ 1978,
+      location == "1004-06 WOOD ST" & year_built < 1750 ~ 1920,
+      location == "211 N CAMAC ST" & year_built < 1750 ~ 1900,
+      location == "231-33 N BROAD ST" & year_built < 1750 ~ 2020,
+      location == "225-27 N 12TH ST" & year_built < 1750 ~ 2024,
+      
+      !is.na(year_built) & year_built < 1750 &
+        !(location %in% c(
+          "305-09 N 12TH ST",
+          "1008-16 WOOD ST",
+          "1004-06 WOOD ST",
+          "211 N CAMAC ST",
+          "231-33 N BROAD ST",
+          "225-27 N 12TH ST"
+        )) ~ NA_real_,
+      TRUE ~ year_built
+    )
+  )
+#st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+
+
+### Census Data （我的部分）
+```{r message=FALSE, warning=FALSE, quiet = TRUE, results='hide'}
+### The method here for pushing data is diffenrent from the one we usually use cause the there is some issues when downloading the geometry data
+# census block group
+census_api_key("92998588496b9701036218b765c78d2ffb7aedcd", install = TRUE, overwrite = TRUE)
+acs_variable_list.2023 <- load_variables(2023, "acs5", cache = TRUE)
+
+local_shapefile <- "Dataset/census/tl_2023_42_bg"
+bg_pa <- st_read(local_shapefile, quiet = TRUE)
+bg_philly <- bg_pa %>%
+  filter(COUNTYFP == "101") %>%
+  st_transform(2272) %>%
+  select(GEOID, geometry)
+
+block2023_attr <- get_acs(
+  geography = "block group",
+  variables = c("B19013_001E", "B25058_001E"),
+  year = 2023,
+  state = 42,
+  county = 101,
+  geometry = FALSE
+)
+
+block2023_attr <- block2023_attr %>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  rename(
+    MedHHInc = B19013_001,
+    MedRent = B25058_001
+  )
+
+block2023 <- left_join(bg_philly, block2023_attr, by = "GEOID")
+
+studyarea_blockgroup_df <- as.data.frame(studyarea_blockgroup) %>% select(-geometry)
+block2023_studyarea <- block2023 %>% inner_join(studyarea_blockgroup_df, by = "GEOID")
+
+#census tract
+tract_pa <- st_read("Dataset/census/tl_2023_42_tract", quiet = TRUE)
+
+tract_philly <- tract_pa %>%
+  filter(COUNTYFP == "101") %>%
+  st_transform(2272) %>%
+  select(GEOID, geometry)
+
+tract_attr <- get_acs(
+  geography = "tract",
+  variables = c("B25026_001E", "B15001_050E", "B15001_009E","B06012_002E"),
+  year = 2023, state = 42, county = 101, geometry = FALSE
+)
+
+tract_attr_wide <- tract_attr %>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  rename(
+    TotalPop = B25026_001,
+    FemaleBachelors = B15001_050,
+    MaleBachelors = B15001_009,
+    TotalPoverty = B06012_002
+  )
+
+tract2023 <- left_join(tract_philly, tract_attr_wide, by = "GEOID")
+studyarea_blockgroup_df <- as.data.frame(studyarea_blockgroup) %>% select(-geometry)
+
+tract2023 <- tract2023 %>%
+  mutate(GEOID_trimmed = as.numeric(str_sub(GEOID, 7, 9)))
+
+studyarea_blockgroup_df <- studyarea_blockgroup_df %>%
+  mutate(GEOID_trimmed = as.numeric(str_sub(TRACT, 2, 4)))
+
+tract2023_studyarea <- tract2023 %>%
+  inner_join(studyarea_blockgroup_df, by = "GEOID_trimmed")
+tract_studyarea <- st_intersection(studyarea, tract2023_studyarea)
+
+# Property1_property2_census_join
+property1 <- property1 %>%
+  mutate(census_tract = as.numeric(census_tract))
+tract_studyarea_selected <- tract_studyarea %>%
+  select(GEOID_trimmed, TotalPoverty, MaleBachelors, FemaleBachelors, TotalPop) %>%
+  st_drop_geometry()  
+
+property1_blockgroup <- st_join(property1, block2023_studyarea %>% select(GEOID, MedHHInc, MedRent), 
+                            join = st_intersects)
+
+property1_geometry <- st_geometry(property1)
+
+tract_studyarea_selected <- tract_studyarea_selected %>%
+  distinct(GEOID_trimmed, .keep_all = TRUE)
+property1 <- property1_blockgroup %>%
+  st_drop_geometry() %>% 
+  left_join(tract_studyarea_selected, by = c("census_tract" = "GEOID_trimmed"))
+
+property1 <- property1 %>%
+  mutate(objectid = as.character(objectid))
+
+property2 <- property2 %>%
+  mutate(objectid = as.character(objectid))
+
+property_combined <- property1 %>%
+  left_join(property2, by = "objectid") %>%
+  rename(sale_price = sale_price.y)%>%
+  select(-sale_price.x)
+```
+
+
+## POI Data
+```{r Sijia POI, message=FALSE, warning=FALSE, quiet=TRUE, results='hide', eval = FALSE}
+# POI - restaurant-drink-dessert
+api_key <- "AIzaSyCa-yuy1Y3n07URlR2HHg6dp_cIEouv9hs"
+keywords <- c("restaurant", "dim sum restaurant", "kitchen", "desert","tea", "bubble tea","matcha", "herbal tea")
+place_types <- c("restaurant", "cafe", "bakery")
+
+studyarea_proj <- st_transform(block2023_studyarea, 2272)
+
+grid_pts <- st_make_grid(studyarea_proj, cellsize = 2000, what = "centers")
+grid_pts <- st_sf(geometry = grid_pts) %>%
+  st_filter(st_buffer(studyarea_proj, 1000)) 
+
+grid_pts_wgs <- st_transform(grid_pts, 4326)
+coords <- st_coordinates(grid_pts_wgs)
+
+all_responses <- list()
+
+for (pt_idx in seq_len(nrow(coords))) {
+  location <- coords[pt_idx, c(2,1)]  # lat, lng
+  cat(" Querying center point", pt_idx, "at", paste(location, collapse = ", "), "\n")
+  
+  for (ptype in place_types) {
+    for (kw in keywords) {
+      Sys.sleep(5)  
+      cat("🔎", kw, "in", ptype, "\n")
+
+      response <- google_places(
+        keyword = kw,
+        location = location,
+        radius = 2000,  
+        place_type = ptype,
+        key = api_key
+      )
+
+      if (is.null(response[["results"]]) || length(response[["results"]]) == 0) {
+        cat("No results for:", kw, "in", ptype, "\n")
+        next
+      }
+
+      page_token <- response$next_page_token
+      results_list <- list(response[["results"]])
+      i <- 1
+
+      while (!is.null(page_token)) {
+        Sys.sleep(10)
+        response_next <- google_places(
+          keyword = kw,
+          location = location,
+          radius = 2000,
+          place_type = ptype,
+          key = api_key,
+          page_token = page_token
+        )
+
+        if (is.null(response_next[["results"]]) || length(response_next[["results"]]) == 0) break
+
+        results_list[[i + 1]] <- response_next[["results"]]
+        page_token <- response_next$next_page_token
+        i <- i + 1
+      }
+
+      all_responses[[paste(kw, ptype, pt_idx, sep = "_")]] <- bind_rows(results_list) %>%
+        filter(!is.na(place_id)) %>%
+        distinct(place_id, .keep_all = TRUE)
+    }
+  }
+}
+
+all_responses <- all_responses[lengths(all_responses) > 0]
+restaurant_results <- bind_rows(all_responses) %>%
+  mutate(lat = geometry$location$lat, lng = geometry$location$lng) %>%
+  select(lat, lng, name, place_id, rating) %>%
+  distinct(place_id, .keep_all = TRUE)
+
+restaurant_sf <- st_as_sf(restaurant_results, coords = c("lng", "lat"), crs = 4326)
+restaurant_proj <- st_transform(restaurant_sf, 2272)
+
+studyarea_buffer <- st_buffer(studyarea_proj, 2000)
+res_poi <- st_filter(restaurant_proj, studyarea_buffer)
+radius_circles <- st_buffer(st_transform(grid_pts, 2272), dist = 2000)
+
+# POI - grocery
+keywords <- c("grocery store", "supermarket", "asian grocery", "chinese supermarket",
+              "korean market", "japanese grocery", "international market", "food market")
+
+place_types <- c("supermarket", "grocery_or_supermarket", "convenience_store", "store")
+
+studyarea_proj <- st_transform(block2023_studyarea, 2272)
+
+grid_pts <- st_make_grid(studyarea_proj, cellsize = 2000, what = "centers")
+grid_pts <- st_sf(geometry = grid_pts) %>%
+  st_filter(st_buffer(studyarea_proj, 1000))
+
+grid_pts_wgs <- st_transform(grid_pts, 4326)
+coords <- st_coordinates(grid_pts_wgs)
+
+all_responses <- list()
+
+for (pt_idx in seq_len(nrow(coords))) {
+  location <- coords[pt_idx, c(2,1)]  # lat, lng
+  cat(" Querying center", pt_idx, "at", paste(location, collapse = ", "), "\n")
+  
+  for (ptype in place_types) {
+    for (kw in keywords) {
+      Sys.sleep(5)  
+      cat("🔎", kw, "in", ptype, "\n")
+
+      response <- google_places(
+        keyword = kw,
+        location = location,
+        radius = 2000,
+        place_type = ptype,
+        key = api_key
+      )
+
+      if (is.null(response[["results"]]) || length(response[["results"]]) == 0) next
+
+      page_token <- response$next_page_token
+      results_list <- list(response[["results"]])
+      i <- 1
+
+      while (!is.null(page_token)) {
+        Sys.sleep(10)
+        response_next <- google_places(
+          keyword = kw,
+          location = location,
+          radius = 2000,
+          place_type = ptype,
+          key = api_key,
+          page_token = page_token
+        )
+        if (is.null(response_next[["results"]]) || length(response_next[["results"]]) == 0) break
+
+        results_list[[i + 1]] <- response_next[["results"]]
+        page_token <- response_next$next_page_token
+        i <- i + 1
+      }
+
+      all_responses[[paste(kw, ptype, pt_idx, sep = "_")]] <- bind_rows(results_list) %>%
+        filter(!is.na(place_id)) %>%
+        distinct(place_id, .keep_all = TRUE)
+    }
+  }
+}
+
+all_responses <- all_responses[lengths(all_responses) > 0]
+
+grocery_results <- bind_rows(all_responses) %>%
+  mutate(lat = geometry$location$lat,
+         lng = geometry$location$lng) %>%
+  select(lat, lng, name, place_id, rating) %>%
+  distinct(place_id, .keep_all = TRUE)
+
+grocery_sf <- st_as_sf(grocery_results, coords = c("lng", "lat"), crs = 4326)
+grocery_proj <- st_transform(grocery_sf, 2272)
+
+studyarea_buffer <- st_buffer(studyarea_proj, 2000)
+grocery <- st_filter(grocery_proj, studyarea_buffer)
+
+# property join poi
+property_sf <- st_as_sf(property_combined, sf_column_name = "geometry")
+property_proj <- st_transform(property_sf, 2272)
+grocery_proj <- st_transform(grocery, 2272)
+restaurant_proj <- st_transform(res_poi, 2272)
+
+grocery_idx <- st_nearest_feature(property_proj, grocery_proj)
+
+property_proj$nearest_grocery_name <- grocery_proj$name[grocery_idx]
+property_proj$nearest_grocery_dist <- st_distance(
+  property_proj,
+  grocery_proj[grocery_idx, ],
+  by_element = TRUE
+)
+restaurant_idx <- st_nearest_feature(property_proj, restaurant_proj)
+property_proj$nearest_restaurant_name <- restaurant_proj$name[restaurant_idx]
+property_proj$nearest_restaurant_dist <- st_distance(
+  property_proj,
+  restaurant_proj[restaurant_idx, ],
+  by_element = TRUE
+)
+property_proj$nearest_grocery_dist_m <- as.numeric(property_proj$nearest_grocery_dist)
+property_proj$nearest_restaurant_dist_m <- as.numeric(property_proj$nearest_restaurant_dist)
+clean_property_poi_distances <- function(property_sf) {
+  property_sf %>%
+    mutate(
+      nearest_grocery_dist_m = as.numeric(nearest_grocery_dist),
+      nearest_restaurant_dist_m = as.numeric(nearest_restaurant_dist)) %>%
+    select(
+      -nearest_grocery_dist,
+      -nearest_restaurant_dist
+    )
+}
+property_final <- clean_property_poi_distances(property_proj)
+st_write(property_final, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+
+## Neighborhood Context Data
+
+-   [PPR Properties](https://opendataphilly.org/datasets/ppr-properties/)
+-   [Neighborhoods](https://opendataphilly.org/datasets/philadelphia-neighborhoods/)
+-   [Trolley Stations](https://hub.arcgis.com/datasets/dd2afb618d804100867dfe0669383159_0/explore?location=39.956470%2C-75.160382%2C14.19)
+-   [Highspeed Stations](https://hub.arcgis.com/datasets/af52d74b872045d0abb4a6bbbb249453_0/explore?location=39.955164%2C-75.153952%2C14.43)
+-   [Bike Network](https://opendataphilly.org/datasets/bike-network/)
+-   [311 Requests](https://opendataphilly.org/datasets/311-service-and-information-requests/)
+
+```{r neighborhood_wrangle, quiet = TRUE, results = 'hide'}
+nhoods <- 
+  st_read("Dataset/DataWrangle/philadelphia-neighborhoods.geojson") %>%
+  st_transform('EPSG:2272')
+
+park <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
+  st_transform('EPSG:2272')
+
+# philly park data (https://opendataphilly.org/datasets/ppr-properties/)
+philly_parks <- st_read("https://opendata.arcgis.com/datasets/d52445160ab14380a673e5849203eb64_0.geojson") %>%
+  st_transform(crs = 'EPSG:2272') %>% 
+  st_intersection(philly_bounds)
+
+metro <- 
+  st_read("https://opendata.arcgis.com/api/v3/datasets/af52d74b872045d0abb4a6bbbb249453_0/downloads/data?format=geojson&spatialRefId=4326") %>%
+  st_transform('EPSG:2272') %>%
+  mutate(Type = "metro")
+
+city_hall <- metro[metro$Station == 'City Hall', 6]
+
+trolley <-
+    st_read("https://opendata.arcgis.com/api/v3/datasets/dd2afb618d804100867dfe0669383159_0/downloads/data?format=geojson&spatialRefId=4326") %>%
+  st_transform('EPSG:2272')
+
+trolley_renamed <- trolley %>%
+  rename(Station = StopName,
+         Route = LineAbbr,
+         Longitude = Lon,
+         Latitude = Lat) %>%
+  mutate(Type = "trolley")
+
+# Combine both datasets into one
+transit <- bind_rows(metro, trolley_renamed)
+
+school <-
+  st_read("https://opendata.arcgis.com/datasets/d46a7e59e2c246c891fbee778759717e_0.geojson") %>%
+  st_transform('EPSG:2272')
+
+hospital <-
+  st_read("Dataset/DataWrangle/DOH_Hospitals202311.geojson") %>%
+  st_transform('EPSG:2272') %>%
+  st_filter(st_union(Philly_blockgroup))
+
+water <-
+  st_read("https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Hydrographic_Features_Poly/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson") %>%
+  st_transform('EPSG:2272')
+
+bike_network <- 
+  st_read("Dataset/DataWrangle/Bike_Network.geojson") %>%
+  st_transform('EPSG:2272')
+
+phillyCrimes <- 
+  st_read("Dataset/DataWrangle/phillyCrimes.geojson") %>%
+  st_transform('EPSG:2272')
+
+# LPSS_PER1000: Number of low-produce supply stores per 1,000 people
+# HPSS_PER1000: Number of high-produce supply stores per 1,000 people
+retail <-
+  st_read("https://opendata.arcgis.com/datasets/53b8a1c653a74c92b2de23a5d7bf04a0_0.geojson") %>%
+  st_transform('EPSG:2272')
+```
+
+```{r neighborhood_process}
+calculate_nearest_distance <- function(set_points, other_layer) {
+  nearest_idx <- st_nearest_feature(set_points, other_layer)
+  st_distance(set_points, other_layer[nearest_idx, ], by_element = TRUE) %>% as.numeric()
+}
+
+Luming_property <- property_studyarea %>%
+  dplyr::select(objectid, geometry, sale_price) %>%
+  rename(orig_objectid = objectid)
+
+Luming_property <- Luming_property %>%
+  mutate(distance_to_city_hall = st_distance(., city_hall) %>% as.numeric()) %>%
+  mutate(
+    distance_to_nearest_transit = calculate_nearest_distance(geometry, transit),
+    distance_to_nearest_hospital = calculate_nearest_distance(geometry, hospital),
+    distance_to_nearest_school = calculate_nearest_distance(geometry, school),
+    distance_to_nearest_park = calculate_nearest_distance(geometry, park),
+    distance_to_nearest_water = calculate_nearest_distance(geometry, water),
+    distance_to_nearest_bikelane = calculate_nearest_distance(geometry, bike_network),
+    distance_to_I676 = calculate_nearest_distance(geometry, I_676)
+  ) %>%
+  st_join(nhoods["NAME"], left = TRUE) %>%
+  rename(nhoods_name = NAME) %>%
+  st_join(landuse_rename["landuse"], left = TRUE) %>%
+  st_join(retail[, c("LPSS_PER1000", "HPSS_PER1000")], left = TRUE)
+
+Luming_property <- Luming_property %>% 
+    mutate(
+      crime_nn1 = nn_function(st_coordinates(Luming_property),
+                              st_coordinates(phillyCrimes), k = 1),
+
+      crime_nn2 = nn_function(st_coordinates(Luming_property),
+                              st_coordinates(phillyCrimes), k = 2),
+
+      crime_nn3 = nn_function(st_coordinates(Luming_property),
+                              st_coordinates(phillyCrimes), k = 3),
+
+      crime_nn4 = nn_function(st_coordinates(Luming_property),
+                              st_coordinates(phillyCrimes), k = 4),
+      
+      crime_nn5 = nn_function(st_coordinates(Luming_property), 
+                              st_coordinates(phillyCrimes), k = 5))
+```
+
+
+# Highway Effects Analysis
+## Qualitative Research
+
+TODO: summary of Jeffrey Lin's paper and other literature.
+
+```{r eda_data, quiet = TRUE, results = 'hide'}
+# property_EDA <- st_read("Dataset/property_sijia_eda.geojson") %>%
+#   st_transform('EPSG:2272')
+# 
+# property_EDA_update <- property_EDA %>%
+#   dplyr::select(-sale_price.y) %>%
+#   rename(sale_price = sale_price.x) %>%
+#   mutate(log_sale_price = ifelse(!is.na(sale_price) & sale_price == 0, 
+#                                  log(sale_price + 1), 
+#                                  log(sale_price)))
+# 
+# property_EDA_update <- 
+#   rbind(
+#     property_EDA_update %>% st_intersection(studyarea_north["geometry"]) %>%
+#       mutate(I676 = "north"),
+#     property_EDA_update %>% st_intersection(studyarea_south["geometry"]) %>%
+#       mutate(I676 = "south")
+#   )
+
+# making sure philly_properties has the same columns as property_EDA_update
+# this dataset will be used for the Study Area Scale analysis (I-676 effects + Discontinuity effects)
+# also, only keep properties within the study area
+# names_toadd <- names(property_EDA_update)[which(!(names(property_EDA_update) %in% names(philly_properties)))]
+# 
+# properties_i676 <- philly_properties %>% 
+#   filter(objectid %in% property_studyarea$objectid) %>% # this limits what was formally 2394 properties in the study area, to only 94 properties..... definitely needs to be checked
+#   mutate(objectid = as.character(objectid)) %>% 
+#   left_join(property_EDA_update %>% 
+#               select(c(names_toadd, objectid)) %>% 
+#               st_drop_geometry(),
+#             by = "objectid")
+
+# checking that this worked
+# all(names(property_EDA_update) %in% names(properties_i676)) # TRUE, period!
+
+```
+
+## Philadelphia Scale Analysis
+
+Before jumping into modeling, we first explored the relationship between **distance to highway** and **property prices**. We used property data from OPA Philadelphia that was cleaned to include only the data from the last five years (Jan. 1st, 2020 to Dec. 31st, 2024) with prices adjusted for inflation after removing extreme outliers and improbable values (keeping rows with property price within the 5th and 95th percentile), and keeping properties with total area of over 100 square feet (see map below for the properties included in this analysis).
+
+Our **Philadelphia Scale Analysis** looks at properties (of all kinds, not limited to housing properties) within 500 m of Philadelphia's main highways -- [I-95]{style="color: #eba075;"} on the East, [I-76]{style="color: #eb5600;"} on the West, [US-1]{style="color: #1a9988;"} in the North, and [I-676]{style="color: #7fe3d6;"} through the city. We saw the following trends in property prices.
+
+```{r prep_500m_highway_data, quiet = TRUE, results = 'hide'}
+# create 500m buffer around philly highways
+buff500 <- 500 * 3.28084
+hiway_500buff <- st_union(st_buffer(philly_highways, buff500))
+
+# read in pre-saved file
+#prop500 <- st_read("akidata/philly_prop500_dst2hghwy_250421.geojson") %>% # Aki, (download from Box)
+#  mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
+
+prop500 <- st_read("~/Documents/Upenn/Practicum/2025/Data/philly_prop500_dst2hghwy_250421.geojson") %>% # sijia, (download from Box)
+  mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
+```
+
+```{r map_prop500}
+# map of properties within 500m of highway cored by which highway they're closest to
+ggplot() +
+  geom_sf(data = philly_bounds, fill = "#c9b887", color = "grey") +
+  geom_sf(data = hydro, fill = "#7d97c7", color = "transparent") +
+  geom_sf(data = philly_parks, fill = "#6b9169", color = "transparent") +
+  geom_sf(data = hiway_500buff,
+          color = "transparent", fill = "grey", alpha = 0.4) +
+  geom_sf(data = prop500,
+          aes(color = closest_highway), size = 0.3,
+          show.legend = F) +
+  geom_sf(data = philly_highways,
+          color = "black") +
+  
+  # add custom colors
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  # labels for highway names
+  geom_text(aes(label = "US-1",
+                x = 2700000,
+                y = 256453.2),
+            color = "#1a9988") +
+  geom_text(aes(label = "I-76",
+                x = 2680000,
+                y = 235000),
+            color = "#eb5600") +
+  geom_text(aes(label = "I-95",
+                x = 2705200,
+                y = 235000),
+            color = "#eba075") +
+  geom_text(aes(label = "I-676",
+                x = 2694000,
+                y = 243000),
+            color = "#7fe3d6") +
+  
+  labs(title = "Properties within 500m of Highways in Philly",
+       subtitle = "US-1, I-76, I-95, and I-676",
+       color = "Closest Highway") +
+  theme_void()
+
+```
+
+```{r prop500_faceted}
+prop500_faceted <- 
+  ggplot(data = prop500,
+         aes(x = log_price, color = closest_highway, fill = closest_highway)) +
+  geom_histogram(bins = 50, show.legend = F) +
+  facet_wrap(~closest_highway, scales = "free_y") +
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  scale_fill_manual(values = c("US-1" = "#1a9988",
+                               "I-76" = "#eb5600",
+                               "I-95" = "#eba075",
+                               "I-676" = "#7fe3d6")) +
+  labs(title = "Distribution of Property Sale Price",
+       subtitle = "Split by Closest Highway",
+       x = "Log Sale Price",
+       y = "Count") +
+  theme_minimal()
+
+prop500_faceted
+
+```
+
+```{r prop500_med_saleprices}
+# median sale prices to talk about in the text
+med_price_us1 <- round(median(prop500 %>% 
+                          filter(closest_highway == "US-1") %>% 
+                          pull(adj_sale_price)))
+
+med_price_i76 <- round(median(prop500 %>% 
+                          filter(closest_highway == "I-76") %>% 
+                          pull(adj_sale_price)))
+
+med_price_i95 <- round(median(prop500 %>% 
+                          filter(closest_highway == "I-95") %>% 
+                          pull(adj_sale_price)))
+
+med_price_676 <- round(median(prop500 %>% 
+                          filter(closest_highway == "I-676") %>% 
+                          pull(adj_sale_price)))
+
+# count of properties included in analysis 
+prop_count <- prop500 %>% 
+  st_drop_geometry() %>% 
+  group_by(closest_highway) %>% 
+  summarise(count = n())
+
+prop_count_676 <- prop_count %>% 
+  filter(grepl("676", closest_highway)) %>% 
+  pull(count)
+
+prop_count_us1 <- prop_count %>% 
+  filter(grepl("US", closest_highway)) %>% 
+  pull(count)
+
+prop_count_i76 <- prop_count %>% 
+  filter(grepl("-76", closest_highway)) %>% 
+  pull(count)
+
+prop_count_i95 <- prop_count %>% 
+  filter(grepl("95", closest_highway)) %>% 
+  pull(count)
+```
+
+`r paste0(substr(nrow(prop500), 1, 2), ",", substr(nrow(prop500), 3, 5))` total properties were included in this analysis. We see that the distribution of log sale prices of properties within 500m of highways in Philadelphia generally follow a normal distribution.
+
+Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r prop_count_676` properties) as there are near the other highways, they are most expensive group with a median property price of **`r paste0('$', substr(med_price_676, 1, 3), ',', substr(med_price_676, 4, 9))`**. 
+
+Properties near [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"} are among a similar range of prices with median property prices being **`r paste0('$', substr(med_price_i95, 1, 3), ',', substr(med_price_i95, 4, 9))`** and **`r paste0('$', substr(med_price_i76, 1, 3), ',', substr(med_price_i76, 4, 9))`**, respectively, though there are almost five times as many properties near [I-95]{style="color: #eba075;"} compared to [I-76]{style="color: #eb5600;"} (`r paste0(substr(prop_count_i95,1,1), ",", substr(prop_count_i95, 2,4))` and `r paste0(substr(prop_count_i76,1,1), ",", substr(prop_count_i76, 2,4))` properties around [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"}, respectively). 
+
+Finally, there are many properties within 500m of [US-1]{style="color: #1a9988;"} (`r paste0(substr(prop_count_us1,1,1), ",", substr(prop_count_us1, 2,4))` properties), but the median property price was lowest compared to other highways at **`r paste0('$', substr(med_price_us1, 1, 3), ',', substr(med_price_us1, 4, 9))`**.
+
+```{r prop500_scatter}
+# models + beta coefficients
+coef_us1 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway,
+       data = prop500 %>% 
+         filter(grepl("US", closest_highway)))
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_i76 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500 %>% 
+         filter(grepl("-76", closest_highway)))
+    )$coefficients[2,1], 3) # ** p < 0.05
+
+coef_i95 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500 %>% 
+         filter(grepl("95", closest_highway)))
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_i676 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500 %>%
+         filter(grepl("676", closest_highway)))
+    )$coefficients[2,1], 3) # not statistically significant, p = 0.0693
+
+scatter_4highways <- 
+  ggplot(data = prop500, 
+       aes(x = log_dist_to_closest_highway, y = log_price, 
+           color = closest_highway, fill = closest_highway)) +
+  geom_point(alpha = .2, size = 0.3, show.legend = F) +
+  geom_smooth(method = "lm", size = 1.2, show.legend = F) +
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  scale_fill_manual(values = c("US-1" = "#1a9988",
+                               "I-76" = "#eb5600",
+                               "I-95" = "#eba075",
+                               "I-676" = "#7fe3d6")) +
+  geom_text(aes(label = paste("US-1:", coef_us1),
+                x = 4.25,
+                y = 11.75),
+            color = "#1a9988", 
+            show.legend = F) +
+  geom_text(aes(label = paste("I-76:", coef_i76),
+                x = 4.25,
+                y = 12.75),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = paste("I-95:", coef_i95),
+                x = 4.25,
+                y = 13.25),
+            color = "#eba075",
+            show.legend = F) +
+  geom_text(aes(label = paste("I-676:", coef_i676),
+                x = 4.25,
+                y = 13.75),
+            color = "#7fe3d6",
+            show.legend = F) +
+  labs(title = "Property Price (log) as a function of Distance to Closest Highway (log)",
+       subtitle = "Properties within 500m of highways",
+       x = "Log Distance to Closest Highway",
+       y = "Log Property Sale Price") +
+  theme_minimal()
+
+scatter_4highways
+
+```
+
+The scatter plot above shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) as we move away from a highway which tracks with our literature review of highway effects on property prices. 
+
+When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, it was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
+
+For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^coef_i676)*100000) - 100000)` more expensive** (assuming a block is about 200m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
+
+The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^coef_i95), 5)*100000)` less expensive**. We suspect that the negative effect distance to highways have on property price is driven by .....
+
+We now zoom into our **study area** to further understand highway effects in our region of interest.
+
+### same interpretation but with 100m instead of 200m
+
+For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((2^coef_i676)*100000) - 100000)` more expensive** (assuming a block is about 100m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((2^coef_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((2^coef_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
+
+The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((2^coef_i95), 5)*100000)` less expensive**.
+
+
+### I-95 Exploration
+
+Taking a look at the properties near I-95 to see why we see a different relationship between distance to highway and property price here.
+
+
+```{r i95_exploration}
+# trying to figure out why we see a negative relationship between distance to highway and property price by I-95
+i95_500 <- prop500 %>% 
+  filter(closest_highway == "I-95") # 6547 total properties
+
+# scatter plot to see relationship
+i95_scatter <- ggplot(i95_500, 
+                      aes(x = log_dist_to_closest_highway, y = log_price)) +
+  geom_point(color = "#eba075", alpha = .2, size = 0.3, show.legend = F) +
+  geom_smooth(color = "#eba075", fill = "#eba075", method = "lm", size = 1.2, show.legend = F) +
+  geom_text(aes(label = paste("I-95:", coef_i95),
+                x = 4.75,
+                y = 11.75),
+            color = "#eba075",
+            show.legend = F) +
+  labs(title = "Property Price (log) as a function of Distance to I-95 (log)",
+       subtitle = "Properties within 500m of highways",
+       x = "Log Distance to I-95",
+       y = "Log Property Sale Price") +
+  theme_minimal()
+i95_scatter
+
+```
+
+
+### Philly Scale Analysis (Residential Properties only)
+
+Now, we conduct the same analyses to explore the relationship between **distance to highway** and **property prices** for residential properties only (excluding residential garages and vacant lots).  We saw the following trends in property prices.
+
+```{r prep_500_res, quiet = TRUE, results = 'hide'}
+# properties within 500 m of highway that are specifically housing related (excluding residential garages and vacant lands)
+prop500_res <- prop500 %>% 
+  filter(grepl("APARTMENTS|MIXED USE|MULTI FAMILY|SINGLE FAMILY", category_code_description))
+# 98.1% of the properties 500 m within highways are residential.
+
+```
+
+```{r prop500_res_faceted}
+prop500_res_faceted <- 
+  ggplot(data = prop500_res,
+         aes(x = log_price, color = closest_highway, fill = closest_highway)) +
+  geom_histogram(bins = 50, show.legend = F) +
+  facet_wrap(~closest_highway, scales = "free_y") +
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  scale_fill_manual(values = c("US-1" = "#1a9988",
+                               "I-76" = "#eb5600",
+                               "I-95" = "#eba075",
+                               "I-676" = "#7fe3d6")) +
+  labs(title = "Distribution of Residential Property Sale Price",
+       subtitle = "Split by Closest Highway",
+       x = "Log Sale Price",
+       y = "Count") +
+  theme_minimal()
+
+prop500_res_faceted
+
+# this one is largely unchanged
+```
+
+```{r prop500_res_med_saleprices}
+# median sale prices to talk about in the text
+med_res_price_us1 <- round(median(prop500_res %>% 
+                          filter(closest_highway == "US-1") %>% 
+                          pull(adj_sale_price)))
+
+med_res_price_i76 <- round(median(prop500_res %>% 
+                          filter(closest_highway == "I-76") %>% 
+                          pull(adj_sale_price)))
+
+med_res_price_i95 <- round(median(prop500_res %>% 
+                          filter(closest_highway == "I-95") %>% 
+                          pull(adj_sale_price)))
+
+med_res_price_676 <- round(median(prop500_res %>% 
+                          filter(closest_highway == "I-676") %>% 
+                          pull(adj_sale_price)))
+
+# count of properties included in analysis 
+prop_res_count <- prop500_res %>% 
+  st_drop_geometry() %>% 
+  group_by(closest_highway) %>% 
+  summarise(count = n())
+
+prop_res_count_676 <- prop_res_count %>% 
+  filter(grepl("676", closest_highway)) %>% 
+  pull(count)
+
+prop_res_count_us1 <- prop_res_count %>% 
+  filter(grepl("US", closest_highway)) %>% 
+  pull(count)
+
+prop_res_count_i76 <- prop_res_count %>% 
+  filter(grepl("-76", closest_highway)) %>% 
+  pull(count)
+
+prop_res_count_i95 <- prop_res_count %>% 
+  filter(grepl("95", closest_highway)) %>% 
+  pull(count)
+```
+
+`r paste0(substr(nrow(prop500_res), 1, 2), ",", substr(nrow(prop500_res), 3, 5))` total properties were included in this analysis. We see that the distribution of log sale prices of properties within 500m of highways in Philadelphia generally follow a normal distribution.
+
+Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r prop_res_count_676` properties) as there are near the other highways, they are most expensive group with a median property price of **`r paste0('$', substr(med_res_price_676, 1, 3), ',', substr(med_res_price_676, 4, 9))`**. 
+
+Properties near [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"} are among a similar range of prices with median property prices being **`r paste0('$', substr(med_res_price_i95, 1, 3), ',', substr(med_res_price_i95, 4, 9))`** and **`r paste0('$', substr(med_res_price_i76, 1, 3), ',', substr(med_res_price_i76, 4, 9))`**, respectively, though there are almost five times as many properties near [I-95]{style="color: #eba075;"} compared to [I-76]{style="color: #eb5600;"} (`r paste0(substr(prop_res_count_i95,1,1), ",", substr(prop_res_count_i95, 2,4))` and `r paste0(substr(prop_res_count_i76,1,1), ",", substr(prop_res_count_i76, 2,4))` properties around [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"}, respectively). 
+
+Finally, there are many properties within 500m of [US-1]{style="color: #1a9988;"} (`r paste0(substr(prop_res_count_us1,1,1), ",", substr(prop_res_count_us1, 2,4))` properties), but the median property price was lowest compared to other highways at **`r paste0('$', substr(med_res_price_us1, 1, 3), ',', substr(med_res_price_us1, 4, 9))`**.
+
+```{r prop500_res_scatter}
+# models + beta coefficients
+coef_res_us1 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway,
+       data = prop500_res %>% 
+         filter(grepl("US", closest_highway)))
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_res_i76 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500_res %>% 
+         filter(grepl("-76", closest_highway)))
+    )$coefficients[2,1], 3) # ** p < 0.05
+
+coef_res_i95 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500_res %>% 
+         filter(grepl("95", closest_highway)))
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_res_i676 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500_res %>%
+         filter(grepl("676", closest_highway)))
+    )$coefficients[2,1], 3) # not statistically significant, p = 0.0693
+
+scatter_4highways_res <- 
+  ggplot(data = prop500_res, 
+       aes(x = log_dist_to_closest_highway, y = log_price, 
+           color = closest_highway, fill = closest_highway)) +
+  geom_point(alpha = .2, size = 0.3, show.legend = F) +
+  geom_smooth(method = "lm", size = 1.2, show.legend = F) +
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  scale_fill_manual(values = c("US-1" = "#1a9988",
+                               "I-76" = "#eb5600",
+                               "I-95" = "#eba075",
+                               "I-676" = "#7fe3d6")) +
+  geom_text(aes(label = paste("US-1:", coef_res_us1),
+                x = 4.25,
+                y = 11.75),
+            color = "#1a9988", 
+            show.legend = F) +
+  geom_text(aes(label = paste("I-76:", coef_res_i76),
+                x = 4.25,
+                y = 12.75),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = paste("I-95:", coef_res_i95),
+                x = 4.25,
+                y = 13.25),
+            color = "#eba075",
+            show.legend = F) +
+  geom_text(aes(label = paste("I-676:", coef_res_i676),
+                x = 4.25,
+                y = 13.75),
+            color = "#7fe3d6",
+            show.legend = F) +
+  labs(title = "Residential Property Price (log) as a function of Distance to Closest Highway (log)",
+       subtitle = "Properties within 500m of highways",
+       x = "Log Distance to Closest Highway",
+       y = "Log Property Price") +
+  theme_minimal()
+
+scatter_4highways_res
+
+```
+
+The scatter plot above shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) as we move away from a highway which tracks with our literature review of highway effects on property prices. 
+
+When predicting property price, the beta coefficient for log distance to highway is `r coef_res_i676`, `r coef_res_i76`, and `r coef_res_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, it was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
+
+For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_res_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^coef_res_i676)*100000) - 100000)` more expensive** (assuming a block is about 200m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_res_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_res_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_res_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_res_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
+
+The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_res_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_res_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^coef_res_i95), 5)*100000)` less expensive**.
+
+We now zoom into our **study area** to further understand highway effects in our region of interest.
+
+## Study Region Scale Analysis
+
+### Basic Geography
+
+```{r BasicGeo_data}
+park_clipped <- st_intersection(park, studyarea)
+park_valid <- st_make_valid(park)
+transit_valid <- st_make_valid(transit)
+city_hall_valid <- st_make_valid(city_hall)
+school_valid <- st_make_valid(school)
+water_valid <- st_make_valid(water)
+bike_network_valid <- st_make_valid(bike_network)
+
+studyarea_buffer <- st_buffer(studyarea, dist = 1000)
+
+# Clip each dataset to the study area
+recreation_clipped <- st_intersection(park, studyarea_buffer)
+transit_clipped <- st_intersection(transit_valid, studyarea_buffer)
+city_hall_clipped <- st_intersection(city_hall_valid, studyarea_buffer)
+school_clipped <- st_intersection(school_valid, studyarea_buffer)
+water_clipped <- st_intersection(water_valid, studyarea_buffer)
+bike_network_clipped <- st_intersection(bike_network_valid, studyarea_buffer)
+landuse_transportation <- landuse_rename[landuse_rename$landuse == "Transportation", ]
+
+# property_vacant <- property_EDA %>%
+#   filter(category_code_description %in% c("VACANT LAND","SINGLE FAMILY", "VACANT LAND - NON-RESIDENTIAL")) %>%
+#   mutate(category_code_description = case_when(
+#     category_code_description == "VACANT LAND - NON-RESIDENTIAL" ~ "VACANT LAND",
+#     TRUE ~ category_code_description
+#   ))
+```
+
+```{r BasicGeo_plot}
+landuse_colors <- c(
+  "Residential Low" = "#FFFFB3",
+  "Residential Medium" = "#FFEB8B",
+  "Residential High" = "#FFCC80",
+  "Commercial Consumer" = "#FFB3B3",
+  "Commercial Business/Professional" = "#FF9980",
+  "Commercial Mixed Residential" = "#FF6666",
+  "Industrial" = "#D6A3FF",
+  "Civic/Institution" = "#66B3FF",
+  "Transportation" = "gray95",
+  "Culture/Amusement" = "#C1FFC1",
+  "Active Recreation" = "#66FFD9",     
+  "Park/Open Space" = "#99FF66",        
+  "Cemetery" = "#FF9999",               
+  "Water" = "#99CCFF",            
+  "Vacant" = "#D3D3D3", 
+  "Other/Unknown" = "gray25"
+)
+
+BasicGeo_plot1 <- ggplot(data = landuse_rename %>%
+          filter(!is.na(landuse) & landuse != "Park/Open Space")) +
+  geom_sf(aes(fill = landuse), color = NA) +
+  geom_sf(data = park_clipped, aes(fill = "Park"), color = NA, alpha = 1) +  # Clipped park layer
+  scale_fill_manual(values = c(landuse_colors, "Park" = "#99FF66"), na.value = "white") +
+  labs(title = "Land Use", 
+       subtitle = "Properties functions in Chinatown",
+       fill = "Category") +
+  theme_void() +
+  theme(legend.position = "right",
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 10),
+        legend.key.size = unit(0.5, "cm"),
+        legend.text = element_text(size = 8))
+
+BasicGeo_plot2 <- ggplot() +
+  geom_sf(data = landuse, fill = "white", color = "gray90", size = 0.05) +
+  geom_sf(data = recreation_clipped, aes(fill = "Park"), color = NA, alpha = 1) +
+  geom_sf(data = landuse_transportation, aes(fill = "Transportation"), color = NA, alpha = 0.5) +
+  geom_sf(data = transit_clipped, aes(color = "Transit"), size = 2) +
+  geom_sf(data = school_clipped, aes(color = "School"), size = 2) +
+  geom_sf(data = bike_network_clipped, aes(color = "Bike Network"), size = 1) +
+  
+  scale_color_manual(values = c("Transit" = "blue", "School" = "orange", "Bike Network" = "purple"), name = NULL) +
+  scale_fill_manual(values = c("Park" = "green","Transportation" = "gray70"), name = NULL) +
+  
+  labs(
+    title = "Amenities", 
+    subtitle = "<span style='color:orange;'>Schools</span>, <span style='color:blue;'>Transit Stations</span>, <span style='color:green;'>Parks</span>, and <span style='color:purple;'>Bike Lanes</span>"
+  ) +
+  theme_void() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_markdown(size = 10, hjust = 0),
+    legend.key.size = unit(0.5, "cm"),
+    legend.text = element_text(size = 8)
+  )
+
+BasicGeo_plot3 <- ggplot() +
+  geom_sf(data = landuse, fill = "white", color = "gray85", size = 0.05) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 2) +
+  geom_sf(data = discontinuity, fill = "#eb5600", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch, fill = "#1a9988", alpha = 0.8) +
+  # geom_sf(data = property_vacant, aes(color = category_code_description), size = 1) +
+  scale_colour_manual(values = c("black", "#B67352")) +
+  labs(title="Potential Lands",
+       subtitle = glue("<span style='color:#1a1a1a;'>Single Family & </span><span style='color:#B67352;'>Vacant Land</span>"),
+       # caption = "Figure "
+       ) +
+  theme_void() +
+  theme(legend.position = "none",
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = ggtext::element_markdown(size = 10))
+
+BasicGeo_plot1
+BasicGeo_plot2 | BasicGeo_plot3
+```
+
+### Sales Price Change
+
+```{r StudyPrice_change, echo=FALSE}
+# Create a table with images and captions
+kable(
+  data.frame(
+    saleprice_change1 = "![](Final R Markdown/Images/saleprice_change1.png){height=250px}",
+    saleprice_change2 = "![](Final R Markdown/Images/saleprice_change2.png){height=250px}"
+  ),
+  format = "html",
+  align = "c",
+  col.names = NULL
+) %>%
+  kable_styling(position = "center")
+
+```
+
+### I-676 Effects
+
+One of OTIS's key interests is the effect of [I-676]{style="color: #7fe3d6;"} on property prices nearby.  Here, we construct a relatively **simple linear model** with a few key predictors to look at the effect of [I-676]{style="color: #7fe3d6;"} on property prices while accounting for some control variables such as the square footage of the property, number of bathrooms, year built, zoning, and zip code among others.
+
+For these analyses, we look at properties **within our study area**.
+
+```{r i676effects_setup_studyareanew, quiet = TRUE, results = 'hide'}
+# working with the newest philly_properties dataset where data was cleaned for our studyarea
+property_studyarea_new <- st_read("Dataset/property_CT_FE.geojson") #1528 rows
+
+# add features for simple linear regression
+props_i676_tomodel <- property_studyarea_new %>% 
+  # filter() %>% # there are a couple properties with total area < 100; reduces dataset to 990 properties
+  # some feature engineering
+  mutate(residential = ifelse(category_code_description %in% c("APARTMENTS  > 4 UNITS",
+                                                               "MIXED USE",
+                                                               "MULTI FAMILY",
+                                                               "SINGLE FAMILY",
+                                                               "GARAGE - RESIDENTIAL"),
+                              1, 0), # is this property residential? (including mixed)
+         
+         building_code_description_new = case_when(
+           grepl("FITNESS CENTER|GOV'T MUNICIPAL/STATE/FEDERAL", building_code_description_new) ~ "MostExpensive",
+           grepl("LIFE CARE FACILITY-ASSTD LVNG|CORRECTIONAL|MEDICAL OFFICE BLDNG|PARKING GARAGE/DECK|BOARDING/ROOMING HOSUE|MIXED - RES/COMM|SCHOOL|BANK|OFFICE BLDNG - Mid Rise|DET MIXED-COM/RES-BLT AS COM", building_code_description_new) ~ "MoreExpensive",
+           grepl("RETAIL - * SINGLE OCCUPANCY|ROW MIXED-COM/RES-BLT AS COM|ROW MODERN|APARTMENTS - LOW RISE|HOTEL - HI RISE|OFFICE BLDNG - Low Rise|FUNERAL HOME|RESTAURANT|DOWNTOWN ROW TYPE-* SNGL OCCP|WAREHOUSE|TWIN CONTEMPORARY|CAR WASH - AUTOMATIC|RETAIL CONDO|MANUFACTURING/PROCESSING|LOFT (INDUSTRIAL)|APARTMENTS - MID RISE|RELIGIOUS", building_code_description_new) ~ "Average",
+           .default = "LeastExpensive" 
+           ),
+         building_code_description_new = factor(building_code_description_new),
+      
+         # all the other variables have been cleaned and feature engineered
+) %>% 
+  select(   # only keep vars necessary for model
+    adj_sale_price,
+    log_price, distance_to_I676, log_dist_highway,
+    residential, 
+    year_built, year_built_group,
+    central_air, garage_spaces,
+    number_of_bathrooms, number_of_bedrooms, total_area,
+    exterior_condition, interior_condition, quality_grade,
+    building_code_description_new, zoning_group,
+    zip_code,
+    I676_NS
+  )
+
+```
+
+```{r RMSE_calculator}
+getRMSE <- function(model_results) {
+  # residual sum of squares
+  rss <- c(crossprod(model_results$residuals))
+  # Mean squared error:
+  mse <- rss / length(model_results$residuals)
+  # Root MSE:
+  RMSE <- sqrt(mse)
+  
+  return(RMSE)
+}
+
+```
+
+#### Model Results
+
+```{r i676effects_model1_studyareanew}
+# model with just distance to highway
+model_i676 <- lm(log_price ~ log_dist_highway,
+                 data = props_i676_tomodel)
+# log_dist_highway  0.11110
+# Multiple R-squared:  0.01228,	Adjusted R-squared:  0.01163
+
+model_i676_summary <- summary(model_i676)
+model_i676_RMSE <- getRMSE(model_i676)
+
+# create a clean table to show model results
+model_i676_table <- data.frame(model_i676_summary$coefficients) %>% 
+  rename(p = `Pr...t..`) %>% 
+  select(Estimate, p) %>% 
+  mutate(Estimate = round(Estimate, 3),
+         p = round(p, 3))
+row.names(model_i676_table) <- c("Intercept", "Log Dist. to I-676")
+
+model_i676_table %>% 
+  kbl(align = c("l", rep("c", 2)),
+      caption = "Regression Results: Log Price ~ Log Distance to I-676",
+      col.names = c("Estimate", "p value")) %>% 
+  kable_styling() %>% 
+  kable_classic(full_width = F, html_font = "Cambria") %>% 
+  row_spec(2, bold = T, background = "#7fe3d6") %>% 
+  add_footnote(label = paste0("R-squared: ", round(model_i676_summary$r.squared, 3), ", RMSE: ", round(model_i676_RMSE, 3)),
+               notation = "none")
+
+```
+
+From an overly simple model, just looking at how logged distance to [I-676]{style="color: #7fe3d6;"} predicts logged property price, we see that for properties within 500m of [I-676]{style="color: #7fe3d6;"}, distance from the highway does not have a large effect on property price. We see that for every 1% increase in distance to the highway, **property price increases by `r paste0(round(1.01^model_i676_table$Estimate[2] - 1, 4)*100,"%")`**. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^model_i676_table$Estimate[2])*100000) - 100000)` more expensive** (assuming a block is about 200m). The R-squared value of the model is very low at `r round(model_i676_summary$r.squared, 3)` and the RMSE is very high `r round(model_i676_RMSE,3)`, meaning the model is terrible.
+
+```{r i676effects_model2_studyareanew}
+# simple model but with more predictors
+model_i676_more <- lm(log_price ~ log_dist_highway + 
+                        residential + building_code_description_new + zoning_group + # internal characteristics
+                        year_built_group + central_air + 
+                        number_of_bedrooms + number_of_bathrooms + total_area +
+                        quality_grade + 
+                        factor(zip_code), # neighborhood effects (via zip code for now)
+                      data = props_i676_tomodel)
+
+model_i676_more_summary <- summary(model_i676_more)
+model_i676_more_RMSE <- getRMSE(model_i676_more)
+# log_dist_highway                             0.101134640
+# Multiple R-squared:  0.3585,	Adjusted R-squared:  0.3421
+
+# create a clean table to show model results
+model_i676_more_table <- data.frame(model_i676_more_summary$coefficients) %>% 
+  rename(p = `Pr...t..`) %>% 
+  select(Estimate, p) %>% 
+  mutate(Estimate = round(Estimate, 3),
+         p = round(p, 3))
+row.names(model_i676_more_table) <- c("Intercept", "Log Dist. to I-676", "Residential", "Building Code - Least Exp.", "Building Code - More Exp.", "Building Code - Most Exp.", "Zoning - CMX3, 4", "Zoning - CMX5", "Zoning - ICMX", "Zoning - IRMX", "Zoning - Other", "Zoning - RM", "Zoning - RMX3", "Zoning - RSA5", "Year Built - New", "Year Built - Post-War Mid", "Year Built - Pre-War", "Year Built - Unknown", "Central Air - Unknown", "Central Air - Yes", "1 Bedrooms", "2 Bedrooms", "3 Bedrooms", "4 Bedrooms", "5 Bedrooms", "Unknown Num. Bedrooms", "1 Bathrooms", "2 Bathrooms", "3-5 Bathrooms", "6 Bathrooms", "7 Bathrooms", "Unknown Num. Bathrooms", "Total Area", "Quality Grade - Below Average", "Quality Grade - Good", "ZIP code - 19106", "ZIP code - 19107", "ZIP code - 19123", "ZIP code - 19130")
+
+model_i676_more_table %>% 
+  kbl(align = c("l", rep("c", 2)),
+      caption = "Regression Results: Log Price ~ Log Distance to I-676 and Other Predictors",
+      col.names = c("Estimate", "p value")) %>% 
+  kable_styling() %>% 
+  kable_classic(full_width = F, html_font = "Cambria") %>%
+  row_spec(2, bold = T, background = "#7fe3d6") %>% 
+  add_footnote(label = paste0("Adj. R-squared: ", round(model_i676_more_summary$adj.r.squared, 3), ", RMSE: ", round(model_i676_more_RMSE, 3)),
+               notation = "none")
+
+```
+
+Finally, we look at a more robust model (which is still relatively simple, including only internal features of the property in addition to ZIP code and logged distance to [I-676]{style="color: #7fe3d6;"}). This model includes the following predictors: year_built_group (categorical), quality_grade (categorical), number_of_bathrooms (categorical), number_of_bedrooms (categorical), total_area (continuous), central_air (categorical), building_code (categorical), zoning group (categorical), and a variable dictating whether the property is residential or not (binary). This more complex model does a better job at explaining the variance in property price than our previous two models, but is not optimal either. The **adjusted R-squared** for this model is **`r round(model_i676_more_summary$adj.r.squared, 3)`** and our **RMSE** is **`r round(model_i676_more_RMSE, 3)`**. 
+
+When including these other predictors, the **effect of logged distance to [I-676]{style="color: #7fe3d6;"} decreases** but remains statistically significant (beta coefficient of `r model_i676_more_table$Estimate[2]`). This means that for every 1% increase in distance from the highway, property price increases by `r paste0(round(abs(1.01^model_i676_more_table$Estimate[2] - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^model_i676_more_table$Estimate[2])*100000) - 100000)` more expensive**.
+
+### Discontinuity Effects
+
+To complicate things even more, within our study area, we see that proximity to [I-676]{style="color: #7fe3d6;"} has **different effects** on the [North (Callowhill)]{style="color: #eb5600;"} and [South (Chinatown)]{style="color: #1a9988;"} sides.
+
+```{r discontinuity_data, quiet = TRUE, results = 'hide'}
+# with most recently updated data (990 properties)
+discontinuity_plot_ungrouped <- props_i676_tomodel %>%
+  st_drop_geometry() %>%
+  mutate(distance_to_I676m = distance_to_I676 * 0.3048,
+         distance_to_highway = case_when(
+           I676_NS == "north" ~ distance_to_I676m,
+           I676_NS == "south" ~ -distance_to_I676m
+           ))
+
+discontinuity_plot <- discontinuity_plot_ungrouped%>% 
+  group_by(distance_to_highway, I676_NS) %>%
+  summarise(mean_log_price = mean(log_price, na.rm = T), .groups = "drop")
+
+# median property prices on each side
+med_north <- round(median(discontinuity_plot_ungrouped %>% 
+                      filter(I676_NS == "north") %>% 
+                      pull(adj_sale_price)))
+
+med_south <- round(median(discontinuity_plot_ungrouped %>% 
+                      filter(I676_NS == "south") %>% 
+                      pull(adj_sale_price)))
+
+# range of property prices on each side
+range_north <- round(range(discontinuity_plot_ungrouped %>% 
+                      filter(I676_NS == "north") %>% 
+                      pull(adj_sale_price)))
+
+range_south <- round(range(discontinuity_plot_ungrouped %>% 
+                      filter(I676_NS == "south") %>% 
+                      pull(adj_sale_price)))
+
+```
+
+```{r discontinuity_plot}
+# correlations
+# cor_north <- round(cor(discontinuity_plot %>% 
+#                          filter(
+#                            abs(distance_to_highway) <= 500,
+#                            I676_NS == "north") %>% 
+#                          pull(mean_log_price),
+#                        discontinuity_plot %>% 
+#                          filter(
+#                            abs(distance_to_highway) <= 500,
+#                            I676_NS == "north") %>% 
+#                          pull(distance_to_highway)), 3)
+# 
+# cor_south <- round(cor(discontinuity_plot %>% 
+#                          filter(
+#                            abs(distance_to_highway) <= 500,
+#                            I676_NS == "south") %>% 
+#                          pull(mean_log_price),
+#                        discontinuity_plot %>% 
+#                          filter(
+#                            abs(distance_to_highway) <= 500,
+#                            I676_NS == "south") %>% 
+#                          pull(distance_to_highway)), 3)
+
+# use model coefficients instead of correlations
+coef_north_g <- round(
+  summary(
+    lm(mean_log_price ~ distance_to_highway,
+       data = discontinuity_plot %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "north")) # 229 properties
+    )$coefficients[2,1], 3) # p = 0.105
+
+coef_south_g <- round(
+  summary(
+    lm(mean_log_price ~ abs(distance_to_highway), # need to use absolute value cause distance values are negative
+       data = discontinuity_plot %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "south")) # 237 properties
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+discont_plot <- discontinuity_plot %>% 
+  filter(abs(distance_to_highway) <= 500) %>% # limiting it to the properties within 500m
+  ggplot(aes(x = distance_to_highway, y = mean_log_price, color = I676_NS)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, size = 1.2) +
+  geom_vline(xintercept = 0, color = "black", size = 2) +
+  
+  # custom colors
+  scale_colour_manual(values = c("#eb5600", "#1a9988")) +
+  
+  theme_minimal() +
+  theme(legend.position = "None",
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = ggtext::element_markdown(size = 12),
+        plot.caption = element_text(hjust = 0)) +
+  labs(title = 'Logged Sale Price as a Function of Distance to I-676', 
+       subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+       x = "Distance to the Highyway (m)",
+       y = "Log-transformed Sale Price") +
+  
+  # add annotations
+  geom_label(aes(x = 0, y = 11, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+  geom_text(aes(label = coef_north_g,
+                x = 250,
+                y = 11.825),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = coef_south_g,
+                x = -250,
+                y = 11.825),
+            color = "#1a9988",
+            show.legend = F)
+
+# ungrouped
+coef_north <- round(
+  summary(
+    lm(log_price ~ distance_to_highway,
+       data = discontinuity_plot_ungrouped %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "north")) # 609 properties
+    )$coefficients[2,1], 3) # p = 0.636
+
+coef_south <- round(
+  summary(
+    lm(log_price ~ abs(distance_to_highway), # need to use absolute value cause distance values are negative
+       data = discontinuity_plot_ungrouped %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "south")) # 811 properties
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+discont_plot_ungrouped <- discontinuity_plot_ungrouped %>% 
+  filter(abs(distance_to_highway) <= 500) %>% # limiting it to the properties within 500m
+  ggplot(aes(x = distance_to_highway, y = log_price, color = I676_NS)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, size = 1.2) +
+  geom_vline(xintercept = 0, color = "black", size = 2) +
+  
+  # custom colors
+  scale_colour_manual(values = c("#eb5600", "#1a9988")) +
+  
+  theme_minimal() +
+  theme(legend.position = "None",
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = ggtext::element_markdown(size = 12),
+        plot.caption = element_text(hjust = 0)) +
+  labs(title = 'Logged Sale Price as a Function of Distance to I-676', 
+       subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+       x = "Distance to the Highyway (m)",
+       y = "Log-transformed Sale Price") +
+  
+  # add annotations
+  geom_label(aes(x = 0, y = 11, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+  geom_text(aes(label = coef_north,
+                x = 250,
+                y = 11.825),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = coef_south,
+                x = -250,
+                y = 11.825),
+            color = "#1a9988",
+            show.legend = F)
+  
+discont_plot
+discont_plot_ungrouped
+
+# save image for powerpoint
+# ggsave("PPT/Images/p2_discontinuity_within_500m.png",
+#        height = 7, width = 10, units = "in")
+```
+
+In the plot above, we see that on the [North side]{style="color: #eb5600;"} of [I-676]{style="color: #7fe3d6;"}, property prices remain relatively stable and unaffected by distance to the highway. The median property price in the [North]{style="color: #eb5600;"} is `r paste0("$", substr(med_north, 1, 3), ",", substr(med_north, 4, 6))`. When predicting logged property price, the beta coefficient for distance to highway is `r coef_north`, meaning the **highway has no effect on the price**.
+
+On the other hand, in the [South side]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"}, property prices are within the same range of prices as in the [North side]{style="color: #eb5600;"}, but the median property price is slightly higher at `r paste0("$", substr(med_south, 1, 3), ",", substr(med_south, 4, 6))`. When predicting logged property price to the [South]{style="color: #1a9988;"} of the highway, the beta coefficient for distance to highway is `r coef_south`, meaning **distance to highway has a very small, positive effect on the price**. For every 1m increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(exp(coef_south)-1, 3)*100,"%")`. In more understandable terms, a property that is \$100,000 and 50m [South]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"} would be about **`r paste0("$", round((exp(coef_south)^150)*100000) - 100000)` more expensive** a block further from the highway.
+
+This demonstrates that in our study area, the **highway has a very small influence on property price** that is only really seen on the [South side]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"}.
+
+### Zoning-Based Price Effects
+```{r highway_effects_zoning, message=FALSE, warning=FALSE}
+property_filtered <- property_final
+property_filtered <- st_as_sf(property_filtered, sf_column_name = "geometry")
+
+avg_price_zoning <- property_filtered %>%
+  st_drop_geometry() %>%  
+  group_by(zoning) %>%
+  summarise(avg_price_zoning = mean(adj_sale_price, na.rm = TRUE)) %>%
+  ungroup()
+
+property_filtered <- property_filtered %>%
+  left_join(avg_price_zoning, by = "zoning")%>%
+  filter(location != "711-39 SPRING GARDEN ST")
+
+property_filtered <- property_filtered %>%
+  mutate(zoning_group = case_when(
+    zoning %in% c("CMX5", "ICMX") ~ "High-Density Commercial",
+    zoning %in% c("IRMX") ~ "Residential Industrial",
+    zoning %in% c("RM1", "RM4", "RMX3", "RSA5") ~ "Residential",
+    zoning %in% c("CMX2.5", "CMX2", "CMX1") ~ "Neighborhood Commercial",
+    zoning %in% c("CMX3", "CMX4") ~ "Community Commercial",
+    TRUE ~ "Other"
+  ))
+
+avg_price_group <- property_filtered %>%
+  st_drop_geometry() %>%
+  group_by(zoning_group) %>%
+  summarise(avg_adj_sale_price = mean(adj_sale_price, na.rm = TRUE)) %>%
+  ungroup()
+
+property_filtered <- property_filtered %>%
+  left_join(avg_price_group, by = "zoning_group")
+
+
+ggplot(property_filtered %>% filter(!is.na(zoning_group) & zoning_group != "Other"), 
+       aes(x = log1p(distance_to_I676), y = log1p(adj_sale_price))) +
+  geom_point(alpha = 0.5, size = 0.5, color = "#1B8370") + 
+  geom_smooth(method = "lm", se = FALSE, color = "#E4572E") +
+  facet_wrap(~ zoning_group, scales = "free") + 
+  theme_minimal() +
+  labs(title = "                      Zoning wise Relationship Between Distance to I-676 and Sales Price", 
+       x = "Distance to I-676", 
+       y = "Sale Price")
+```
+
+
+### Neighborhood-Based Price Effects
+
+```{r highway_effects_nhood, message=FALSE, warning=FALSE}
+property_with_nhood <- st_join(property_filtered, nhood1, join = st_intersects)
+
+nhood_summary <- property_with_nhood %>%
+  group_by(NAME) %>%
+  summarise(
+    avg_sale_price = mean(adj_sale_price, na.rm = TRUE),
+    avg_distance = mean(distance_to_I676, na.rm = TRUE)
+  ) %>%
+  ungroup()
+nhood_map <- st_join(nhood1, nhood_summary, by = "NAME")
+
+property_logansquare_split <- property_filtered %>%
+  mutate(
+    nhoods_name = case_when(
+      GEOID %in% c("421010003003") ~ "Logan Square", 
+      GEOID %in% c("421010125013", "421010125014") ~ NA_character_, 
+      str_to_title(str_replace_all(nhoods_name, "_", " ")) == "Center City" ~ "Center City East (Near City Hall)", 
+      TRUE ~ str_to_title(str_replace_all(nhoods_name, "_", " "))
+    )
+  ) %>%
+  filter(!is.na(nhoods_name))
+
+avg_price_nhoods <- property_logansquare_split %>%
+  st_drop_geometry() %>%
+  group_by(nhoods_name) %>%
+  summarise(avg_sale_price = mean(adj_sale_price, na.rm = TRUE)) %>%
+  ungroup()
+
+highlight_nhoods <- c( "Callowhill", "West Poplar")
+green_nhoods <- c("Center City East (Near City Hall)", "Chinatown", "Old City", "Logan Square")
+
+property_logansquare_split$nhoods_name <- factor(
+  property_logansquare_split$nhoods_name,
+  levels = c(highlight_nhoods, green_nhoods)
+)
+ggplot(property_logansquare_split %>% filter(!is.na(nhoods_name)), 
+       aes(x = log1p(distance_to_I676), y = log1p(adj_sale_price), 
+           color = ifelse(nhoods_name %in% highlight_nhoods, "North Area", "South Area"))) +
+  geom_point(alpha = 0.5, size = 0.5) +  
+  geom_smooth(method = "lm", se = FALSE, color = "black") +  
+  facet_wrap(~ nhoods_name, scales = "free", nrow = 2) +  
+  scale_color_manual(values = c("North Area" = "#E4572E", "South Area" = "#1B8370")) +  
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    legend.justification = c(0.5, -0.2)
+  ) +
+  labs(
+        title = "                   Neighborhood wise Relationship Between Distance to I-676 and Sales Price", 
+       x = "Distance to I-676", 
+       y = "Sale Price",
+    color = "Neighborhood"
+  )
+```
+
+### Engineered Features
+```{r FE countinued}
+median_bedroom <- median(as.numeric(as.character(property_final$number_of_bedrooms)), na.rm = TRUE)
+median_bathroom <- median(as.numeric(as.character(property_final$number_of_bathrooms)), na.rm = TRUE)
+
+property_CT <- property_final %>%
+  filter(!zoning %in% c("I2", "SPPOA"))%>%
+  mutate(
+        # Neighborhood Name
+#    nhoods_name = case_when(
+#      nhoods_name %in% c("CENTER_CITY", "LOGAN_SQUARE") ~ "WEST_PART",
+#      TRUE ~ nhoods_name
+#    ),
+
+    # Land Use
+    landuse = case_when(
+      landuse %in% c("Park/Open Space", "Other/Unknown", "Commercial Business/Professional") ~ "Open Space/Business",
+      landuse %in% c("Commercial Consumer", "Commercial Mixed Residential",
+                     "Industrial", "Transportation", "Culture/Amusement") ~ "Commercial",
+      landuse %in% c("Civic/Institution", "Residential High") ~ "Residential High/Civic",
+      TRUE ~ landuse
+    ),
+
+    # LPSS Category
+#    LPSS_PER1000 = case_when(
+#      LPSS_PER1000 < 45 ~ "low",
+#      LPSS_PER1000 >= 45 & LPSS_PER1000 <= 60.70941337 ~ "mid",
+#      LPSS_PER1000 %in% c(60.70941337, 131.86813187) ~ "high",
+#      TRUE ~ "Unknown"
+#    ),
+#    LPSS_PER1000 = factor(LPSS_PER1000, levels = c("low", "mid", "Unknown")),
+
+    # HPSS Category
+#    HPSS_PER1000 = case_when(
+#      HPSS_PER1000 < 5.6 ~ "low",
+#     HPSS_PER1000 >= 5.6 & HPSS_PER1000 <= 7.3 ~ "mid",
+#      HPSS_PER1000 >= 7.3 ~ "high",
+#      TRUE ~ "Unknown"
+#    ),
+#    HPSS_PER1000 = factor(HPSS_PER1000, levels = c("low", "mid", "Unknown")),
+
+    # Year Built
+    year_built = as.numeric(year_built),
+    year_built_missing = ifelse(is.na(year_built), 1, 0),
+#    year_built = case_when(
+#      is.na(year_built) ~ "Unknown",
+#      TRUE ~ as.character(year_built)
+#    ),
+#    year_built = factor(year_built),
+    
+    year_built_group = case_when(
+      is.na(year_built) ~ "Unknown",
+      year_built < 1940 ~ "Pre-War",
+      year_built < 2000 ~ "Post-War Mid",
+      year_built < 2020 ~ "Modern",
+      year_built >= 2020 ~ "New"
+    ),
+    year_built_group = factor(year_built_group, levels = c("Pre-War", "Post-War Mid", "Modern", "New", "Unknown")),
+#     year_built < 1900 ~ "1900 Before",
+#     year_built >= 1900 & year_built < 1930 ~ "1900- 1930",
+#     year_built >= 1930 & year_built < 1970 ~ "1930 - 1970",
+#     year_built >= 1970 & year_built < 2010 ~ "1970 - 2010",
+#     year_built >= 2010 ~ "2010+",
+#      TRUE ~ "Unknown"
+#    ),
+#    year_built_group = factor(year_built_group, levels = c("1900 Before","1900- 1930","1930 - #1970","1970 - 2010","2010+","Unknown")),
+
+    # Log Transforms
+    log_price = log(adj_sale_price),
+    log_dist_highway = log(distance_to_I676 + 1),
+
+    # Central Air
+    central_air = case_when(
+      central_air %in% c("Y", "1")  ~ "Y",
+      central_air %in% c("N", "0") ~ "N",
+      TRUE ~ "Unknown"
+    ),
+    central_air = factor(central_air),
+    central_air_missing = ifelse(central_air == "Unknown", 1, 0),
+
+    # Garage Spaces
+    garage_spaces_missing = ifelse(is.na(garage_spaces), 1, 0),
+    garage_spaces = case_when(
+#      is.na(garage_spaces) ~ "Unknown",
+      garage_spaces == 0 | garage_spaces == 1 ~ "less than 2",
+      TRUE ~ "2 or more"
+    ),
+    garage_spaces = factor(garage_spaces),
+
+    # Bedrooms
+    number_of_bedrooms = as.numeric(as.character(number_of_bedrooms)),
+    number_of_bedrooms_missing = ifelse(is.na(number_of_bedrooms), 1, 0),
+    number_of_bedrooms_filled = ifelse(is.na(number_of_bedrooms), median_bedroom, number_of_bedrooms),
+    number_of_bedrooms = case_when(
+      is.na(number_of_bedrooms) ~ "Unknown",
+      number_of_bedrooms == 0 ~ "0",
+      number_of_bedrooms == 1 ~ "1",
+      number_of_bedrooms %in% c(2, 3) ~ "2",
+      number_of_bedrooms %in% c(5, 6) ~ "3",
+      number_of_bedrooms == 4 ~"4",
+      number_of_bedrooms %in% c(7, 9, 12) ~ "5"
+    ),
+    number_of_bedrooms = factor(number_of_bedrooms),
+
+    # Bathrooms
+    number_of_bathrooms = as.numeric(as.character(number_of_bathrooms)),
+    number_of_bathrooms_missing = ifelse(is.na(number_of_bathrooms), 1, 0),
+    number_of_bathrooms_filled = ifelse(is.na(number_of_bathrooms), median_bathroom, number_of_bathrooms),
+    number_of_bathrooms = case_when(
+      number_of_bathrooms == 0 ~ "0",
+      number_of_bathrooms == 1 ~ "1",
+      number_of_bathrooms == 2 ~ "2",
+      number_of_bathrooms %in% c(3, 4, 5) ~ "3-5",
+      number_of_bathrooms == 6 ~ "6",
+      number_of_bathrooms == 7 ~ "7",
+      TRUE ~ "Unknown"
+    ),
+    number_of_bathrooms = factor(number_of_bathrooms),
+
+    # Total Livable Area
+    total_livable_area = ifelse(is.na(total_livable_area) | total_livable_area == 1, 0, total_livable_area),
+
+    # Quality Grade
+    quality_grade = case_when(
+      quality_grade %in% c("A ", "A-") | is.na(quality_grade) ~ "Good",
+      quality_grade %in% c("3 ", "C+", "C")  ~ "Average",
+      TRUE ~ "Below Average"
+    ),
+    quality_grade = factor(quality_grade, levels = c("Good", "Average", "Below Average")),
+    quality_grade_missing = ifelse(is.na(quality_grade), 1, 0),
+
+    # Construction
+    general_construction = as.character(general_construction),
+    general_construction = case_when(
+      is.na(general_construction) ~ "Unknown",
+      TRUE ~ general_construction
+    ),
+    general_construction = factor(general_construction),
+    general_construction_missing = ifelse(general_construction == "Unknown", 1, 0),
+
+    # Separate Utilities
+    separate_utilities = case_when(
+      is.na(separate_utilities) ~ "Unknown",
+      TRUE ~ separate_utilities
+    ),
+    separate_utilities = factor(separate_utilities, levels = c("A", "B", "C", "Unknown")),
+    separate_utilities_missing = ifelse(separate_utilities == "Unknown", 1, 0),
+
+    # Exterior Condition
+    exterior_condition = case_when(
+      exterior_condition == 2 ~ "Good",
+      exterior_condition %in% c(1, 6, 7) | is.na(exterior_condition) ~ "Average",
+      exterior_condition %in% c(3, 4, 5) ~ "Below Average"
+ #     TRUE ~ "Unknown"
+    ),
+    exterior_condition = factor(exterior_condition),
+
+    # Interior Condition
+    interior_condition = case_when(
+      interior_condition %in% c(2) ~ "Good",
+      is.na(interior_condition) | interior_condition %in% c(1, 7) ~ "Average",
+      interior_condition %in% c(3, 4, 5, 6) ~ "Below Average",
+      TRUE ~ "Unknown"
+    ),
+    interior_condition = factor(interior_condition),
+
+    # Category Code
+    category_code_original = as.character(category_code),
+    category_code_group = case_when(
+      category_code == "12" ~ "6 ",
+      category_code == "14" ~ "2 ",
+      category_code == "10" ~ "4 ",
+      category_code == "15" ~ "5 ",
+      category_code == "16" ~ "4 ",
+      category_code == "7 "  ~ "4 ",
+      category_code == "8 "  ~ "6 ",
+      category_code == "9 "  ~ "3 ",
+      category_code %in% c("1 ", "2 ", "3 ", "4 ", "5 ", "6 ") ~ category_code,
+      TRUE ~ "Other"
+    ),
+    category_code = factor(category_code_group),
+
+    # Zoning
+    zoning_group = case_when(
+      zoning %in% c("CMX5") ~ "CMX5",
+      zoning %in% c("IRMX") ~ "IRMX",
+      zoning %in% c("RM1", "RM2", "RM4") ~ "RM",
+      zoning %in% c("RMX3") ~ "RMX3",
+      zoning %in% c("RSA5") ~ "RSA5",
+      zoning %in% c("ICMX") ~ "ICMX",
+      zoning %in% c("SPPOA") ~ "SPPOA",
+      zoning %in% c("I2") ~ "I2",
+      zoning %in% c("CMX2.5", "CMX2", "CMX1") ~ "CMX(1,2,2.5)",
+      zoning %in% c("CMX3", "CMX4") ~ "CMX(3,4)",
+      TRUE ~ "Other"
+    ),
+    zoning_group = factor(zoning_group),
+
+    zoning = case_when(
+      is.na(zoning) ~ "Unknown",
+      TRUE ~ zoning
+    ),
+    zoning = factor(zoning),
+    zip_code = factor(zip_code)
+  )
+
+mean_depth <- mean(property_CT$depth, na.rm = TRUE)
+property_CT$depth[is.na(property_CT$depth)] <- mean_depth
+
+st_write(property_CT, "property_CT_FE.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+#### Continuous Features
+```{r correlation matrix, message=FALSE, warning=FALSE}
+lm1_property <- property_final %>%
+  st_drop_geometry() %>%  
+  select(
+    adj_sale_price,
+    distance_to_I676,
+    distance_to_city_hall,
+    distance_to_nearest_transit,
+    distance_to_nearest_bikelane,
+    distance_to_nearest_hospital,
+    distance_to_nearest_school,
+    nearest_restaurant_dist_m,
+    nearest_grocery_dist_m,
+    distance_to_nearest_park,
+    distance_to_nearest_water,
+    total_livable_area,
+    interior_condition,
+    exterior_condition,
+    number_of_bathrooms,
+    number_of_bedrooms,
+    garage_spaces,
+    general_construction,
+    crime_nn5
+  ) %>%
+  mutate(across(everything(), as.numeric)) %>%
+  na.omit()
+
+cor_matrix <- cor(lm1_property, use = "complete.obs")
+
+var_labels <- c(
+  "adj_sale_price" = "Sale Price",
+  "distance_to_I676" = "Distance to Highway I-676",
+  "distance_to_city_hall" = "Distance to City Hall",
+  "distance_to_nearest_transit" = "Distance to Transit",
+  "distance_to_nearest_bikelane" = "Distance to Bikelane",
+  "distance_to_nearest_school" = "Distance to School",
+  "nearest_restaurant_dist_m" = "Distance to Restaurant",
+  "nearest_grocery_dist_m" = "Distance to Grocery",
+  "distance_to_nearest_hospital" = "Distance to Hospital",
+  "distance_to_nearest_park" = "Distance to Park",
+  "distance_to_nearest_water" = "Distance to Water",
+  "total_livable_area" = "Total Livable Area",
+  "interior_condition" = "Interior Condition",
+  "exterior_condition" = "Exterior Condition",
+  "number_of_bathrooms" = "# of Bathrooms",
+  "number_of_bedrooms" = "# of Bedrooms",
+  "garage_spaces" = "# of Garage Spaces",
+  "crime_nn5" = "Crime Rate",
+  "general_construction" = "General Construction"
+)
+
+colnames(cor_matrix) <- var_labels[colnames(cor_matrix)]
+rownames(cor_matrix) <- var_labels[rownames(cor_matrix)]
+
+corrplot(
+  cor_matrix,
+  method = "color",
+  col = colorRampPalette(c("#1B8370", "white", "#E46726"))(200),
+  type = "lower",
+  tl.pos = "lt",
+  tl.col = "black",
+  tl.cex = 0.6,
+  mar = c(0, 0, 5, 0)
+)
+
+title(
+  main = "Correlation Across Key Numeric Features",
+  cex.main = 1.5,
+  font.main = 2,
+  line = 0.3,   
+  adj = 0.6  
+)
+```
+
+#### Log Transformation
+```{r Log Transofrmed - Distribution of Total Livable Area - sale price, message=FALSE, warning=FALSE}
+plot_df <- property_final %>%
+  mutate(
+    total_livable_area_log = log1p(total_livable_area) 
+  )
+
+plot1 <- ggplot(plot_df, aes(x = total_livable_area)) +
+  geom_histogram(bins = 30, fill = "#1B8370", alpha = 0.8) +
+  labs(title = "Original Total Livable Area",
+        x = "Total Livable Area", 
+        y = "Count") +
+  xlim(0, quantile(plot_df$total_livable_area, 0.99, na.rm = TRUE)) + 
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5)
+  )
+
+plot2 <- ggplot(plot_df, aes(x = total_livable_area_log)) +
+  geom_histogram(bins = 30, fill = "#1B8370", alpha = 0.8) +
+  labs(title = "Log-transformed Total Livable Area",
+        x = "(Log) Total Livable Area", 
+        y = "Count")  +
+  xlim(5, 9) +  
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12, hjust = 0.5),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+combined_plot <- plot1 + plot2 +
+  plot_layout(widths = c(1, 1)) +
+  plot_annotation(
+    title = "Distribution of Total Livable Area",
+    caption = "Figure X.X",
+    theme = theme(
+      plot.title = element_text(size = 16,face = "bold", hjust = 0.5),
+      plot.caption = element_text(hjust = 0.5)
+    )
+  )
+combined_plot
+```
+
+
+
+#### Reclassification
+```{r Reclassification - Quality grade - Mean Sale Price, message=FALSE, warning=FALSE}
+lm1_property <- property_final %>%
+  mutate(
+    interior_condition_recode = case_when(
+      interior_condition %in% c(2) ~ "Good",
+      is.na(interior_condition) | interior_condition %in% c(1, 7) ~ "Average",
+      interior_condition %in% c(3, 4, 5, 6) ~ "Below Average",
+      TRUE ~ "Unknown"
+    ),
+    interior_condition_recode = factor(interior_condition_recode, levels = c("Good", "Average", "Below Average", "Unknown"))
+  )
+plot1 <- ggplot(lm1_property, aes(x = factor(interior_condition))) +
+  geom_bar(fill = "#1B8370", alpha = 0.8, width = 0.6) +
+  ggtitle("Original Interior Condition") +
+  labs(x = "Interior Condition Code", y = "Count") +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
+
+plot2 <- lm1_property %>%
+  group_by(interior_condition) %>%
+  summarise(mean_log_price = mean(market_value, na.rm = TRUE)) %>%
+  ggplot(aes(x = factor(interior_condition), y = mean_log_price)) +
+  geom_col(fill = "#E46726", alpha = 0.8, width = 0.6) +
+  ggtitle("Mean Sale Price by Original Condition") +
+  labs(x = "Interior Condition Code", y = "Avg Sale Price ($)") +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
+
+plot3 <- ggplot(lm1_property, aes(x = interior_condition_recode)) +
+  geom_bar(fill = "#1B8370", alpha = 0.8, width = 0.6) +
+  ggtitle("Reclassified Interior Condition") +
+  labs(x = "Interior Condition Recode", y = "Count") +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
+
+plot4 <- lm1_property %>%
+  group_by(interior_condition_recode) %>%
+  summarise(mean_log_price = mean(market_value, na.rm = TRUE)) %>%
+  ggplot(aes(x = interior_condition_recode, y = mean_log_price)) +
+  geom_col(fill = "#E46726", alpha = 0.8, width = 0.6) +
+  ggtitle("Mean Sale Price by Reclassified Condition") +
+  labs(x = "Interior Condition Recode", y = "Avg Sale Price ($)") +
+  theme_minimal(base_size = 10) +
+  theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
+
+# Combine with patchwork + large centered title
+combined_plot <- (plot1 + plot2 + plot_layout(tag_level = "new")) /
+                 (plot3 + plot4 + plot_layout(tag_level = "new")) +
+  plot_annotation(
+    title = "Interior Condition and Sale Price",
+    subtitle = "Before (Top) and After (Bottom) Reclassification",
+    caption = "Figure X.X",
+    theme = theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 10, hjust = 0.5),
+      plot.caption = element_text(hjust = 0.5),
+      plot.title.position = "plot"
+    )
+  )
+combined_plot
+```
+
+#### Comparing north and south - Continuous Variables
+```{r message=FALSE, warning=FALSE}
+property_fe <- property_CT %>%
+  st_drop_geometry() %>%
+  mutate(
+    log_sale_price = log1p(adj_sale_price),
+    log_distance_to_I676 = log1p(distance_to_I676),
+    log_distance_to_city_hall = log1p(distance_to_city_hall),
+    log_total_livable_area = log1p(total_livable_area),
+    I676_NS = as.character(I676_NS) 
+  )
+
+property_fe_selected <- property_fe %>%
+  select(
+    I676_NS,
+    log_sale_price,
+    log_distance_to_I676,
+    log_distance_to_city_hall,
+    log_total_livable_area
+  ) %>%
+  drop_na()
+
+correlation_long <- property_fe_selected %>%
+  pivot_longer(-c(log_sale_price, I676_NS), names_to = "Variable", values_to = "Value") %>%
+  mutate(
+    use_in_plot = case_when(
+      Variable == "log_total_area" & Value <= log1p(10) ~ FALSE,
+      Variable == "log_total_livable_area" & Value <= log1p(10) ~ FALSE,
+      TRUE ~ TRUE
+    )
+  )
+
+cor_selected <- correlation_long %>%
+  filter(use_in_plot) %>%
+  group_by(Variable, I676_NS) %>%
+  summarise(r = cor(Value, log_sale_price, use = "complete.obs"), .groups = "drop") %>%
+  mutate(
+    x_pos = -Inf,
+    y_pos = ifelse(I676_NS == "north", Inf, -Inf),
+    vjust_pos = ifelse(I676_NS == "north", 1.1, -1.1)
+  )
+
+ggplot(correlation_long %>% filter(use_in_plot),
+       aes(x = Value, y = log_sale_price)) +
+  geom_point(aes(color = I676_NS), alpha = 0.4, size = 0.3) +
+  geom_smooth(aes(color = I676_NS), method = "lm", se = FALSE, linewidth = 1) +
+  facet_wrap(~ Variable, scales = "free", ncol = 3) +
+  scale_color_manual(values = c("north" = "#1a9988", "south" = "#eb5600")) +
+  labs(
+    title = "Log-transformed Sale Price vs Continuous Features by I-676 Side",
+    caption = "Figure X.X",
+    x = "Values of Continuous Features",
+    y = "Log(Sale Price)",
+    color = "I-676 Side"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 15, face = "bold",hjust = 0.5),
+    strip.text = element_text(size = 10, face = "bold"),
+    plot.caption = element_text(hjust = 0.5),
+    legend.position = "bottom"
+  )
+
+```
+
+
+#### Comparing north and south - Categorical Variables
+```{r}
+# Prepare aggregated data by zoning group and I676 side
+zoning_bar_data <- property_CT %>%
+  st_drop_geometry() %>%
+  filter(!is.na(zoning_group), !is.na(adj_sale_price), !is.na(I676_NS)) %>%
+  group_by(zoning_group, I676_NS) %>%
+  summarise(mean_sale_price = mean(adj_sale_price, na.rm = TRUE), .groups = "drop")
+
+# Prepare aggregated data by quality grade and I676 side
+quality_bar_data <- property_CT %>%
+  st_drop_geometry() %>%
+  filter(!is.na(quality_grade), !is.na(adj_sale_price), !is.na(I676_NS)) %>%
+  group_by(quality_grade, I676_NS) %>%
+  summarise(mean_sale_price = mean(adj_sale_price, na.rm = TRUE), .groups = "drop")
+base_font_size <- 10
+
+plot_zoning <- ggplot(zoning_bar_data, aes(x = zoning_group, y = mean_sale_price, fill = I676_NS)) +
+  geom_col(position = "dodge", alpha = 0.9) +
+  scale_fill_manual(values = c("north" = "#1a9988", "south" = "#eb5600")) +
+  labs(
+    title = "Average Sale Price by Zoning Group and I-676 Side",
+    x = "Zoning Group", y = "Avg Sale Price ($)"
+  ) +
+  theme_minimal(base_size = base_font_size) +
+  theme(
+    plot.title = element_text(face = "bold", size = base_font_size + 2, hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = base_font_size - 1),
+    legend.position = "none"
+  )
+
+plot_quality <- ggplot(quality_bar_data, aes(x = factor(quality_grade), y = mean_sale_price, fill = I676_NS)) +
+  geom_col(position = "dodge", alpha = 0.9) +
+  scale_fill_manual(values = c("north" = "#1a9988", "south" = "#eb5600")) +
+  labs(
+    title = "Average Sale Price by Quality Grade and I-676 Side",
+    x = "Quality Grade", y = "Avg Sale Price ($)",
+    fill = "I-676 Side"
+  ) +
+  theme_minimal(base_size = base_font_size) +
+  theme(
+    plot.title = element_text(face = "bold", size = base_font_size + 2, hjust = 0.5),
+    axis.text.x = element_text(size = base_font_size - 1)
+  )
+
+final_plot <- plot_zoning + plot_quality +
+  plot_layout(ncol = 2, widths = c(1, 1), guides = "collect") &
+  theme(
+    legend.position = "bottom",
+    legend.title = element_text(size = base_font_size),
+    legend.text = element_text(size = base_font_size - 1),
+    plot.margin = margin(10, 30, 10, 30) 
+  )
+
+final_plot
+```
+
+#### Summary of Features
+# Predictive Modeling
+## Results
+
+# Scenario Planning
+## Scenario 0
+```{r scenario 0}
+#property_S0 <- st_read("Storymap_dataset/property_S0.geojson")
+#property_S0 <- property_CT%>%st_transform('EPSG:2272')
+```
+
+### Scenario 0 property map
+
+### Scenario 0 discontinuity plot
+```{r discontinuity plot s0}
+#property_S0 <- st_transform(property_S0, 2272)
+property_S1_4326 <- st_read("Storymap_dataset/property_S1_4326.geojson")
+property_S0 <- st_transform(property_S1_4326, 2272)   # yes use property_S1_4326 and the field we use here is adj_sale_price
+
+discontinuity_S0 <- property_S0 %>% 
+  filter(adj_sale_price > 100)
+discontinuity_S0 <- rbind(
+  discontinuity_S0 %>% st_intersection(studyarea_north["geometry"]) %>%
+    mutate(I676_NS = "north"),
+  discontinuity_S0 %>% st_intersection(studyarea_south["geometry"]) %>%
+    mutate(I676_NS = "south")
+)
+
+discontinuity_S0 <- discontinuity_S0 %>%
+  st_drop_geometry() %>%
+  mutate(
+    distance_to_I676m = distance_to_I676 * 0.3048,
+    distance_to_highway = case_when(
+      I676_NS == "north" ~ distance_to_I676m,
+      I676_NS == "south" ~ -distance_to_I676m
+    )
+  )
+
+discontinuity_S0 <- discontinuity_S0 %>% 
+  filter(abs(distance_to_highway) <= 500)
+
+coef_north_S0 <- round(
+  summary(
+    lm(log(adj_sale_price+1) ~ distance_to_highway,
+       data = discontinuity_S0,
+       subset = I676_NS == "north"))$coefficients[2,1], 3)
+
+coef_south_S0 <- round(
+  summary(
+    lm(log(adj_sale_price+1) ~ abs(distance_to_highway),
+       data = discontinuity_S0,
+       subset = I676_NS == "south"))$coefficients[2,1], 3)
+discontinuity_plot_S0 <- ggplot(data = discontinuity_S0) +
+  geom_point(aes(x = distance_to_highway, y = log(adj_sale_price+1), color = I676_NS), size = 0.3) +
+  geom_smooth(aes(x = distance_to_highway, y = log(adj_sale_price+1), color = I676_NS),
+              method = "lm", se = FALSE, linewidth = 1.2) +
+  geom_vline(xintercept = 0, color = "black", linewidth = 2) +
+  scale_colour_manual(values = c("north" = "#eb5600", "south" = "#1a9988")) +
+  theme_minimal() +
+  theme(
+    legend.position = "None",
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = ggtext::element_markdown(size = 12),
+    plot.caption = element_text(hjust = 0)
+  ) +
+  labs(
+    title = 'Highway Effect - Scenario 0', 
+    subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+    x = "Distance to the Highway (m)",
+    y = "Sale Price"
+  ) +
+  geom_label(aes(x = 0, y = 11.5, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+  geom_text(aes(label = coef_north_S0,
+                x = 250,
+                y = 11.825),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = coef_south_S0,
+                x = -250,
+                y = 11.825),
+            color = "#1a9988",
+            show.legend = F)
+
+discontinuity_plot_S0
+```
+
+## Scenario 1
+### Data processing for scenarios
+```{r message=FALSE, warning=FALSE, quiet = TRUE, results='hide'}
+property_raw_s1 <- st_transform(property_data, crs = 2272)
+
+property_raw_s1 <- rbind(
+  property_raw_s1 %>% st_intersection(studyarea_north["geometry"]) %>% mutate(I676_NS = "north"),
+  property_raw_s1 %>% st_intersection(studyarea_south["geometry"]) %>% mutate(I676_NS = "south")
+)
+
+property_raw_s1 <- property_raw_s1 %>%
+  select(1:2, zoning, location, everything()) %>%
+  mutate(zoning = case_when(
+    location == "1310-16 VINE ST" ~ "CMX4",
+    location == "252-56 N 13TH ST" ~ "CMX4",
+    location == "255-57 N BROAD ST" ~ "CMX4",
+    location == "451 N 12TH ST" ~ "CMX3",
+    location == "453 N 12TH ST" ~"CMX3",
+    location == "447 N 12TH ST" ~ "CMX3",
+    location == "1108 BUTTONWOOD ST" ~ "CMX3",
+    location == "1104 BUTTONWOOD ST" ~ "CMX3",
+    location == "256-60 N MARVINE ST" ~ "CMX4",
+    location == "820 VINE ST" ~ "CMX4",
+    TRUE ~ zoning
+  )) %>%
+  mutate(central_air = ifelse(location %in% target_locations_N & central_air == "N", "Y", central_air)) %>%
+  filter(location != "711-39 SPRING GARDEN ST") %>%
+  mutate(year_built = as.numeric(year_built)) %>%
+  mutate(year_built = case_when(
+    location == "305-09 N 12TH ST" & year_built < 1750 ~ 1950,
+    location == "1008-16 WOOD ST" & year_built < 1750 ~ 1978,
+    location == "1004-06 WOOD ST" & year_built < 1750 ~ 1920,
+    location == "211 N CAMAC ST" & year_built < 1750 ~ 1900,
+    location == "231-33 N BROAD ST" & year_built < 1750 ~ 2020,
+    location == "225-27 N 12TH ST" & year_built < 1750 ~ 2024,
+    !is.na(year_built) & year_built < 1750 &
+      !(location %in% valid_locations) ~ NA_real_,
+    TRUE ~ year_built
+  ))
+# Property1_property2_census_join
+property_raw_s1 <- property_raw_s1 %>%
+  mutate(census_tract = as.numeric(census_tract))
+tract_studyarea_selected <- tract_studyarea %>%
+  select(GEOID_trimmed, TotalPoverty, MaleBachelors, FemaleBachelors, TotalPop) %>%
+  st_drop_geometry()  
+
+property_raw_s1_blockgroup <- st_join(property_raw_s1, block2023_studyarea %>% select(GEOID, MedHHInc, MedRent), 
+                            join = st_intersects)
+
+property_raw_s1_geometry <- st_geometry(property_raw_s1)
+
+tract_studyarea_selected <- tract_studyarea_selected %>%
+  distinct(GEOID_trimmed, .keep_all = TRUE)
+property_raw_s1 <- property_raw_s1_blockgroup %>%
+  st_drop_geometry() %>% 
+  left_join(tract_studyarea_selected, by = c("census_tract" = "GEOID_trimmed"))
+
+property_raw_s1 <- property_raw_s1 %>%
+  mutate(objectid = as.character(objectid))
+
+#property2 <- property2 %>%
+#  mutate(objectid = as.character(objectid))
+
+property_combined_s1 <- property_raw_s1 %>%
+  left_join(property2, by = "objectid") %>%
+  rename(sale_price = sale_price.y)%>%
+  select(-sale_price.x)
+```
+
+```{r scenario 1 data processing, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+grocery <- readRDS("Dataset/poi/poi_grocery.rds")
+res_poi <- readRDS("Dataset/poi/poi_restaurant.rds")
+
+# property join poi
+property_sf <- st_as_sf(property_combined_s1, sf_column_name = "geometry")
+property_proj <- st_transform(property_sf, 2272)
+grocery_proj <- st_transform(grocery, 2272)
+restaurant_proj <- st_transform(res_poi, 2272)
+
+grocery_idx <- st_nearest_feature(property_proj, grocery_proj)
+
+property_proj$nearest_grocery_name <- grocery_proj$name[grocery_idx]
+property_proj$nearest_grocery_dist <- st_distance(
+  property_proj,
+  grocery_proj[grocery_idx, ],
+  by_element = TRUE
+)
+restaurant_idx <- st_nearest_feature(property_proj, restaurant_proj)
+property_proj$nearest_restaurant_name <- restaurant_proj$name[restaurant_idx]
+property_proj$nearest_restaurant_dist <- st_distance(
+  property_proj,
+  restaurant_proj[restaurant_idx, ],
+  by_element = TRUE
+)
+property_proj$nearest_grocery_dist_m <- as.numeric(property_proj$nearest_grocery_dist)
+property_proj$nearest_restaurant_dist_m <- as.numeric(property_proj$nearest_restaurant_dist)
+clean_property_poi_distances <- function(property_sf) {
+  property_sf %>%
+    mutate(
+      nearest_grocery_dist_m = as.numeric(nearest_grocery_dist),
+      nearest_restaurant_dist_m = as.numeric(nearest_restaurant_dist)) %>%
+    select(
+      -nearest_grocery_dist,
+      -nearest_restaurant_dist
+    )
+}
+
+property1_final <- clean_property_poi_distances(property_proj)
+
+calculate_nearest_distance <- function(set_points, other_layer) {
+  nearest_idx <- st_nearest_feature(set_points, other_layer)
+  st_distance(set_points, other_layer[nearest_idx, ], by_element = TRUE) %>% as.numeric()
+}
+property_S1_no_fe <- property1_final %>%
+  mutate(
+    category_code = case_when(
+      category_code_description == "HOTEL" ~ "4 ",
+      TRUE ~ category_code
+    )
+  ) %>%
+  mutate(distance_to_nearest_park = calculate_nearest_distance(geometry, newpark))%>%
+  st_transform('EPSG:4326')
+property_S1_no_fe <- property_S1_no_fe %>%
+  mutate(category_code_chain = case_when(
+    category_code == '1 ' ~ "1:Single Family",
+    category_code == '10' ~ "10:Offices",
+    category_code == '12' ~ "12:Vacant Land - Non-residential",
+    category_code == '14' ~ "14:Apartments > 4 units",
+    category_code == '15' ~ "15:Retail",
+    category_code == '16' ~ "16:NA",
+    category_code == '2 ' ~ "2:Multi Family",
+    category_code == '3 ' ~ "3:Mixed Use",
+    category_code == '4 ' ~ "4:Commercial",
+    category_code == '5 ' ~ "5:Industrial",
+    category_code == '6 ' ~ "6:Vacant Land",
+    category_code == '7 ' ~ "7:Garage - Commercial",
+    category_code == '8 ' ~ "8:Garage - Residential",
+    category_code == '9 ' ~ "9:Hotel",
+  ))  
+
+#st_write(property_S1_no_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_no_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+```{r}
+median_bedroom <- median(as.numeric(as.character(property_S1_no_fe$number_of_bedrooms)), na.rm = TRUE)
+median_bathroom <- median(as.numeric(as.character(property_S1_no_fe$number_of_bathrooms)), na.rm = TRUE)
+
+property_S1_fe <- property_S1_no_fe %>%
+#  filter(!zoning %in% c("I2", "SPPOA"))%>%
+  mutate(
+        # Neighborhood Name
+    nhoods_name = case_when(
+      nhoods_name %in% c("CENTER_CITY", "LOGAN_SQUARE") ~ "WEST_PART",
+      TRUE ~ nhoods_name
+    ),
+
+    # Land Use
+    landuse = case_when(
+      landuse %in% c("Park/Open Space", "Other/Unknown", "Commercial Business/Professional") ~ "Open Space/Business",
+      landuse %in% c("Commercial Consumer", "Commercial Mixed Residential",
+                     "Industrial", "Transportation", "Culture/Amusement") ~ "Commercial",
+      landuse %in% c("Civic/Institution", "Residential High") ~ "Residential High/Civic",
+      TRUE ~ landuse
+    ),
+    # Year Built
+    year_built = as.numeric(year_built),
+    year_built_missing = ifelse(is.na(year_built), 1, 0),
+#    year_built = case_when(
+#      is.na(year_built) ~ "Unknown",
+#      TRUE ~ as.character(year_built)
+#    ),
+#    year_built = factor(year_built),
+    year_built_group = case_when(
+       is.na(year_built) ~ "Unknown",
+       year_built < 1940 ~ "Pre-War",
+       year_built < 2000 ~ "Post-War Mid",
+       year_built < 2020 ~ "Modern",
+       year_built >= 2020 ~ "New"
+    ),
+    year_built_group = factor(year_built_group, levels = c("Pre-War", "Post-War Mid", "Modern", "New", "Unknown")),
+    # Log Transforms
+    log_price = log(sale_price),
+    log_dist_highway = log(distance_to_I676 + 1),
+
+    # Central Air
+    central_air = case_when(
+      central_air %in% c("Y", "1")  ~ "Y",
+      central_air %in% c("N", "0") ~ "N",
+      TRUE ~ "Unknown"
+    ),
+    central_air = factor(central_air),
+    central_air_missing = ifelse(central_air == "Unknown", 1, 0),
+
+    # Garage Spaces
+    garage_spaces_missing = ifelse(is.na(garage_spaces), 1, 0),
+    garage_spaces = case_when(
+#      is.na(garage_spaces) ~ "Unknown",
+      garage_spaces == 0 | garage_spaces == 1 ~ "less than 2",
+      TRUE ~ "2 or more"
+    ),
+    garage_spaces = factor(garage_spaces),
+
+    # Bedrooms
+    number_of_bedrooms = as.numeric(as.character(number_of_bedrooms)),
+    number_of_bedrooms_missing = ifelse(is.na(number_of_bedrooms), 1, 0),
+    number_of_bedrooms_filled = ifelse(is.na(number_of_bedrooms), median_bedroom, number_of_bedrooms),
+    number_of_bedrooms = case_when(
+      is.na(number_of_bedrooms) ~ "Unknown",
+      number_of_bedrooms == 0 ~ "0",
+      number_of_bedrooms == 1 ~ "1",
+      number_of_bedrooms %in% c(2, 3) ~ "2",
+      number_of_bedrooms %in% c(5, 6) ~ "3",
+      number_of_bedrooms == 4 ~"4",
+      number_of_bedrooms %in% c(7, 9, 12) ~ "5"
+    ),
+    number_of_bedrooms = factor(number_of_bedrooms),
+
+    # Bathrooms
+    number_of_bathrooms = as.numeric(as.character(number_of_bathrooms)),
+    number_of_bathrooms_missing = ifelse(is.na(number_of_bathrooms), 1, 0),
+    number_of_bathrooms_filled = ifelse(is.na(number_of_bathrooms), median_bathroom, number_of_bathrooms),
+    number_of_bathrooms = case_when(
+      number_of_bathrooms == 0 ~ "0",
+      number_of_bathrooms == 1 ~ "1",
+      number_of_bathrooms == 2 ~ "2",
+      number_of_bathrooms %in% c(3, 4, 5) ~ "3-5",
+      number_of_bathrooms == 6 ~ "6",
+      number_of_bathrooms == 7 ~ "7",
+      TRUE ~ "Unknown"
+    ),
+    number_of_bathrooms = factor(number_of_bathrooms),
+
+    # Total Livable Area
+    total_livable_area = ifelse(is.na(total_livable_area) | total_livable_area == 1, 0, total_livable_area),
+
+    # Quality Grade
+    quality_grade = case_when(
+      quality_grade %in% c("A ", "A-") | is.na(quality_grade) ~ "Good",
+      quality_grade %in% c("3 ", "C+", "C")  ~ "Average",
+      TRUE ~ "Below Average"
+    ),
+    quality_grade = factor(quality_grade, levels = c("Good", "Average", "Below Average")),
+    quality_grade_missing = ifelse(is.na(quality_grade), 1, 0),
+
+    # Construction
+    general_construction = as.character(general_construction),
+    general_construction = case_when(
+      is.na(general_construction) ~ "Unknown",
+      TRUE ~ general_construction
+    ),
+    general_construction = factor(general_construction),
+    general_construction_missing = ifelse(general_construction == "Unknown", 1, 0),
+
+    # Separate Utilities
+    separate_utilities = case_when(
+      is.na(separate_utilities) ~ "Unknown",
+      TRUE ~ separate_utilities
+    ),
+    separate_utilities = factor(separate_utilities, levels = c("A", "B", "C", "Unknown")),
+    separate_utilities_missing = ifelse(separate_utilities == "Unknown", 1, 0),
+
+    # Exterior Condition
+    exterior_condition = case_when(
+      exterior_condition == 2 ~ "Good",
+      exterior_condition %in% c(1, 6, 7) | is.na(exterior_condition) ~ "Average",
+      exterior_condition %in% c(3, 4, 5) ~ "Below Average"
+ #     TRUE ~ "Unknown"
+    ),
+    exterior_condition = factor(exterior_condition),
+
+    # Interior Condition
+    interior_condition = case_when(
+      interior_condition %in% c(1,2,7) | is.na(interior_condition) ~ "Good",
+      interior_condition %in% c(3,4,5) ~ "Average",
+      interior_condition %in% c(6) ~ "Below Average",
+      TRUE ~ "Unknown"
+    ),
+    interior_condition = factor(interior_condition),
+
+    # Category Code
+    category_code_original = as.character(category_code),
+    category_code_group = case_when(
+      category_code == "12" ~ "6 ",
+      category_code == "14" ~ "2 ",
+      category_code == "10" ~ "4 ",
+      category_code == "15" ~ "5 ",
+      category_code == "16" ~ "4 ",
+      category_code == "7 "  ~ "4 ",
+      category_code == "8 "  ~ "6 ",
+      category_code == "9 "  ~ "2 ",
+      category_code %in% c("1 ", "2 ", "3 ", "4 ", "5 ", "6 ") ~ category_code,
+      TRUE ~ "Other"
+    ),
+    category_code = factor(category_code_group),
+
+    # Zoning
+    zoning_group = case_when(
+      zoning %in% c("CMX5") ~ "CMX5",
+      zoning %in% c("IRMX") ~ "IRMX",
+      zoning %in% c("RM1", "RM2", "RM4") ~ "RM",
+      zoning %in% c("RMX3") ~ "RMX3",
+      zoning %in% c("RSA5") ~ "RSA5",
+      zoning %in% c("ICMX") ~ "ICMX",
+      zoning %in% c("SPPOA") ~ "SPPOA",
+      zoning %in% c("I2") ~ "I2",
+      zoning %in% c("CMX2.5", "CMX2", "CMX1") ~ "CMX(1,2,2.5)",
+      zoning %in% c("CMX3", "CMX4") ~ "CMX(3,4)",
+      TRUE ~ "Other"
+    ),
+    zoning_group = factor(zoning_group),
+
+    zoning = case_when(
+      is.na(zoning) ~ "Unknown",
+      TRUE ~ zoning
+    ),
+    zoning = factor(zoning),
+    zip_code = factor(zip_code)
+  )
+
+mean_depth <- mean(property_S1_fe$depth, na.rm = TRUE)
+property_S1_fe$depth[is.na(property_S1_fe$depth)] <- mean_depth
+```
+
+```{r predictive modeling for scenario 1, quiet=TRUE, results='hide'}
+property_modeling_s1 <- property_S1_fe %>%
+  mutate(
+    Longitude = st_coordinates(.)[, 1],
+    Latitude = st_coordinates(.)[, 2]
+  ) %>%
+  st_drop_geometry() %>%
+  mutate(
+    log_distance_to_city_hall = log(distance_to_city_hall + 1),
+    log_nearest_restaurant_dist_m = log(nearest_restaurant_dist_m + 1),
+    log_distance_to_nearest_park = log(distance_to_nearest_park + 1),
+    log_distance_to_nearest_water = log(distance_to_nearest_water + 1),
+    log_total_livable_area = log1p(total_livable_area),
+#    log_adj_sale_price = log(adj_sale_price + 1)  # optional, not used during prediction
+  ) %>%
+  select(
+    log_dist_highway,
+    log_distance_to_city_hall,
+    log_nearest_restaurant_dist_m,
+    log_distance_to_nearest_park,
+    zoning_group,
+    zip_code,
+    exterior_condition,
+    interior_condition,
+    log_total_livable_area, 
+    number_of_bathrooms,
+    number_of_bedrooms,
+    quality_grade,
+    log_distance_to_nearest_water,
+    central_air,
+    year_built_group,
+    LPSS_PER1000,
+    general_construction,
+    garage_spaces,
+    separate_utilities,
+    category_code,
+    crime_nn5,
+    nhoods_name,
+    landuse,
+    Longitude, Latitude
+  )
+#rf_model <- readRDS("Modeling/results/rf_model.rds")
+rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
+predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s1)$.pred
+property_S1_fe$predicted_price <- exp(predicted_log_price) - 1
+#summary(property_S1_fe$predicted_price)
+#st_write(property_S1_fe, "property_S2_predicted.json", driver = "GeoJSON", delete_dsn = TRUE)
+property_S1_4326 <- property_S1_fe%>%st_transform('EPSG:4326')
+property_S1_predict <- property_S1_fe%>%st_transform('EPSG:2272')
+st_write(property_S1_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S1_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S1_4326, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_4326.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+```{r data processing for S2 S3 S4}
+#property_S1_fe_selected <- property_S1_fe %>%
+#  filter(category_code == "1 " | zoning_group == "RSA5")
+
+######## change to commercial property 
+property_S2_no_fe <- property_S1_no_fe %>%
+  mutate(
+    landuse_old = landuse,
+    category_code_old = category_code,
+    zoning_old = zoning,
+    exterior_condition = as.numeric(exterior_condition),
+    interior_condition = as.numeric(interior_condition)
+  ) %>%
+  mutate(landuse_new = case_when(
+    category_code == '4 ' & landuse == 'Transportation' ~ "Commercial Consumer",
+    category_code == '10' & landuse == "Vacant" ~ "Commercial Business/Professional",
+    objectid == "587297487" & category_code == '4 ' ~ "Commercial Business/Professional",
+    category_code == '4 ' & landuse == "Other/Unknown" ~ "Commercial Consumer",
+    category_code == '3 ' & landuse == "Industrial" & grepl("^CMX", zoning) ~ "Commercial Consumer",
+    category_code != '3 ' & landuse == "Industrial" & grepl("^CMX", zoning) ~ "Commercial Consumer",
+    category_code == '6 ' & landuse == "Transportation" & grepl("^CMX", zoning) ~ "Commercial Consumer",
+    category_code == '6 ' & landuse == "Industrial" & zoning == "I2" ~ "Commercial Consumer",
+    TRUE ~ landuse
+  )) %>%
+  mutate(category_code_new = case_when(
+    category_code == '1 ' & landuse_new == "Commercial Business/Professional" ~ '3 ',
+    category_code == '6 ' & landuse_new %in% c("Commercial Business/Professional", "Commercial Mixed Residential") ~ '3 ',
+    category_code == '6 ' & landuse_new == "Transportation" & grepl("^CMX", zoning) ~ '4 ',
+    category_code == '3 ' & landuse_new == "Industrial" & zoning == "IRMX" ~ '2 ',
+    category_code == '1 ' & landuse == 'Residential Medium' & zoning == "CMX3" ~ "4 ",
+    TRUE ~ category_code
+  )) %>%
+  
+  mutate(zoning_new = case_when(
+    zoning == "ICMX" & category_code_new == '3 ' ~ "CMX3",
+    category_code_new == '6 ' & landuse_new == "Industrial" & zoning == "I2" ~ "CMX3",
+    category_code_new == '3 ' & zoning == "RMX3" ~ "CMX3",
+    category_code_new == '3 ' & landuse_new == "Industrial" & zoning == "IRMX" ~ "RMX3",
+    TRUE ~ zoning
+  )) %>%
+  mutate(
+    quality_grade = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ "A-",
+      TRUE ~ quality_grade
+    ),
+    central_air = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ "Y",
+      TRUE ~ central_air
+    ),
+    exterior_condition = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ 2,
+      TRUE ~ exterior_condition
+    ),
+    interior_condition = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ 1,
+      TRUE ~ interior_condition
+    ),
+    landuse = landuse_new,
+    category_code = category_code_new,
+    zoning = zoning_new
+  )
+
+######### single family change to residential property
+property_S3_no_fe <- property_S1_no_fe %>%
+  mutate(
+    landuse_old = landuse,
+    category_code_old = category_code,
+    zoning_old = zoning,
+    exterior_condition = as.numeric(exterior_condition),
+    interior_condition = as.numeric(interior_condition)
+  ) %>%
+  mutate(landuse_new = case_when(
+    category_code == '1 ' & landuse == 'Residential Medium' & zoning == "CMX3" ~ "Commercial Consumer",
+    category_code == '3 ' & landuse == "Vacant" & zoning == "CMX2.5" ~ "Residential Medium ",
+    TRUE ~ landuse
+  )) %>%
+  
+  mutate(category_code_new = case_when(
+    category_code == '1 ' & landuse == 'Residential Medium' & zoning %in% c("RM1", "RSA5", "CMX4", "RM4") ~ "2 ",
+    category_code == '1 ' & landuse == 'Residential High' & zoning == "RM1" ~ "2 ",
+
+    category_code == '3 ' & landuse == "Vacant" & zoning == "CMX2.5" ~ "2 ",
+    TRUE ~ category_code
+  )) %>%
+  
+  mutate(zoning_new = case_when(
+    category_code_new == '1 ' & landuse_new == 'Residential Medium' & zoning %in% c("RSA5", "CMX4") ~ "RM1",
+    category_code_new == '3 ' & landuse_new == "Vacant" & zoning == "CMX2.5" ~ "RM2",
+    TRUE ~ zoning
+  )) %>%
+  
+  mutate(
+    quality_grade = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ "A-",
+      TRUE ~ quality_grade
+    ),
+    central_air = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ "Y",
+      TRUE ~ central_air
+    ),
+    exterior_condition = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ 2,
+      TRUE ~ exterior_condition
+    ),
+    interior_condition = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ 1,
+      TRUE ~ interior_condition
+    ),
+    landuse = landuse_new,
+    category_code = category_code_new,
+    zoning = zoning_new
+  )
+      
+property_S4_no_fe <- property_S1_no_fe %>%
+  mutate(
+    exterior_condition = as.numeric(exterior_condition),
+    interior_condition = as.numeric(interior_condition)
+  ) %>%
+  mutate(landuse_new = case_when(
+    category_code == '4 ' & landuse == 'Transportation' ~ "Commercial Consumer",
+    category_code == '10' & landuse == "Vacant" ~ "Commercial Business/Professional",
+    objectid == "587297487" & category_code == '4 ' ~ "Commercial Business/Professional",
+    category_code == '4 ' & landuse == "Other/Unknown" ~ "Commercial Consumer",
+    category_code == '3 ' & landuse == "Industrial" & grepl("^CMX", zoning) ~ "Commercial Consumer",
+    category_code != '3 ' & landuse == "Industrial" & grepl("^CMX", zoning) ~ "Commercial Consumer",
+    category_code == '6 ' & landuse == "Transportation" & grepl("^CMX", zoning) ~ "Commercial Consumer",
+    category_code == '6 ' & landuse == "Industrial" & zoning == "I2" ~ "Commercial Consumer",
+    category_code == '1 ' & landuse == 'Residential Medium' & zoning == "CMX3" ~ "Commercial Consumer",
+    category_code == '3 ' & landuse == "Vacant" & zoning == "CMX2.5" ~ "Residential Medium ",
+    TRUE ~ landuse
+  )) %>%
+  mutate(category_code_new = case_when(
+    category_code == '1 ' & landuse_new == "Commercial Business/Professional" ~ '3 ',
+    category_code == '6 ' & landuse_new %in% c("Commercial Business/Professional", "Commercial Mixed Residential") ~ '3 ',
+    category_code == '6 ' & landuse_new == "Transportation" & grepl("^CMX", zoning) ~ '4 ',
+    category_code == '3 ' & landuse_new == "Industrial" & zoning == "IRMX" ~ '2 ',
+    
+    category_code == '1 ' & landuse_new == 'Residential Medium' & zoning %in% c("RM1", "RSA5", "CMX4", "RM4") ~ "2 ",
+    category_code == '1 ' & landuse_new == 'Residential High' & zoning == "RM1" ~ "2 ",
+    category_code == '1 ' & landuse_new == 'Residential Medium' & zoning == "CMX3" ~ "4 ",
+    category_code == '3 ' & landuse_new == "Vacant" & zoning == "CMX2.5" ~ "2 ",
+    TRUE ~ category_code
+  )) %>%
+
+  mutate(zoning_new = case_when(
+    zoning == "ICMX" & category_code_new == '3 ' ~ "CMX3",
+    category_code_new == '6 ' & landuse_new == "Industrial" & zoning == "I2" ~ "CMX3",
+    category_code_new == '3 ' & zoning == "RMX3" ~ "CMX3",
+    category_code_new == '3 ' & landuse_new == "Industrial" & zoning == "IRMX" ~ "RMX3",
+    
+    category_code_new == '1 ' & landuse_new == 'Residential Medium' & zoning %in% c("RSA5", "CMX4") ~ "RM1",
+    category_code_new == '3 ' & landuse_new == "Vacant" & zoning == "CMX2.5" ~ "RM2",
+    TRUE ~ zoning
+  ))
+
+property_S4_no_fe <- property_S4_no_fe %>%
+  mutate(
+    quality_grade = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ "A-",
+     TRUE ~ quality_grade
+    ),
+    central_air = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ "Y",
+      TRUE ~ central_air
+    ),
+    exterior_condition = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ 2,
+      TRUE ~ exterior_condition
+    ),
+   interior_condition = case_when(
+      (landuse != landuse_new | category_code != category_code_new | zoning != zoning_new) ~ 1,
+      TRUE ~ interior_condition
+    ),
+    landuse = landuse_new,
+    category_code = category_code_new,
+    zoning = zoning_new
+  )
+
+
+```
+
+
+
+
+
+### scenario 1 property map
+### scenario 1 discontinuity plot
+```{r discontinuity plot s1}
+property_S1 <- st_transform(property_S1_predict, 2272)
+
+discontinuity_S1_predict <- property_S1 %>% 
+  filter(predicted_price > 100)
+
+discontinuity_S1_predict <- rbind(
+  discontinuity_S1_predict %>% st_intersection(studyarea_north["geometry"]) %>%
+    mutate(I676_NS = "north"),
+  discontinuity_S1_predict %>% st_intersection(studyarea_south["geometry"]) %>%
+    mutate(I676_NS = "south")
+)
+
+discontinuity_S1_predict <- discontinuity_S1_predict %>%
+  st_drop_geometry() %>%
+  mutate(
+    distance_to_I676m = distance_to_I676 * 0.3048,
+    distance_to_highway = case_when(
+      I676_NS == "north" ~ distance_to_I676m,
+      I676_NS == "south" ~ -distance_to_I676m
+    )
+  )
+
+discontinuity_S1_predict <- discontinuity_S1_predict %>% 
+  filter(abs(distance_to_highway) <= 500)
+
+coef_north_S1 <- round(
+  summary(
+    lm(log(predicted_price+1) ~ distance_to_highway,
+       data = discontinuity_S1_predict,
+       subset = I676_NS == "north"))$coefficients[2,1], 3)
+
+coef_south_S1 <- round(
+  summary(
+    lm(log(predicted_price+1) ~ abs(distance_to_highway),
+       data = discontinuity_S1_predict,
+       subset = I676_NS == "south"))$coefficients[2,1], 3)
+
+discontinuity_plot_S1 <- ggplot(data = discontinuity_S1_predict) +
+  geom_point(aes(x = distance_to_highway, y = log(predicted_price+1), color = I676_NS), size = 0.3) +
+  geom_smooth(aes(x = distance_to_highway, y = log(predicted_price+1), color = I676_NS),
+              method = "lm", se = FALSE, linewidth = 1.2) +
+  geom_vline(xintercept = 0, color = "black", linewidth = 2) +
+  scale_colour_manual(values = c("north" = "#eb5600", "south" = "#1a9988")) +
+  theme_minimal() +
+  theme(
+    legend.position = "None",
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = ggtext::element_markdown(size = 12),
+    plot.caption = element_text(hjust = 0)
+  ) +
+  labs(
+    title = 'Highway Effect - Scenario 1', 
+    subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+    x = "Distance to the Highway (m)",
+    y = "Sale Price"
+  ) +
+  geom_label(aes(x = 0, y = 11.5, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+  geom_text(aes(label = coef_north_S1,
+                x = 250,
+                y = 11.825),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = coef_south_S1,
+                x = -250,
+                y = 11.825),
+            color = "#1a9988",
+            show.legend = F)
+discontinuity_plot_S1
+
+ggsave(
+  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S1.png",
+  plot = discontinuity_plot_S1,
+  height = 5,
+  width = 8.5,
+  units = "in",
+  dpi = 300
+)
+```
+
+
+## Alternated Features - commercial perspective
+```{r S2-FE countinued , quiet=TRUE, results='hide'}
+median_bedroom <- median(as.numeric(as.character(property_S2_no_fe$number_of_bedrooms)), na.rm = TRUE)
+median_bathroom <- median(as.numeric(as.character(property_S2_no_fe$number_of_bathrooms)), na.rm = TRUE)
+
+property_S2_fe <- property_S2_no_fe %>%
+#  filter(!zoning %in% c("I2", "SPPOA"))%>%
+  mutate(
+        # Neighborhood Name
+    nhoods_name = case_when(
+      nhoods_name %in% c("CENTER_CITY", "LOGAN_SQUARE") ~ "WEST_PART",
+      TRUE ~ nhoods_name
+    ),
+
+    # Land Use
+    landuse = case_when(
+      landuse %in% c("Park/Open Space", "Other/Unknown", "Commercial Business/Professional") ~ "Open Space/Business",
+      landuse %in% c("Commercial Consumer", "Commercial Mixed Residential",
+                     "Industrial", "Transportation", "Culture/Amusement") ~ "Commercial",
+      landuse %in% c("Civic/Institution", "Residential High") ~ "Residential High/Civic",
+      TRUE ~ landuse
+    ),
+
+    # Year Built
+    year_built = as.numeric(year_built),
+    year_built_missing = ifelse(is.na(year_built), 1, 0),
+    year_built_group = case_when(
+       is.na(year_built) ~ "Unknown",
+       year_built < 1940 ~ "Pre-War",
+       year_built < 2000 ~ "Post-War Mid",
+       year_built < 2020 ~ "Modern",
+       year_built >= 2020 ~ "New"
+    ),
+    year_built_group = factor(year_built_group, levels = c("Pre-War", "Post-War Mid", "Modern", "New", "Unknown")),
+    # Log Transforms
+    log_price = log(sale_price),
+    log_dist_highway = log(distance_to_I676 + 1),
+
+    # Central Air
+    central_air = case_when(
+      central_air %in% c("Y", "1")  ~ "Y",
+      central_air %in% c("N", "0") ~ "N",
+      TRUE ~ "Unknown"
+    ),
+    central_air = factor(central_air),
+    central_air_missing = ifelse(central_air == "Unknown", 1, 0),
+
+    # Garage Spaces
+    garage_spaces_missing = ifelse(is.na(garage_spaces), 1, 0),
+    garage_spaces = case_when(
+#      is.na(garage_spaces) ~ "Unknown",
+      garage_spaces == 0 | garage_spaces == 1 ~ "less than 2",
+      TRUE ~ "2 or more"
+    ),
+    garage_spaces = factor(garage_spaces),
+
+    # Bedrooms
+    number_of_bedrooms = as.numeric(as.character(number_of_bedrooms)),
+    number_of_bedrooms_missing = ifelse(is.na(number_of_bedrooms), 1, 0),
+    number_of_bedrooms_filled = ifelse(is.na(number_of_bedrooms), median_bedroom, number_of_bedrooms),
+    number_of_bedrooms = case_when(
+      is.na(number_of_bedrooms) ~ "Unknown",
+      number_of_bedrooms == 0 ~ "0",
+      number_of_bedrooms == 1 ~ "1",
+      number_of_bedrooms %in% c(2, 3) ~ "2",
+      number_of_bedrooms %in% c(5, 6) ~ "3",
+      number_of_bedrooms == 4 ~"4",
+      number_of_bedrooms %in% c(7, 9, 12) ~ "5"
+    ),
+    number_of_bedrooms = factor(number_of_bedrooms),
+
+    # Bathrooms
+    number_of_bathrooms = as.numeric(as.character(number_of_bathrooms)),
+    number_of_bathrooms_missing = ifelse(is.na(number_of_bathrooms), 1, 0),
+    number_of_bathrooms_filled = ifelse(is.na(number_of_bathrooms), median_bathroom, number_of_bathrooms),
+    number_of_bathrooms = case_when(
+      number_of_bathrooms == 0 ~ "0",
+      number_of_bathrooms == 1 ~ "1",
+      number_of_bathrooms == 2 ~ "2",
+      number_of_bathrooms %in% c(3, 4, 5) ~ "3-5",
+      number_of_bathrooms == 6 ~ "6",
+      number_of_bathrooms == 7 ~ "7",
+      TRUE ~ "Unknown"
+    ),
+    number_of_bathrooms = factor(number_of_bathrooms),
+
+    # Total Livable Area
+    total_livable_area = ifelse(is.na(total_livable_area) | total_livable_area == 1, 0, total_livable_area),
+
+    # Quality Grade
+    quality_grade = case_when(
+      quality_grade %in% c("A ", "A-") | is.na(quality_grade) ~ "Good",
+      quality_grade %in% c("3 ", "C+", "C")  ~ "Average",
+      TRUE ~ "Below Average"
+    ),
+    quality_grade = factor(quality_grade, levels = c("Good", "Average", "Below Average")),
+    quality_grade_missing = ifelse(is.na(quality_grade), 1, 0),
+
+    # Construction
+    general_construction = as.character(general_construction),
+    general_construction = case_when(
+      is.na(general_construction) ~ "Unknown",
+      TRUE ~ general_construction
+    ),
+    general_construction = factor(general_construction),
+    general_construction_missing = ifelse(general_construction == "Unknown", 1, 0),
+
+    # Separate Utilities
+    separate_utilities = case_when(
+      is.na(separate_utilities) ~ "Unknown",
+      TRUE ~ separate_utilities
+    ),
+    separate_utilities = factor(separate_utilities, levels = c("A", "B", "C", "Unknown")),
+    separate_utilities_missing = ifelse(separate_utilities == "Unknown", 1, 0),
+
+    # Exterior Condition
+    exterior_condition = case_when(
+      exterior_condition == 2 ~ "Good",
+      exterior_condition %in% c(1, 6, 7) | is.na(exterior_condition) ~ "Average",
+      exterior_condition %in% c(3, 4, 5) ~ "Below Average"
+ #     TRUE ~ "Unknown"
+    ),
+    exterior_condition = factor(exterior_condition),
+
+    # Interior Condition
+    interior_condition = case_when(
+      interior_condition %in% c(1,2,7) | is.na(interior_condition) ~ "Good",
+      interior_condition %in% c(3,4,5) ~ "Average",
+      interior_condition %in% c(6) ~ "Below Average",
+      TRUE ~ "Unknown"
+    ),
+    interior_condition = factor(interior_condition),
+
+    # Category Code
+    category_code_original = as.character(category_code),
+    category_code_group = case_when(
+      category_code == "12" ~ "6 ",
+      category_code == "14" ~ "2 ",
+      category_code == "10" ~ "4 ",
+      category_code == "15" ~ "5 ",
+      category_code == "16" ~ "4 ",
+      category_code == "7 "  ~ "4 ",
+      category_code == "8 "  ~ "6 ",
+      category_code == "9 "  ~ "2 ",
+      category_code %in% c("1 ", "2 ", "3 ", "4 ", "5 ", "6 ") ~ category_code,
+      TRUE ~ "Other"
+    ),
+    category_code = factor(category_code_group),
+
+    # Zoning
+    zoning_group = case_when(
+      zoning %in% c("CMX5") ~ "CMX5",
+      zoning %in% c("IRMX") ~ "IRMX",
+      zoning %in% c("RM1", "RM2", "RM4") ~ "RM",
+      zoning %in% c("RMX3") ~ "RMX3",
+      zoning %in% c("RSA5") ~ "RSA5",
+      zoning %in% c("ICMX") ~ "ICMX",
+      zoning %in% c("SPPOA") ~ "SPPOA",
+      zoning %in% c("I2") ~ "I2",
+      zoning %in% c("CMX2.5", "CMX2", "CMX1") ~ "CMX(1,2,2.5)",
+      zoning %in% c("CMX3", "CMX4") ~ "CMX(3,4)",
+      TRUE ~ "Other"
+    ),
+    zoning_group = factor(zoning_group),
+
+    zoning = case_when(
+      is.na(zoning) ~ "Unknown",
+      TRUE ~ zoning
+    ),
+    zoning = factor(zoning),
+    zip_code = factor(zip_code)
+  )
+
+mean_depth <- mean(property_S2_fe$depth, na.rm = TRUE)
+property_S2_fe$depth[is.na(property_S2_fe$depth)] <- mean_depth
+```
+
+```{r predictive modeling for scenario 2- commercial perspective, quiet=TRUE, results='hide'}
+property_modeling_s2 <- property_S2_fe %>%
+  mutate(
+    Longitude = st_coordinates(.)[, 1],
+    Latitude = st_coordinates(.)[, 2]
+  ) %>%
+  st_drop_geometry() %>%
+  mutate(
+    log_distance_to_city_hall = log(distance_to_city_hall + 1),
+    log_nearest_restaurant_dist_m = log(nearest_restaurant_dist_m + 1),
+    log_distance_to_nearest_park = log(distance_to_nearest_park + 1),
+    log_distance_to_nearest_water = log(distance_to_nearest_water + 1),
+    log_total_livable_area = log1p(total_livable_area),
+#    log_adj_sale_price = log(adj_sale_price + 1)  # optional, not used during prediction
+  ) %>%
+  select(
+    log_dist_highway,
+    log_distance_to_city_hall,
+    log_nearest_restaurant_dist_m,
+    log_distance_to_nearest_park,
+    zoning_group,
+    zip_code,
+    exterior_condition,
+    interior_condition,
+    log_total_livable_area, 
+    number_of_bathrooms,
+    number_of_bedrooms,
+    quality_grade,
+    log_distance_to_nearest_water,
+    central_air,
+    year_built_group,
+    LPSS_PER1000,
+    general_construction,
+    garage_spaces,
+    separate_utilities,
+    category_code,
+    crime_nn5,
+    nhoods_name,
+    landuse,
+    Longitude, Latitude
+  )
+rf_model <- readRDS("Modeling/results/rf_model.rds")
+rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
+predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s2)$.pred
+property_S2_fe$predicted_price <- exp(predicted_log_price) - 1
+
+st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+
+property_S2_4326 <- property_S2_fe %>%st_transform('EPSG:4326')
+property_S2_predict <- property_S2_fe%>%st_transform('EPSG:2272')
+```
+
+### Alternate Commercial Property Map
+```{r}
+qBr(property_S1_predict %>% filter(adj_sale_price > 100), "adj_sale_price")
+qBr_S1 <- qBr(property_S1_predict %>% filter(adj_sale_price > 100), "adj_sale_price")
+
+S2_changed <- property_S2_fe %>%
+  filter(
+    landuse_old != landuse_new |
+    category_code_old != category_code_new |
+    zoning_old != zoning_new
+  )
+
+S2_changed_map <- ggplot() +
+  geom_sf(data = studyarea1, fill = "transparent", color = "grey60", linetype = "dashed", linewidth = 1.2) +
+  geom_sf(data = discontinuity, fill = "black", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 500391), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 500391), fill = "white", color = "grey", linewidth = 1) +
+  
+  geom_sf(data = S2_changed %>% filter(!is.na(predicted_price)), 
+          aes(colour = cut(predicted_price, breaks = qBr_S1, include.lowest = TRUE)),
+          show.legend = "point", size = 0.8) +
+  
+  scale_colour_manual(values = palette5,
+                      labels = qBr_S1,
+                      name = "Sale Price") +
+  
+  guides(color = guide_legend(override.aes = list(size = 3))) +
+  
+  labs(
+    title = "Predicted Sale Price - Commercial Perspective",
+    subtitle = "Changed Properties:Vacant Land and Industrials "
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),
+    plot.subtitle = element_text(size = 12)
+  )
+
+S2_changed_map
+ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S2_comm_map.png", plot =S2_changed_map, height = 5, width = 8.5, units = "in", dpi = 300)
+```
+
+### Alternate Commercial - discontinuity plot
+```{r Alternate Commercial - discontinuity plot}
+property_S2 <- st_transform(property_S2_predict, 2272)
+
+discontinuity_S2 <- property_S2 %>% 
+  filter(predicted_price > 100)  # 注意这里用 predicted_price，不是 adj_sale_price
+
+discontinuity_S2 <- rbind(
+  discontinuity_S2 %>% st_intersection(studyarea_north["geometry"]) %>%
+    mutate(I676_NS = "north"),
+  discontinuity_S2 %>% st_intersection(studyarea_south["geometry"]) %>%
+    mutate(I676_NS = "south")
+)
+
+discontinuity_S2 <- discontinuity_S2 %>%
+  st_drop_geometry() %>%
+  mutate(distance_to_I676m = distance_to_I676 * 0.3048,
+         distance_to_highway = case_when(
+           I676_NS == "north" ~ distance_to_I676m,
+           I676_NS == "south" ~ -distance_to_I676m
+         ))
+discontinuity_S2 <- discontinuity_S2 %>% 
+  filter(abs(distance_to_highway) <= 500)
+
+coef_north_S2 <- round(
+  summary(
+    lm(log(predicted_price+1) ~ distance_to_highway,
+       data = discontinuity_S2,
+       I676_NS == "north"))$coefficients[2,1], 3)
+
+coef_south_S2 <- round(
+  summary(
+    lm(log(predicted_price+1) ~ abs(distance_to_highway),
+       data = discontinuity_S2,
+       I676_NS == "south"))$coefficients[2,1], 3)
+
+discontinuity_plot_S2 <- ggplot(data = discontinuity_S2) +
+  geom_point(aes(x = distance_to_highway, y = log(predicted_price+1), color = I676_NS), size = 0.3) +
+  geom_smooth(aes(x = distance_to_highway, y = log(predicted_price+1), color = I676_NS), method = "lm", se = FALSE, linewidth = 1.2) +
+  geom_vline(xintercept = 0, color = "black", linewidth = 2) +
+  scale_colour_manual(values = c("north" = "#eb5600", "south" = "#1a9988")) +
+  theme_minimal() +
+  theme(legend.position = "None",
+        plot.title = element_text(size = 14, face = "bold"),
+        plot.subtitle = ggtext::element_markdown(size = 12),
+        plot.caption = element_text(hjust = 0)) +
+  labs(title = 'Highway Effect - Scenario 2', 
+       subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+       x = "Distance to the Highway (m)",
+       y = "Sale Price") +
+  geom_label(aes(x = 0, y = 11.5, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+  geom_text(aes(label = coef_north_S2,
+                x = 250,
+                y = 11.825),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = coef_south_S2,
+                x = -250,
+                y = 11.825),
+            color = "#1a9988",
+            show.legend = F)
+
+discontinuity_plot_S2
+
+ggsave(
+  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S2.png",
+  plot = discontinuity_plot_S2,
+  height = 5,
+  width = 8.5,
+  units = "in",
+  dpi = 300
+)
+```
+
+
+## Alternate Features - residential perspective
+```{r S3-FE countinued , quiet=TRUE, results='hide'}
+median_bedroom <- median(as.numeric(as.character(property_S3_no_fe$number_of_bedrooms)), na.rm = TRUE)
+median_bathroom <- median(as.numeric(as.character(property_S3_no_fe$number_of_bathrooms)), na.rm = TRUE)
+
+property_S3_fe <- property_S3_no_fe %>%
+#  filter(!zoning %in% c("I2", "SPPOA"))%>%
+  mutate(
+        # Neighborhood Name
+    nhoods_name = case_when(
+      nhoods_name %in% c("CENTER_CITY", "LOGAN_SQUARE") ~ "WEST_PART",
+      TRUE ~ nhoods_name
+    ),
+
+    # Land Use
+    landuse = case_when(
+      landuse %in% c("Park/Open Space", "Other/Unknown", "Commercial Business/Professional") ~ "Open Space/Business",
+      landuse %in% c("Commercial Consumer", "Commercial Mixed Residential",
+                     "Industrial", "Transportation", "Culture/Amusement") ~ "Commercial",
+      landuse %in% c("Civic/Institution", "Residential High") ~ "Residential High/Civic",
+      TRUE ~ landuse
+    ),
+
+    # Year Built
+    year_built = as.numeric(year_built),
+    year_built_missing = ifelse(is.na(year_built), 1, 0),
+    year_built_group = case_when(
+       is.na(year_built) ~ "Unknown",
+       year_built < 1940 ~ "Pre-War",
+       year_built < 2000 ~ "Post-War Mid",
+       year_built < 2020 ~ "Modern",
+       year_built >= 2020 ~ "New"
+    ),
+    year_built_group = factor(year_built_group, levels = c("Pre-War", "Post-War Mid", "Modern", "New", "Unknown")),
+
+    # Log Transforms
+    log_price = log(sale_price),
+    log_dist_highway = log(distance_to_I676 + 1),
+
+    # Central Air
+    central_air = case_when(
+      central_air %in% c("Y", "1")  ~ "Y",
+      central_air %in% c("N", "0") ~ "N",
+      TRUE ~ "Unknown"
+    ),
+    central_air = factor(central_air),
+    central_air_missing = ifelse(central_air == "Unknown", 1, 0),
+
+    # Garage Spaces
+    garage_spaces_missing = ifelse(is.na(garage_spaces), 1, 0),
+    garage_spaces = case_when(
+#      is.na(garage_spaces) ~ "Unknown",
+      garage_spaces == 0 | garage_spaces == 1 ~ "less than 2",
+      TRUE ~ "2 or more"
+    ),
+    garage_spaces = factor(garage_spaces),
+
+    # Bedrooms
+    number_of_bedrooms = as.numeric(as.character(number_of_bedrooms)),
+    number_of_bedrooms_missing = ifelse(is.na(number_of_bedrooms), 1, 0),
+    number_of_bedrooms_filled = ifelse(is.na(number_of_bedrooms), median_bedroom, number_of_bedrooms),
+    number_of_bedrooms = case_when(
+      is.na(number_of_bedrooms) ~ "Unknown",
+      number_of_bedrooms == 0 ~ "0",
+      number_of_bedrooms == 1 ~ "1",
+      number_of_bedrooms %in% c(2, 3) ~ "2",
+      number_of_bedrooms %in% c(5, 6) ~ "3",
+      number_of_bedrooms == 4 ~"4",
+      number_of_bedrooms %in% c(7, 9, 12) ~ "5"
+    ),
+    number_of_bedrooms = factor(number_of_bedrooms),
+
+    # Bathrooms
+    number_of_bathrooms = as.numeric(as.character(number_of_bathrooms)),
+    number_of_bathrooms_missing = ifelse(is.na(number_of_bathrooms), 1, 0),
+    number_of_bathrooms_filled = ifelse(is.na(number_of_bathrooms), median_bathroom, number_of_bathrooms),
+    number_of_bathrooms = case_when(
+      number_of_bathrooms == 0 ~ "0",
+      number_of_bathrooms == 1 ~ "1",
+      number_of_bathrooms == 2 ~ "2",
+      number_of_bathrooms %in% c(3, 4, 5) ~ "3-5",
+      number_of_bathrooms == 6 ~ "6",
+      number_of_bathrooms == 7 ~ "7",
+      TRUE ~ "Unknown"
+    ),
+    number_of_bathrooms = factor(number_of_bathrooms),
+
+    # Total Livable Area
+    total_livable_area = ifelse(is.na(total_livable_area) | total_livable_area == 1, 0, total_livable_area),
+
+    # Quality Grade
+    quality_grade = case_when(
+      quality_grade %in% c("A ", "A-") | is.na(quality_grade) ~ "Good",
+      quality_grade %in% c("3 ", "C+", "C")  ~ "Average",
+      TRUE ~ "Below Average"
+    ),
+    quality_grade = factor(quality_grade, levels = c("Good", "Average", "Below Average")),
+    quality_grade_missing = ifelse(is.na(quality_grade), 1, 0),
+
+    # Construction
+    general_construction = as.character(general_construction),
+    general_construction = case_when(
+      is.na(general_construction) ~ "Unknown",
+      TRUE ~ general_construction
+    ),
+    general_construction = factor(general_construction),
+    general_construction_missing = ifelse(general_construction == "Unknown", 1, 0),
+
+    # Separate Utilities
+    separate_utilities = case_when(
+      is.na(separate_utilities) ~ "Unknown",
+      TRUE ~ separate_utilities
+    ),
+    separate_utilities = factor(separate_utilities, levels = c("A", "B", "C", "Unknown")),
+    separate_utilities_missing = ifelse(separate_utilities == "Unknown", 1, 0),
+
+    # Exterior Condition
+    exterior_condition = case_when(
+      exterior_condition == 2 ~ "Good",
+      exterior_condition %in% c(1, 6, 7) | is.na(exterior_condition) ~ "Average",
+      exterior_condition %in% c(3, 4, 5) ~ "Below Average"
+ #     TRUE ~ "Unknown"
+    ),
+    exterior_condition = factor(exterior_condition),
+
+    # Interior Condition
+    interior_condition = case_when(
+      interior_condition %in% c(1,2,7) | is.na(interior_condition) ~ "Good",
+      interior_condition %in% c(3,4,5) ~ "Average",
+      interior_condition %in% c(6) ~ "Below Average",
+      TRUE ~ "Unknown"
+    ),
+    interior_condition = factor(interior_condition),
+
+    # Category Code
+    category_code_original = as.character(category_code),
+    category_code_group = case_when(
+      category_code == "12" ~ "6 ",
+      category_code == "14" ~ "2 ",
+      category_code == "10" ~ "4 ",
+      category_code == "15" ~ "5 ",
+      category_code == "16" ~ "4 ",
+      category_code == "7 "  ~ "4 ",
+      category_code == "8 "  ~ "6 ",
+      category_code == "9 "  ~ "2 ",
+      category_code %in% c("1 ", "2 ", "3 ", "4 ", "5 ", "6 ") ~ category_code,
+      TRUE ~ "Other"
+    ),
+    category_code = factor(category_code_group),
+
+    # Zoning
+    zoning_group = case_when(
+      zoning %in% c("CMX5") ~ "CMX5",
+      zoning %in% c("IRMX") ~ "IRMX",
+      zoning %in% c("RM1", "RM2", "RM4") ~ "RM",
+      zoning %in% c("RMX3") ~ "RMX3",
+      zoning %in% c("RSA5") ~ "RSA5",
+      zoning %in% c("ICMX") ~ "ICMX",
+      zoning %in% c("SPPOA") ~ "SPPOA",
+      zoning %in% c("I2") ~ "I2",
+      zoning %in% c("CMX2.5", "CMX2", "CMX1") ~ "CMX(1,2,2.5)",
+      zoning %in% c("CMX3", "CMX4") ~ "CMX(3,4)",
+      TRUE ~ "Other"
+    ),
+    zoning_group = factor(zoning_group),
+
+    zoning = case_when(
+      is.na(zoning) ~ "Unknown",
+      TRUE ~ zoning
+    ),
+    zoning = factor(zoning),
+    zip_code = factor(zip_code)
+  )
+
+mean_depth <- mean(property_S3_fe$depth, na.rm = TRUE)
+property_S3_fe$depth[is.na(property_S2_fe$depth)] <- mean_depth
+```
+
+```{r predictive modeling for scenario 3- residential perspective, quiet=TRUE, results='hide'}
+property_modeling_s3 <- property_S3_fe %>%
+  mutate(
+    Longitude = st_coordinates(.)[, 1],
+    Latitude = st_coordinates(.)[, 2]
+  ) %>%
+  st_drop_geometry() %>%
+  mutate(
+    log_distance_to_city_hall = log(distance_to_city_hall + 1),
+    log_nearest_restaurant_dist_m = log(nearest_restaurant_dist_m + 1),
+    log_distance_to_nearest_park = log(distance_to_nearest_park + 1),
+    log_distance_to_nearest_water = log(distance_to_nearest_water + 1),
+    log_total_livable_area = log1p(total_livable_area),
+#    log_adj_sale_price = log(adj_sale_price + 1)  # optional, not used during prediction
+  ) %>%
+  select(
+    log_dist_highway,
+    log_distance_to_city_hall,
+    log_nearest_restaurant_dist_m,
+    log_distance_to_nearest_park,
+    zoning_group,
+    zip_code,
+    exterior_condition,
+    interior_condition,
+    log_total_livable_area, 
+    number_of_bathrooms,
+    number_of_bedrooms,
+    quality_grade,
+    log_distance_to_nearest_water,
+    central_air,
+    year_built_group,
+    LPSS_PER1000,
+    general_construction,
+    garage_spaces,
+    separate_utilities,
+    category_code,
+    crime_nn5,
+    nhoods_name,
+    landuse,
+    Longitude, Latitude
+  )
+rf_model <- readRDS("Modeling/results/rf_model.rds")
+rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
+predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s3)$.pred
+property_S3_fe$predicted_price <- exp(predicted_log_price) - 1
+
+
+
+st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+
+property_S3_4326 <- property_S3_fe%>%st_transform('EPSG:4326')
+property_S3_predict <- property_S3_fe%>%st_transform('EPSG:2272')
+```
+
+### Alternate Residential Property Map
+```{r}
+S3_changed <- property_S3_fe %>%
+  filter(
+    landuse_old != landuse_new |
+    category_code_old != category_code_new |
+    zoning_old != zoning_new
+  )
+
+S3_changed_map <- ggplot() +
+  geom_sf(data = studyarea1, fill = "transparent", color = "grey60", linetype = "dashed", linewidth = 1.2) +
+  geom_sf(data = discontinuity, fill = "black", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 500391), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 500391), fill = "white", color = "grey", linewidth = 1) +
+  
+  geom_sf(data = S3_changed %>% filter(!is.na(predicted_price)), 
+          aes(colour = cut(predicted_price, breaks = qBr_S1, include.lowest = TRUE)),
+          show.legend = "point", size = 0.8) +
+  
+  scale_colour_manual(values = palette5,
+                      labels = qBr_S1,
+                      name = "Sale Price") +
+  
+  guides(color = guide_legend(override.aes = list(size = 3))) +
+  
+  labs(
+    title = "Predicted Sale Price - Residential Perspective",
+    subtitle = "Changed Properties: Vacant Land and Single-Family Properties"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),
+    plot.subtitle = element_text(size = 12)
+  )
+
+S3_changed_map
+ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S3_res_map.png", plot = S3_changed_map, height = 5, width = 8.5, units = "in", dpi = 300)
+
+```
+
+### Alternate Residential - discontinuity plot
+```{r Alternate Residential - discontinuity plot}
+property_S3 <- st_transform(property_S3_predict, 2272)
+
+discontinuity_S3 <- property_S3 %>% 
+  filter(predicted_price > 100)
+
+discontinuity_S3 <- rbind(
+  discontinuity_S3 %>% st_intersection(studyarea_north["geometry"]) %>%
+    mutate(I676_NS = "north"),
+  discontinuity_S3 %>% st_intersection(studyarea_south["geometry"]) %>%
+    mutate(I676_NS = "south")
+)
+
+
+discontinuity_S3 <- discontinuity_S3 %>%
+  st_drop_geometry() %>%
+  mutate(distance_to_I676m = distance_to_I676 * 0.3048,
+         distance_to_highway = case_when(
+           I676_NS == "north" ~ distance_to_I676m,
+           I676_NS == "south" ~ -distance_to_I676m
+         ))
+
+discontinuity_S3 <- discontinuity_S3 %>% 
+  filter(abs(distance_to_highway) <= 500)
+
+coef_north_S3 <- round(
+  summary(
+    lm(log(predicted_price+1) ~ distance_to_highway,
+       data = discontinuity_S3,
+       I676_NS == "north"))$coefficients[2,1], 3)
+
+coef_south_S3 <- round(
+  summary(
+    lm(log(predicted_price+1) ~ abs(distance_to_highway),
+       data = discontinuity_S3,
+       I676_NS == "south"))$coefficients[2,1], 3)
+
+discontinuity_plot_S3 <- ggplot(data = discontinuity_S3) +
+  geom_point(aes(x = distance_to_highway, y = log(predicted_price+1), color = I676_NS), size = 0.3) +
+  geom_smooth(aes(x = distance_to_highway, y = log(predicted_price+1), color = I676_NS), method = "lm", se = FALSE, linewidth = 1.2) +
+  geom_vline(xintercept = 0, color = "black", linewidth = 2) +
+  scale_colour_manual(values = c("north" = "#eb5600", "south" = "#1a9988")) +
+  theme_minimal() +
+  theme(legend.position = "None",
+        plot.title = element_text(size = 14, face = "bold"),
+        plot.subtitle = ggtext::element_markdown(size = 12),
+        plot.caption = element_text(hjust = 0)) +
+  labs(title = 'Highway Effect - alternate residential properties', 
+       subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+       x = "Distance to the Highway (m)",
+       y = "Sale Price") +
+  geom_label(aes(x = 0, y = 11.5, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+  geom_text(aes(label = coef_north_S3,
+                x = 250,
+                y = 11.825),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = coef_south_S3,
+                x = -250,
+                y = 11.825),
+            color = "#1a9988",
+            show.legend = F)
+
+discontinuity_plot_S3
+ggsave(
+  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S3.png",
+  plot = discontinuity_plot_S3,
+  height = 5,
+  width = 8.5,
+  units = "in",
+  dpi = 300
+)
+
+```
+
+## Scenario 2
+```{r S4-FE countinued , quiet=TRUE, results='hide'}
+median_bedroom <- median(as.numeric(as.character(property_S4_no_fe$number_of_bedrooms)), na.rm = TRUE)
+median_bathroom <- median(as.numeric(as.character(property_S4_no_fe$number_of_bathrooms)), na.rm = TRUE)
+
+property_S4_fe <- property_S4_no_fe %>%
+#  filter(!zoning %in% c("I2", "SPPOA"))%>%
+  mutate(
+        # Neighborhood Name
+    nhoods_name = case_when(
+      nhoods_name %in% c("CENTER_CITY", "LOGAN_SQUARE") ~ "WEST_PART",
+      TRUE ~ nhoods_name
+    ),
+
+    # Land Use
+    landuse = case_when(
+      landuse %in% c("Park/Open Space", "Other/Unknown", "Commercial Business/Professional") ~ "Open Space/Business",
+      landuse %in% c("Commercial Consumer", "Commercial Mixed Residential",
+                     "Industrial", "Transportation", "Culture/Amusement") ~ "Commercial",
+      landuse %in% c("Civic/Institution", "Residential High") ~ "Residential High/Civic",
+      TRUE ~ landuse
+    ),
+    # Year Built
+    year_built = as.numeric(year_built),
+    year_built_missing = ifelse(is.na(year_built), 1, 0),
+#    year_built = case_when(
+#      is.na(year_built) ~ "Unknown",
+#      TRUE ~ as.character(year_built)
+#    ),
+#    year_built = factor(year_built),
+    year_built_group = case_when(
+       is.na(year_built) ~ "Unknown",
+       year_built < 1940 ~ "Pre-War",
+       year_built < 2000 ~ "Post-War Mid",
+       year_built < 2020 ~ "Modern",
+       year_built >= 2020 ~ "New"
+    ),
+    year_built_group = factor(year_built_group, levels = c("Pre-War", "Post-War Mid", "Modern", "New", "Unknown")),
+    # Log Transforms
+    log_price = log(sale_price),
+    log_dist_highway = log(distance_to_I676 + 1),
+
+    # Central Air
+    central_air = case_when(
+      central_air %in% c("Y", "1")  ~ "Y",
+      central_air %in% c("N", "0") ~ "N",
+      TRUE ~ "Unknown"
+    ),
+    central_air = factor(central_air),
+    central_air_missing = ifelse(central_air == "Unknown", 1, 0),
+
+    # Garage Spaces
+    garage_spaces_missing = ifelse(is.na(garage_spaces), 1, 0),
+    garage_spaces = case_when(
+#      is.na(garage_spaces) ~ "Unknown",
+      garage_spaces == 0 | garage_spaces == 1 ~ "less than 2",
+      TRUE ~ "2 or more"
+    ),
+    garage_spaces = factor(garage_spaces),
+
+    # Bedrooms
+    number_of_bedrooms = as.numeric(as.character(number_of_bedrooms)),
+    number_of_bedrooms_missing = ifelse(is.na(number_of_bedrooms), 1, 0),
+    number_of_bedrooms_filled = ifelse(is.na(number_of_bedrooms), median_bedroom, number_of_bedrooms),
+    number_of_bedrooms = case_when(
+      is.na(number_of_bedrooms) ~ "Unknown",
+      number_of_bedrooms == 0 ~ "0",
+      number_of_bedrooms == 1 ~ "1",
+      number_of_bedrooms %in% c(2, 3) ~ "2",
+      number_of_bedrooms %in% c(5, 6) ~ "3",
+      number_of_bedrooms == 4 ~"4",
+      number_of_bedrooms %in% c(7, 9, 12) ~ "5"
+    ),
+    number_of_bedrooms = factor(number_of_bedrooms),
+
+    # Bathrooms
+    number_of_bathrooms = as.numeric(as.character(number_of_bathrooms)),
+    number_of_bathrooms_missing = ifelse(is.na(number_of_bathrooms), 1, 0),
+    number_of_bathrooms_filled = ifelse(is.na(number_of_bathrooms), median_bathroom, number_of_bathrooms),
+    number_of_bathrooms = case_when(
+      number_of_bathrooms == 0 ~ "0",
+      number_of_bathrooms == 1 ~ "1",
+      number_of_bathrooms == 2 ~ "2",
+      number_of_bathrooms %in% c(3, 4, 5) ~ "3-5",
+      number_of_bathrooms == 6 ~ "6",
+      number_of_bathrooms == 7 ~ "7",
+      TRUE ~ "Unknown"
+    ),
+    number_of_bathrooms = factor(number_of_bathrooms),
+
+    # Total Livable Area
+    total_livable_area = ifelse(is.na(total_livable_area) | total_livable_area == 1, 0, total_livable_area),
+
+    # Quality Grade
+    quality_grade = case_when(
+      quality_grade %in% c("A ", "A-") | is.na(quality_grade) ~ "Good",
+      quality_grade %in% c("3 ", "C+", "C")  ~ "Average",
+      TRUE ~ "Below Average"
+    ),
+    quality_grade = factor(quality_grade, levels = c("Good", "Average", "Below Average")),
+    quality_grade_missing = ifelse(is.na(quality_grade), 1, 0),
+
+    # Construction
+    general_construction = as.character(general_construction),
+    general_construction = case_when(
+      is.na(general_construction) ~ "Unknown",
+      TRUE ~ general_construction
+    ),
+    general_construction = factor(general_construction),
+    general_construction_missing = ifelse(general_construction == "Unknown", 1, 0),
+
+    # Separate Utilities
+    separate_utilities = case_when(
+      is.na(separate_utilities) ~ "Unknown",
+      TRUE ~ separate_utilities
+    ),
+    separate_utilities = factor(separate_utilities, levels = c("A", "B", "C", "Unknown")),
+    separate_utilities_missing = ifelse(separate_utilities == "Unknown", 1, 0),
+
+    # Exterior Condition
+    exterior_condition = case_when(
+      exterior_condition == 2 ~ "Good",
+      exterior_condition %in% c(1, 6, 7) | is.na(exterior_condition) ~ "Average",
+      exterior_condition %in% c(3, 4, 5) ~ "Below Average"
+ #     TRUE ~ "Unknown"
+    ),
+    exterior_condition = factor(exterior_condition),
+
+    # Interior Condition
+    interior_condition = case_when(
+      interior_condition %in% c(1,2,7) | is.na(interior_condition) ~ "Good",
+      interior_condition %in% c(3,4,5) ~ "Average",
+      interior_condition %in% c(6) ~ "Below Average",
+      TRUE ~ "Unknown"
+    ),
+    interior_condition = factor(interior_condition),
+
+    # Category Code
+    category_code_original = as.character(category_code),
+    category_code_group = case_when(
+      category_code == "12" ~ "6 ",
+      category_code == "14" ~ "2 ",
+      category_code == "10" ~ "4 ",
+      category_code == "15" ~ "5 ",
+      category_code == "16" ~ "4 ",
+      category_code == "7 "  ~ "4 ",
+      category_code == "8 "  ~ "6 ",
+      category_code == "9 "  ~ "2 ",
+      category_code %in% c("1 ", "2 ", "3 ", "4 ", "5 ", "6 ") ~ category_code,
+      TRUE ~ "Other"
+    ),
+    category_code = factor(category_code_group),
+
+    # Zoning
+    zoning_group = case_when(
+      zoning %in% c("CMX5") ~ "CMX5",
+      zoning %in% c("IRMX") ~ "IRMX",
+      zoning %in% c("RM1", "RM2", "RM4") ~ "RM",
+      zoning %in% c("RMX3") ~ "RMX3",
+      zoning %in% c("RSA5") ~ "RSA5",
+      zoning %in% c("ICMX") ~ "ICMX",
+      zoning %in% c("SPPOA") ~ "SPPOA",
+      zoning %in% c("I2") ~ "I2",
+      zoning %in% c("CMX2.5", "CMX2", "CMX1") ~ "CMX(1,2,2.5)",
+      zoning %in% c("CMX3", "CMX4") ~ "CMX(3,4)",
+      TRUE ~ "Other"
+    ),
+    zoning_group = factor(zoning_group),
+
+    zoning = case_when(
+      is.na(zoning) ~ "Unknown",
+      TRUE ~ zoning
+    ),
+    zoning = factor(zoning),
+    zip_code = factor(zip_code)
+  )
+
+```
+
+```{r predictive modeling for scenario 4, quiet=TRUE, results='hide'}
+property_modeling_s4 <- property_S4_fe %>%
+  mutate(
+    Longitude = st_coordinates(.)[, 1],
+    Latitude = st_coordinates(.)[, 2]
+  ) %>%
+  st_drop_geometry() %>%
+  mutate(
+    log_distance_to_city_hall = log(distance_to_city_hall + 1),
+    log_nearest_restaurant_dist_m = log(nearest_restaurant_dist_m + 1),
+    log_distance_to_nearest_park = log(distance_to_nearest_park + 1),
+    log_distance_to_nearest_water = log(distance_to_nearest_water + 1),
+    log_total_livable_area = log1p(total_livable_area),
+  ) %>%
+  select(
+    log_dist_highway,
+    log_distance_to_city_hall,
+    log_nearest_restaurant_dist_m,
+    log_distance_to_nearest_park,
+    zoning_group,
+    zip_code,
+    exterior_condition,
+    interior_condition,
+    log_total_livable_area, 
+    number_of_bathrooms,
+    number_of_bedrooms,
+    quality_grade,
+    log_distance_to_nearest_water,
+    central_air,
+    year_built_group,
+    LPSS_PER1000,
+    general_construction,
+    garage_spaces,
+    separate_utilities,
+    category_code,
+    crime_nn5,
+    nhoods_name,
+    landuse,
+    Longitude, Latitude
+  )
+rf_model <- readRDS("Modeling/results/rf_model.rds")
+rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
+predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s4)$.pred
+property_S4_fe$predicted_price <- exp(predicted_log_price) - 1
+
+st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+
+
+property_S4_4326 <- property_S4_fe%>%st_transform('EPSG:4326')
+property_S4_predict <- property_S4_fe%>%st_transform('EPSG:2272')
+```
+
+### scenario 2 property map
+```{r}
+S4_map <- ggplot() +
+  geom_sf(data = studyarea1, fill = "transparent", color = "grey60", linewidth = 1.2, linetype = "dashed") +
+  geom_sf(data = discontinuity, fill = "black", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 500391), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 500391), fill = "white", color = "grey", linewidth = 1) +
+  geom_sf(data = property_S4_predict, aes(colour = q5(predicted_price)),
+          show.legend = "point", size = .8) +
+  scale_colour_manual(values = palette5,
+                      labels = qBr(property_S4_predict %>% filter (adj_sale_price > 100), "adj_sale_price"),
+                      name="Quintile Breaks") +
+  guides(color = guide_legend(override.aes = list(size = 3))) + 
+  labs(title="Predicted Sale Price - Scenario 2",
+       subtitle = "Your description here") +
+  theme_void() +
+  theme(plot.title = element_text(size = 18, face = "bold"),
+        plot.subtitle = element_text(size = 12))
+
+ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S4_map.png", plot = S4_map, height = 5, width = 8.5, units = "in", dpi = 300)
+```
+
+### discontinuity plot
+```{r}
+property_S4 <- st_transform(property_S4_predict, 2272)
+
+discontinuity_S4 <- property_S4 %>% 
+  filter(predicted_price > 100)
+
+discontinuity_S4 <- rbind(
+  discontinuity_S4 %>% st_intersection(studyarea_north["geometry"]) %>%
+    mutate(I676_NS = "north"),
+  discontinuity_S4 %>% st_intersection(studyarea_south["geometry"]) %>%
+    mutate(I676_NS = "south")
+)
+
+discontinuity_S4 <- discontinuity_S4 %>%
+  st_drop_geometry() %>%
+  mutate(distance_to_I676m = distance_to_I676 * 0.3048,
+         distance_to_highway = case_when(
+           I676_NS == "north" ~ distance_to_I676m,
+           I676_NS == "south" ~ -distance_to_I676m
+         ))
+
+discontinuity_S4 <- discontinuity_S4 %>% 
+  filter(abs(distance_to_highway) <= 500)
+
+coef_north_S4 <- round(
+  summary(
+    lm(log(predicted_price+1) ~ distance_to_highway,
+       data = discontinuity_S4,
+       I676_NS == "north"))$coefficients[2,1], 3)
+
+coef_south_S4 <- round(
+  summary(
+    lm(log(predicted_price+1) ~ abs(distance_to_highway),
+       data = discontinuity_S4,
+       I676_NS == "south"))$coefficients[2,1], 3)
+
+lm_south_S1 <- lm(log(predicted_price + 1) ~ abs(distance_to_highway),
+                  data = discontinuity_S1_predict %>% filter(I676_NS == "south"))
+
+lm_north_S1 <- lm(log(predicted_price + 1) ~ distance_to_highway,
+                  data = discontinuity_S1_predict %>% filter(I676_NS == "north"))
+
+discontinuity_S1_predict <- discontinuity_S1_predict %>%
+  mutate(
+    fitted = case_when(
+      I676_NS == "south" ~ predict(lm_south_S1, newdata = .),
+      I676_NS == "north" ~ predict(lm_north_S1, newdata = .)
+    )
+  )
+
+discontinuity_plot_S4_with_S1 <- ggplot() +
+
+  geom_point(data = discontinuity_S4,
+             aes(x = distance_to_highway, y = log(predicted_price + 1), color = I676_NS),
+             size = 0.3) +
+
+  geom_smooth(data = discontinuity_S4,
+              aes(x = distance_to_highway, y = log(predicted_price + 1), color = I676_NS),
+              method = "lm", se = FALSE, linewidth = 1.2) +
+
+  geom_line(data = discontinuity_S1_predict %>% filter(I676_NS == "north"),
+            aes(x = distance_to_highway, y = fitted),
+            color = "grey60", linetype = "dashed", linewidth = 1) +
+
+  geom_line(data = discontinuity_S1_predict %>% filter(I676_NS == "south"),
+            aes(x = distance_to_highway, y = fitted),
+            color = "grey60", linetype = "dashed", linewidth = 1) +
+
+  geom_vline(xintercept = 0, color = "black", linewidth = 2) +
+
+  scale_colour_manual(values = c("north" = "#eb5600", "south" = "#1a9988")) +
+
+  labs(
+    title = "Highway Effect - Scenario 1 vs.2",
+    subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+    x = "Distance to the Highway (m)",
+    y = "Log-transformed Sale Price"
+  ) +
+
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = ggtext::element_markdown(size = 12),
+    legend.position = "none"
+  ) +
+
+  geom_label(aes(x = 0, y = 11.5, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+
+  geom_text(aes(x = -250, y = 11.825, label = coef_south_S4),
+            color = "#1a9988", size = 4, fontface = "bold") +
+
+  geom_text(aes(x = 250, y = 11.825, label = coef_north_S4),
+            color = "#eb5600", size = 4, fontface = "bold")
+
+discontinuity_plot_S4_with_S1
+ggsave(
+  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S2_S1.png",
+  plot = discontinuity_plot_S4_with_S1,
+  height = 5,
+  width = 8.5,
+  units = "in",
+  dpi = 300
+)
+```
+
+######## here is the price changes 100m away from i676 for all scenarios, unorganized version for your exploration
+```{r S0 - price change}
+get_price_change_table <- function(data, price_col, scenario_label) {
+  formula_all   <- as.formula(paste0("log(", price_col, " + 1) ~ distance_to_highway"))
+  formula_south <- as.formula(paste0("log(", price_col, " + 1) ~ abs(distance_to_highway)"))
+  formula_north <- as.formula(paste0("log(", price_col, " + 1) ~ distance_to_highway"))
+  lm_all   <- lm(formula_all,   data = data)
+  lm_south <- lm(formula_south, data = data %>% filter(I676_NS == "south"))
+  lm_north <- lm(formula_north, data = data %>% filter(I676_NS == "north"))
+
+  distances <- seq(50, 200, by = 50)
+  pred_all   <- exp(predict(lm_all,   newdata = data.frame(distance_to_highway = distances))) - 1
+  pred_south <- exp(predict(lm_south, newdata = data.frame(distance_to_highway = distances))) - 1
+  pred_north <- exp(predict(lm_north, newdata = data.frame(distance_to_highway = distances))) - 1
+  tibble(
+    Scenario        = scenario_label,
+    Distance_m      = distances,
+    South_Price     = round(pred_south),
+    North_Price     = round(pred_north),
+    Overall_Price   = round(pred_all),
+    South_Change    = round(pred_south - pred_south[1]),
+    North_Change    = round(pred_north - pred_north[1]),
+    Overall_Change  = round(pred_all - pred_all[1])
+  )
+}
+S0_table <- get_price_change_table(discontinuity_S0, "adj_sale_price", "Scenario 0")
+S0_table %>%
+  kable("html", caption = "Distance-Based Price Summary (Scenario 0)") %>%
+  kable_styling(full_width = FALSE)
+```
+
+```{r S1-price change}
+S1_table <- get_price_change_table(discontinuity_S1_predict, "predicted_price", "Scenario 1")
+S1_table %>%
+  kable("html", caption = "Distance-Based Price Summary (Scenario 1)") %>%
+  kable_styling(full_width = FALSE)
+
+```
+
+
+```{r S2-price change}
+S4_table <- get_price_change_table(discontinuity_S4,          "predicted_price", "Scenario 2")
+S4_table %>%
+  kable("html", caption = "Distance-Based Price Summary (Scenario 2)") %>%
+  kable_styling(full_width = FALSE)
+```
+
+### median value comparison 
+```{r}
+S0_S1_S4_density <- ggplot() +
+  
+  # Scenario 0 (真实adj_sale_price)
+  geom_density(data = property_S1_predict %>% filter(adj_sale_price > 100),
+               aes(x = predicted_price),
+               fill = "#eb5600", alpha = 0.6, color = "transparent") +
+  
+  # Scenario 1 (predicted from S1)
+  geom_density(data = property_S1_predict,
+               aes(x = predicted_price),
+               fill = "#1a9988", alpha = 0.6, color = "transparent") +
+  
+  # Scenario 4 (predicted from S4)
+  geom_density(data = property_S4_predict,
+               aes(x = predicted_price),
+               fill = "#a66bbe", alpha = 0.6, color = "transparent") +
+
+  geom_vline(data = property_S1_predict %>% filter(adj_sale_price > 100),
+             aes(xintercept = median(adj_sale_price, na.rm = TRUE)),
+             linetype = "dashed", color = "#eb5600") +
+  
+  geom_vline(data = property_S1_predict,
+             aes(xintercept = median(predicted_price, na.rm = TRUE)),
+             linetype = "dashed", color = "#1a9988") +
+  
+  geom_vline(data = property_S4_predict,
+             aes(xintercept = median(predicted_price, na.rm = TRUE)),
+             linetype = "dashed", color = "#a66bbe") +
+  
+  scale_x_log10(labels = scales::dollar) +
+  
+  labs(
+    x = "Price",
+    y = "Density",
+    title = glue("<span style='color:#eb5600;'>Scenario 0 </span>vs. <span style='color:#1a9988;'>Scenario 1</span> vs. <span style='color:#a66bbe;'>Scenario 2</span>")
+  ) +
+  
+  theme_minimal() +
+  theme(
+    plot.title = ggtext::element_markdown(size = 16, face = "bold"),
+    legend.position = "none"
+  )
+
+ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S1_S4_median_density.png",
+       plot = S0_S1_S4_density,
+       height = 5,
+       width = 8.5,
+       units = "in",
+       dpi = 300)
+```
+## more data visulizations for future sections...........
+filter unselling properties for s0&s1&s2&changed
+```{r}
+undesired_types <- c("RELIGIOUS", "CONVENTION CENTER", "POLICE/FIRE STATION", "SCHOOL", "CORRECTIONAL","GOV'T MUNICIPAL/STATE/FEDERAL", "COLLEGES & UNIVERSITY","SERVICE STATION - FULL","HOSPITAL","CULTURAL FACILITIES")
+undesired_objectids <- c("587451153", "587042024", "587297487", "587432379","587433997","587382428")
+
+
+### 587433997 - PCDC； 587382428 - worship
+
+property_S0_2 <- property_S0 %>%
+  filter(!building_code_description_new %in% undesired_types,
+         !objectid %in% undesired_objectids)
+
+property_S1 <- property_S1_predict %>%
+  filter(!building_code_description_new %in% undesired_types,
+         !objectid %in% undesired_objectids)
+
+property_S2_comm <- S2_changed %>%
+  filter(!building_code_description_new %in% undesired_types,
+         !objectid %in% undesired_objectids)
+
+property_S2_res <- S3_changed %>%
+  filter(!building_code_description_new %in% undesired_types,
+         !objectid %in% undesired_objectids)
+
+property_S2 <- property_S4_predict %>%
+  filter(!building_code_description_new %in% undesired_types,
+         !objectid %in% undesired_objectids)
+```
+
+
+test
+```{r}
+# 筛选出 FUNERAL HOME 的地块
+funeral_home_properties <- property_S2%>%
+  filter(building_code_description_new == "CULTURAL FACILITIES")
+
+# 用 mapview 可视化
+mapview(funeral_home_properties, 
+        zcol = "building_code_description_new",
+        color = "red", cex = 4, layer.name = "FUNERAL HOME")
+property_S2 %>%
+  filter(category_code_new == '3 ') %>%
+  mapview(zcol = "zoning", cex = 6, layer.name = "Mixed Use (3)")
+
+
+
+property_S2 %>%
+  ggplot(aes(x = fct_infreq(zoning))) +
+  geom_bar(fill = "#1a9988") +
+  coord_flip() +
+  labs(title = "Zoning Distribution in Scenario 2",
+       x = "Zoning Code", y = "Count") +
+  theme_minimal()
+
+
+library(mapview)
+
+na_adj_price <- property_S0_2 %>%
+  filter(is.na(adj_sale_price))
+
+mapview(na_adj_price, col.regions = "red", cex = 2, layer.name = "Missing adj_sale_price")
+```
+
+scenario 1 - res/comm plot 基于property_S2生成的new plot
+```{r}
+cmx1 <- c("3 ","4 ")
+
+cmx_property_s1 <- property_S1 %>%
+  filter(category_code %in% cmx1)
+
+mapview(cmx_property_s1, zcol = "category_code", layer.name = "S1 - CMX Property ")
+```
+
+```{r}
+res1 <- c("1 ", "2 ")
+
+res_property_s1 <- property_S1 %>%
+  filter(category_code %in% res1)
+
+res_extra <- property_S1 %>%
+  filter(category_code == "3 ",
+         zoning %in% c("RM1", "RSA5"))
+
+res_property_s1 <- bind_rows(res_property_s1, res_extra) %>%
+  distinct(objectid, .keep_all = TRUE)
+
+mapview(res_property_s1, zcol = "category_code", layer.name = "S1 - RES Property")
+```
+
+
+scenario 2 - res/comm plot 基于property_S2生成的new plot
+```{r}
+cmx2 <- c("3 ","4 ")
+
+cmx_property_s2 <- property_S2 %>%
+  filter(category_code_new %in% cmx2)
+
+mapview(cmx_property_s2, zcol = "category_code_new", layer.name = "S2 - CMX Property")
+```
+
+```{r}
+res2 <- c("1 ", "2 ")
+
+res_property_s2 <- property_S2 %>%
+  filter(category_code_new %in% res2)
+
+res_extra <- property_S2 %>%
+  filter(category_code_new == "3 ",
+         zoning %in% c("IRMX", "RM1", "RSA5"))
+
+res_property_s2 <- bind_rows(res_property_s2, res_extra) %>%
+  distinct(objectid, .keep_all = TRUE)
+
+mapview(res_property_s2, zcol = "category_code_new", layer.name = "S2 - RES Property")
+```
+
+price change calculations 
+scenario 0 vs. 1
+```{r}
+property_S1_perc_change <- property_S1 %>%
+  filter(!is.na(adj_sale_price), adj_sale_price > 100) %>%
+  mutate(
+    perc_change = round((predicted_price - adj_sale_price) / adj_sale_price * 100, 1),
+    perc_bucket = case_when(
+      perc_change < -10  ~ "< -10%",
+      perc_change < 0    ~ "-10% to 0%",
+      perc_change < 10   ~ "0% to +10%",
+      perc_change < 50   ~ "+10% to +50%",
+      perc_change < 200  ~ "+50% to +200%",
+      TRUE               ~ "> 200%"
+    ),
+    perc_bucket = factor(perc_bucket,
+                         levels = c("< -10%", "-10% to 0%", "0% to +10%",
+                                    "+10% to +50%", "+50% to +200%", "> 200%")),
+    size_bucket = case_when(
+      perc_bucket == "< -10%"        ~ 1.5,
+      perc_bucket == "-10% to 0%"    ~ 2,
+      perc_bucket == "0% to +10%"    ~ 2.5,
+      perc_bucket == "+10% to +50%"  ~ 4,
+      perc_bucket == "+50% to +200%" ~ 5,
+      perc_bucket == "> 200%"        ~ 6
+    ),
+    property_category = case_when(
+      category_code_chain %in% c("3:Mixed Use", "4:Commercial") ~ "Commercial",
+      category_code_chain %in% c("1:Single Family", "2:Multi Family", "14:Apartments > 4 units") ~ "Residential",
+      category_code_chain == "15:Retail" ~ "Retail",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(property_category)) %>%
+  mutate(property_category = factor(property_category, levels = c("Commercial", "Residential", "Retail"))) %>%
+  select(
+    parcel_number, objectid, perc_change, perc_bucket, size_bucket, geometry,
+    predicted_price, zoning, category_code, landuse, property_category, everything()
+  )
+mapview(property_S1_perc_change,
+        zcol = "perc_bucket",
+        cex = property_S1_perc_change$size_bucket * 2,
+        alpha = 0.8,
+        col.regions = c("#06402B","#CDB902","#FFB343", "#F8A58E","#CD1C18", "#660033"),
+        stroke = FALSE,
+        legend = TRUE,
+        layer.name = "S0 vs S1: Sale Price % Change")
+
+st_write(property_S1_perc_change,"~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s0_s1.json", driver = "GeoJSON", delete_dsn = TRUE)
+
+```
+```{r}
+mapview(property_S1)
+
+ggplot(price_change_s0s1, aes(x = perc_change)) +
+  geom_density(fill = "#1a9988", alpha = 0.5) +
+  xlim(-200, 1000) +  # 调整范围帮助聚焦主流
+  geom_vline(aes(xintercept = median(perc_change, na.rm = TRUE)), linetype = "dashed") +
+  labs(title = "Density Plot of % Change", x = "% Change", y = "Density") +
+  theme_minimal()
+
+hist(price_change_s0s1$perc_change, breaks = 1000, xlim = c(-100, 1000))
+
+price_change_s0s1 %>%
+  count(perc_bucket) %>%
+  arrange(match(perc_bucket, c("< -10%", "0% to +10%","-10% to +10%", "+10% to +50%", "+50% to +200%", "> 200%")))
+
+property_S1 %>%
+  filter(category_code_chain == "10:Offices") %>%
+  distinct(zoning)
+
+property_S1 %>%
+  filter(category_code_chain == "3:Mixed Use") %>%
+  mapview(zcol = "zoning", layer.name = "Mixed Use Zoning")
+```
+
+
+```{r}
+mapview(property_S1)
+
+property_S1_geomtxt <- property_S1 %>%
+  mutate(geom_txt = st_as_text(geometry))
+
+duplicated_geoms_txt <- property_S1_geomtxt %>%
+  group_by(geom_txt) %>%
+  filter(n() > 1) %>%
+  ungroup()
+
+duplicated_grouped <- duplicated_geoms_txt %>%
+  arrange(geom_txt, objectid)
+
+duplicated_grouped %>%
+  group_split(geom_txt) %>%
+  purrr::walk(~print(.x))
+View(duplicated_grouped)
+```
+
+
+
+```{r}
+mapview(duplicated_grouped,
+        zcol = "geom_txt",
+        cex = 4,
+        col.regions = "red",
+        legend = FALSE,
+        layer.name = "Duplicated Geometry Points")
+```
+
+
+
+```{r}
+property_S2_perc_change <- property_S2 %>%
+  filter(!is.na(adj_sale_price), adj_sale_price > 100) %>%
+  mutate(
+    perc_change = round((predicted_price - adj_sale_price) / adj_sale_price * 100, 1),
+    perc_bucket = case_when(
+      perc_change < -10  ~ "< -10%",
+      perc_change < 0    ~ "-10% to 0%",
+      perc_change < 10   ~ "0% to +10%",
+      perc_change < 50   ~ "+10% to +50%",
+      perc_change < 200  ~ "+50% to +200%",
+      TRUE               ~ "> 200%"
+    ),
+    perc_bucket = factor(perc_bucket,
+                         levels = c("< -10%", "-10% to 0%", "0% to +10%",
+                                    "+10% to +50%", "+50% to +200%", "> 200%")),
+    size_bucket = case_when(
+      perc_bucket == "< -10%"        ~ 1.5,
+      perc_bucket == "-10% to 0%"    ~ 2,
+      perc_bucket == "0% to +10%"    ~ 2.5,
+      perc_bucket == "+10% to +50%"  ~ 4,
+      perc_bucket == "+50% to +200%" ~ 5,
+      perc_bucket == "> 200%"        ~ 6
+    ),
+    property_category = case_when(
+      category_code_chain %in% c("3:Mixed Use", "4:Commercial") ~ "Commercial",
+      category_code_chain %in% c("1:Single Family", "2:Multi Family", "14:Apartments > 4 units") ~ "Residential",
+      category_code_chain == "15:Retail" ~ "Retail",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(property_category)) %>%
+  mutate(property_category = factor(property_category, levels = c("Commercial", "Residential", "Retail"))) %>%
+  select(
+    parcel_number, objectid, perc_change, perc_bucket, size_bucket, property_category,geometry,
+    predicted_price, zoning, category_code, landuse, property_category, everything()
+  )
+mapview(property_S2_perc_change,
+        zcol = "perc_bucket",
+        cex = property_S1_perc_change$size_bucket * 2,
+        alpha = 0.5,
+        col.regions = c("#06402B","#CDB902","#FFB343", "#F8A58E","#CD1C18", "#660033"),
+        stroke = FALSE,
+        legend = TRUE,
+        layer.name = "S0 vs. S2: Sale Price % Change")
+st_write(property_S2_perc_change,"~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s0_s2.json", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+
+scenario 1 vs. 2:要不要把
+```{r}
+mapviewOptions(viewer.suppress = FALSE)
+
+price_change_s1s2 <- property_S1_perc_change %>%
+  filter(!is.na(adj_sale_price), adj_sale_price > 100) %>%
+  st_drop_geometry() %>%
+  select(objectid, predicted_price_s1 = predicted_price) %>%
+  inner_join(
+    property_S2_perc_change %>%
+      select(objectid, parcel_number, location, landuse, category_code, zoning, geometry, predicted_price_s2 = predicted_price),
+    by = "objectid"
+  ) %>%
+  mutate(
+    perc_change = round((predicted_price_s2 - predicted_price_s1) / predicted_price_s1 * 100, 1),
+
+    perc_bucket = case_when(
+      perc_change < 0     ~ "< 0%",
+      perc_change == 0    ~ "0%",
+      perc_change <= 10    ~ "0–10%",
+      perc_change <= 30   ~ "10–30%",
+      perc_change <= 50   ~ "30–50%",
+      TRUE                ~ "50%-60%"
+    ),
+    perc_bucket = factor(perc_bucket,
+                         levels = c("< 0%", "0%", "0–10%", "10–30%", "30–50%", "50%-60%")),
+
+    size_bucket = case_when(
+      perc_bucket == "< 0%"    ~ 2,
+      perc_bucket == "0%"      ~ 2.5,
+      perc_bucket == "0–10%"    ~ 3,
+      perc_bucket == "10–30%"   ~ 4,
+      perc_bucket == "30–50%"  ~ 5,
+      perc_bucket == "50%-60%"   ~ 6
+    )
+  ) %>%
+  st_as_sf(sf_column_name = "geometry", crs = st_crs(property_S2))
+
+mapview(price_change_s1s2,
+        zcol = "perc_bucket",
+        cex = price_change_s1s2$size_bucket*2,
+        alpha = 0.5,
+        col.regions = c("#06402B","#CDB902","#FFB343", "#F8A58E","#CD1C18", "#660033"),
+        stroke = FALSE,
+        legend = TRUE,
+        layer.name = "S1 vs. S2: Sale Price % Change")
+
+st_write(price_change_s1s2, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s1_s2.json", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Case Studies
+
+
+# Code Appendix
+
+### Philadelphia Scale Analysis
+
+```{r code_appendix_prop500}
+# adding distance to highway and log price variables
+# properties500 <- philly_properties[hiway_500buff,] %>% # 88571 -> 14751 rows
+#   mutate(log_price = log(adj_sale_price),
+#          dist_to_US001 = calculate_nearest_distance(geometry,
+#                                      philly_highways %>%
+#                                        filter(ST_RT_NO == "0001")),
+#          dist_to_I076 = calculate_nearest_distance(geometry,
+#                                     philly_highways %>%
+#                                       filter(ST_RT_NO == "0076")),
+#          dist_to_I095 = calculate_nearest_distance(geometry,
+#                                     philly_highways %>%
+#                                       filter(ST_RT_NO == "0095")),
+#          dist_to_I676 = calculate_nearest_distance(geometry,
+#                                     philly_highways %>%
+#                                       filter(ST_RT_NO == "0676")),
+#          dist_to_US001m = dist_to_US001 * 0.3048,
+#          dist_to_I076m = dist_to_I076 * 0.3048,
+#          dist_to_I095m = dist_to_I095 * 0.3048,
+#          dist_to_I676m = dist_to_I676 * 0.3048)
+# 
+# prop500_closest <- properties500 %>%
+#   select(matches("objectid|dist_to")) %>%
+#   pivot_longer(cols = 2:5,
+#                names_to = "highway",
+#                values_to = "distance") %>%
+#   group_by(objectid) %>%
+#   summarise(dist_to_closest_highway = min(distance, na.rm = T)) %>%
+#   ungroup()  %>%
+#   mutate(dist_to_closest_highwaym = dist_to_closest_highway * 0.3048,
+#          log_dist_to_closest_highway = log(dist_to_closest_highway))
+
+# join closest highway
+# prop500 <- left_join(properties500,
+#                      prop500_closest %>% st_drop_geometry(),
+#                      by = "objectid") %>%
+#   mutate(closest_highway = case_when(
+#     dist_to_closest_highway == dist_to_US001 ~ "US-1",
+#     dist_to_closest_highway == dist_to_I076 ~ "I-76",
+#     dist_to_closest_highway == dist_to_I095 ~ "I-95",
+#     dist_to_closest_highway == dist_to_I676 ~ "I-676",
+#     .default = NA),
+#     closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")),
+#     highway_type = case_when(closest_highway %in% c("US-1","I-676") ~ "through neighborhood",
+#                              closest_highway %in% c("I-95","I-76") ~ "along waterway",
+#                              .default = NA))
+
+# save output and read in the prefiltered to save time
+# st_write(prop500, "akidata/philly_prop500_dst2hghwy_250421.geojson")
+
+```
+ 
+ 
+
+
+
