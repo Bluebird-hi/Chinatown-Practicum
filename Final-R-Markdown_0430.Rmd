@@ -4522,19 +4522,21 @@ property_S1_perc_change <- property_S1 %>%
       perc_change < 0    ~ "-10% to 0%",
       perc_change < 10   ~ "0% to +10%",
       perc_change < 50   ~ "+10% to +50%",
-      perc_change < 200  ~ "+50% to +200%",
+      perc_change < 100  ~ "+50 % to +100%",
+      perc_change < 200  ~ "+100% to +200%",
       TRUE               ~ "> 200%"
     ),
     perc_bucket = factor(perc_bucket,
                          levels = c("< -10%", "-10% to 0%", "0% to +10%",
-                                    "+10% to +50%", "+50% to +200%", "> 200%")),
+                                    "+10% to +50%","+50 % to +100%", "+100% to +200%", "> 200%")),
     size_bucket = case_when(
       perc_bucket == "< -10%"        ~ 1.5,
       perc_bucket == "-10% to 0%"    ~ 2,
       perc_bucket == "0% to +10%"    ~ 2.5,
       perc_bucket == "+10% to +50%"  ~ 4,
-      perc_bucket == "+50% to +200%" ~ 5,
-      perc_bucket == "> 200%"        ~ 6
+      perc_bucket == "+50 % to +100%" ~ 5,
+      perc_bucket == "+50% to +200%" ~ 6,
+      perc_bucket == "> 200%"        ~ 7
     ),
     property_category = case_when(
       category_code_chain %in% c("3:Mixed Use", "4:Commercial") ~ "Commercial",
@@ -4553,7 +4555,7 @@ mapview(property_S1_perc_change,
         zcol = "perc_bucket",
         cex = property_S1_perc_change$size_bucket * 2,
         alpha = 0.8,
-        col.regions = c("#06402B","#CDB902","#FFB343", "#F8A58E","#CD1C18", "#660033"),
+        col.regions = c("#06402B","#008B8B","#CDB902","#FFB343", "#F8A58E","#CD1C18", "#660033"),
         stroke = FALSE,
         legend = TRUE,
         layer.name = "S0 vs S1: Sale Price % Change")
@@ -4566,7 +4568,7 @@ mapview(property_S1)
 
 ggplot(price_change_s0s1, aes(x = perc_change)) +
   geom_density(fill = "#1a9988", alpha = 0.5) +
-  xlim(-200, 1000) +  # 调整范围帮助聚焦主流
+  xlim(-200, 1000) + 
   geom_vline(aes(xintercept = median(perc_change, na.rm = TRUE)), linetype = "dashed") +
   labs(title = "Density Plot of % Change", x = "% Change", y = "Density") +
   theme_minimal()
@@ -4630,19 +4632,21 @@ property_S2_perc_change <- property_S2 %>%
       perc_change < 0    ~ "-10% to 0%",
       perc_change < 10   ~ "0% to +10%",
       perc_change < 50   ~ "+10% to +50%",
-      perc_change < 200  ~ "+50% to +200%",
+      perc_change < 100  ~ "+50 % to +100%",
+      perc_change < 200  ~ "+100% to +200%",
       TRUE               ~ "> 200%"
     ),
     perc_bucket = factor(perc_bucket,
                          levels = c("< -10%", "-10% to 0%", "0% to +10%",
-                                    "+10% to +50%", "+50% to +200%", "> 200%")),
+                                    "+10% to +50%", "+50 % to +100%", "+100% to +200%", "> 200%")),
     size_bucket = case_when(
       perc_bucket == "< -10%"        ~ 1.5,
       perc_bucket == "-10% to 0%"    ~ 2,
       perc_bucket == "0% to +10%"    ~ 2.5,
       perc_bucket == "+10% to +50%"  ~ 4,
-      perc_bucket == "+50% to +200%" ~ 5,
-      perc_bucket == "> 200%"        ~ 6
+      perc_bucket == "+50 % to +100%" ~ 5,
+      perc_bucket == "+50% to +200%" ~ 6,
+      perc_bucket == "> 200%"        ~ 7
     ),
     property_category = case_when(
       category_code_chain %in% c("3:Mixed Use", "4:Commercial") ~ "Commercial",
@@ -4661,7 +4665,7 @@ mapview(property_S2_perc_change,
         zcol = "perc_bucket",
         cex = property_S1_perc_change$size_bucket * 2,
         alpha = 0.5,
-        col.regions = c("#06402B","#CDB902","#FFB343", "#F8A58E","#CD1C18", "#660033"),
+        col.regions = c("#06402B","#008B8B","#CDB902","#FFB343", "#F8A58E","#CD1C18", "#660033"),
         stroke = FALSE,
         legend = TRUE,
         layer.name = "S0 vs. S2: Sale Price % Change")
