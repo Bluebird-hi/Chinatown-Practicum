@@ -62,6 +62,25 @@ library(lme4)
 library(RcppEigen)
 library(dplyr)
 library(broom)
+library(tibble)
+library(car)
+library(units)
+library(ggforce)
+library(RColorBrewer)
+library(grid)
+library(geosphere)
+library(geojsonio)
+library(osmdata)
+library(showtext)
+library(sysfonts)
+library(stargazer)
+library(modelsummary)
+library(Metrics)
+library(googleway)
+library(workflows)
+library(parsnip)
+library(jsonlite)
+library(classInt)
 
 
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
@@ -69,17 +88,14 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 ```{r setup_wd, message = FALSE, quiet = TRUE, results = 'hide'}
 # Change to your own workspace
-knitr::opts_knit$set(root.dir = "E:/Spring/Practicum/DataAnalysis/Chinatown") # Luming
+# Luming
+knitr::opts_knit$set(root.dir = "E:/Spring/Practicum/DataAnalysis/Chinatown")
 wd <- "E:/Spring/Practicum/DataAnalysis/Chinatown"
 
 # Aki
 # knitr::opts_knit$set(root.dir = "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/")
 # wd <- "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/"
 
-nhoods_4326 <- 
-  st_read("DataWrangling/data/philadelphia-neighborhoods.geojson") %>% # Luming
-  # st_read("akidata/philadelphia-neighborhoods.geojson") %>% # Aki
-  st_transform('EPSG:4326')
 
 # philly properties (from Sijia)
 # from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
@@ -156,7 +172,7 @@ Three study areas are used in the analysis to reveal the effects of I-676 on the
 
 -   **Referable study area (Philadelphia):** to analyse the impact of different highways on the surrounding land markets in the context of the city.
 -   **Main study area (10 block groups):** to figure out the correlation between I-676 and property sales price and make future predictions based on three potential scenarios.
--   **Compared study area (north and south sides):** to investigate the different situations of the Chinatown region under the construction of I-676.
+-   **Compared study area ([north]{style="color: #eb5600;"} and [south]{style="color: #1a9988;"} sides):** to investigate the different situations of the Chinatown region under the construction of I-676.
 
 ```{r StudyArea_plot}
 StudyArea_plot1 <- ggplot() +
@@ -208,10 +224,9 @@ landuse_park_ing <- landuse_4326 %>%
 park_4326 <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
   st_transform('EPSG:4326')
 
-# nhoods_4326 <- 
-#   st_read("DataWrangling/akidata/philadelphia-neighborhoods.geojson") %>%
-#   # st_read("akidata/philadelphia-neighborhoods.geojson") %>%
-#   st_transform('EPSG:4326')
+nhoods_4326 <-
+  st_read("Dataset/philly_neighborhoods.geojson") %>%
+  st_transform('EPSG:4326')
 
 Chinatown_Callowhill <- nhoods_4326 %>%
   filter(NAME %in% c("CHINATOWN", "CALLOWHILL"))
@@ -298,20 +313,172 @@ TODO: include description of qualitative analysis
 
 ## Property Data
 
--   [Philadelphia Properties and Assessment History](https://opendataphilly.org/datasets/philadelphia-properties-and-assessment-history/)
+Our primary variable of interest, **property price**, is sourced from the [Philadelphia Properties and Assessment History](https://opendataphilly.org/datasets/philadelphia-properties-and-assessment-history/) dataset available on Open Data Philly. This dataset includes variables such as `sale_price`, number of bedrooms, parcel number, and property condition. To prepare the data for analysis, we apply the following preprocessing steps related to sale date, inflation adjustment, geographic transformation, and handling of missing values:
+
++ **Sale Date (Philadelphia Focus)**: To ensure price comparability, we limit our analysis to properties sold **between 2020 and 2024** within Philadelphia.
+
++ **Inflation Adjustment**: Sale prices are adjusted for inflation using the **Consumer Price Index (CPI)**, normalized to December 2024 values.
+
++ **Price Range Filtering**: We begin by removing records with **implausibly low sale prices (below $100)**. Then, to reduce the influence of outliers and enhance generalizability, we **trim both the bottom and top 5%** of the price distribution.
+
++ **Geographic Transformation**: Since spatial proximity to highways and other features influences property values, we reproject coordinates to **NAD83 / Pennsylvania South (EPSG: 2272)** for accurate spatial analysis.
+
++ **Missing Data Imputation**: Missing values for **zoning**, **central air**, and **year built** are filled using current property characteristics where available.
+
+
+
+```{r property_data_adj, eval=FALSE}
+#### clean data for city wise - sale price
+cpi_data <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/property/cpi_data.csv")
+colnames(cpi_data) <- c("half1", "half2", "cpi_date")
+cpi_long <- cpi_data %>%
+  mutate(
+    Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
+    Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
+  ) %>%
+  select(-half1, -half2) %>%
+  pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
+  mutate(
+    Month = match(Month, month.abb),
+    date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
+  ) %>%
+  select(date, CPI)
+
+property_philly <- property %>%
+  mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+  filter(sale_date >= as.Date("2020-01-01") & sale_date <= as.Date("2024-12-31"))%>%
+  filter(!is.na(sale_price), !is.na(total_livable_area))%>%
+  mutate(
+    sale_month = floor_date(sale_date, "month"))%>%
+  left_join(cpi_long, by = c("sale_month" = "date"))%>%
+  mutate(CPI = as.numeric(CPI))%>%
+  mutate(adj_sale_price = sale_price * (340.331/CPI))%>%
+  select(-sale_month, -recording_date,  -other_building, 
+         -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of)
+
+property_philly_100 <- property_philly %>%
+  filter(adj_sale_price >= 100)
+
+q_philly <- quantile(property_philly_100$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+
+property_philly_filtered <- property_philly %>%
+  filter(adj_sale_price >= q_philly[1], adj_sale_price <= q_philly[2]) %>%
+  st_transform('EPSG:2272')
+###################################################################################################
+# Study Area
+property_studyarea <-property_original %>%
+  mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+  filter(!is.na(sale_price))%>%
+  filter(sale_date <= as.Date("2024-12-31"))%>%
+  mutate(
+    sale_date = as.Date(sale_date, format = "%Y-%m-%d"), 
+    sale_month = floor_date(sale_date, "month"))%>%
+  left_join(cpi_long, by = c("sale_month" = "date"))%>%
+  mutate(CPI = as.numeric(CPI))%>%
+  mutate(adj_sale_price = sale_price * (340.331/CPI)) %>%
+  select(-sale_month,-recording_date,  -other_building, 
+         -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of, -state_code)%>%
+  relocate(adj_sale_price, sale_price, .after = 2)
+
+property_stuyarea_100 <- property_studyarea %>%
+  filter(adj_sale_price >= 100)
+
+q_studyarea <- quantile(property_stuyarea_100$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+
+property_studyarea_filtered <- property_studyarea %>%
+  filter(adj_sale_price >= q_studyarea[1], adj_sale_price <= q_studyarea[2])
+
+# join attributes - I676(NS) - nhood1 (neighborhoods in study area)
+property_studyarea_filtered_changed <- rbind(
+    property_studyarea_filtered %>% st_intersection(studyarea_north["geometry"]) %>%
+      mutate(I676_NS = "north"),
+    property_studyarea_filtered %>% st_intersection(studyarea_south["geometry"]) %>%
+      mutate(I676_NS = "south")
+  )
+
+#Features clean up for future FE and modeling
+## Zoning
+property_studyarea_filtered_changed <- property_studyarea_filtered_changed %>%
+  select(1:2, zoning, location, everything())
+
+property_studyarea_filtered_changed <- property_studyarea_filtered_changed %>%
+  mutate(zoning = case_when(
+    location == "1310-16 VINE ST" ~ "CMX4",   
+    location == "252-56 N 13TH ST" ~ "CMX4",
+    location == "255-57 N BROAD ST" ~ "CMX4",
+    location == "451 N 12TH ST" ~ "CMX3",
+    location == "453 N 12TH ST" ~"CMX3",
+    location == "447 N 12TH ST" ~ "CMX3",
+    location == "1108 BUTTONWOOD ST" ~ "CMX3",
+    location == "1104 BUTTONWOOD ST" ~ "CMX3",
+    location == "256-60 N MARVINE ST" ~ "CMX4",
+    location == "820 VINE ST" ~ "CMX4",
+    TRUE ~ zoning                        
+  ))
+
+## central air
+target_locations_N <- c(
+                      "1232 SUMMER ST", 
+                      "1030 BRANDYWINE ST",
+                      "214 N 12TH ST",
+                      "1021 SPRING ST")
+
+property_studyarea_filtered_changed <- property_studyarea_filtered_changed %>%
+  mutate(
+    central_air = ifelse(location %in% target_locations_N & central_air == "N", "Y", central_air)
+  )
+## year built - clean up values of 1 and delete the other rows which are parking plot properties that have no year_built data
+valid_locations <- c(
+  "305-09 N 12TH ST",
+  "1008-16 WOOD ST",
+  "1004-06 WOOD ST",
+  "211 N CAMAC ST",
+  "231-33 N BROAD ST",
+  "225-27 N 12TH ST"
+)
+property_studyarea_filtered_changed <- property_studyarea_filtered_changed %>%
+  filter(location != "711-39 SPRING GARDEN ST") %>%
+  mutate(year_built = as.numeric(year_built)) %>%
+  mutate(
+    year_built = case_when(
+      location == "305-09 N 12TH ST" & year_built < 1750 ~ 1950,
+      location == "1008-16 WOOD ST" & year_built < 1750 ~ 1978,
+      location == "1004-06 WOOD ST" & year_built < 1750 ~ 1920,
+      location == "211 N CAMAC ST" & year_built < 1750 ~ 1900,
+      location == "231-33 N BROAD ST" & year_built < 1750 ~ 2020,
+      location == "225-27 N 12TH ST" & year_built < 1750 ~ 2024,
+      
+      !is.na(year_built) & year_built < 1750 &
+        !(location %in% c(
+          "305-09 N 12TH ST",
+          "1008-16 WOOD ST",
+          "1004-06 WOOD ST",
+          "211 N CAMAC ST",
+          "231-33 N BROAD ST",
+          "225-27 N 12TH ST"
+        )) ~ NA_real_,
+      TRUE ~ year_built
+    )
+  )
+
+#st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_studyarea_filtered_changed, "Dataset/property/property_CT.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+
+## Census Data
+
+## Neighborhood Context
+
 -   [Land use 2023](https://opendataphilly.org/datasets/land-use/)
+-   [PPR Properties](https://opendataphilly.org/datasets/ppr-properties/)
+-   [Neighborhoods](https://opendataphilly.org/datasets/philadelphia-neighborhoods/)
+-   [Trolley Stations](https://hub.arcgis.com/datasets/dd2afb618d804100867dfe0669383159_0/explore?location=39.956470%2C-75.160382%2C14.19)
+-   [Highspeed Stations](https://hub.arcgis.com/datasets/af52d74b872045d0abb4a6bbbb249453_0/explore?location=39.955164%2C-75.153952%2C14.43)
+-   [Bike Network](https://opendataphilly.org/datasets/bike-network/)
+-   [311 Requests](https://opendataphilly.org/datasets/311-service-and-information-requests/)
 
 ```{r property_data, quiet = TRUE, results = 'hide'}
-# property <- st_read("DataWrangling/akidata/opa_properties_public.geojson") %>%
-#   st_transform('EPSG:2272')
-# 
-# property_studyarea <- st_intersection(property, studyarea)
-# 
-# st_write(property_studyarea %>% st_transform('EPSG:3857'), "Dataset/original_property_studyarea.geojson", driver = "GeoJSON")
-
-property_studyarea <- st_read("Dataset/original_property_studyarea.geojson") %>%
-  st_transform('EPSG: 2272')
-
 landuse <- st_read("Dataset/landuse_clip/Land_Use_ClipLayer.shp") %>%
   st_transform('EPSG:2272')
 
@@ -336,21 +503,7 @@ landuse_rename <- landuse %>%
     C_DIG2DESC == 92 ~ "Other/Unknown"
   ))
 
-# philly properties (from Sijia)
-# from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
-# philly_properties <- st_read("akidata/property_philly_250318.geojson")
 ```
-
-## Census Data
-
-## Neighborhood Context
-
--   [PPR Properties](https://opendataphilly.org/datasets/ppr-properties/)
--   [Neighborhoods](https://opendataphilly.org/datasets/philadelphia-neighborhoods/)
--   [Trolley Stations](https://hub.arcgis.com/datasets/dd2afb618d804100867dfe0669383159_0/explore?location=39.956470%2C-75.160382%2C14.19)
--   [Highspeed Stations](https://hub.arcgis.com/datasets/af52d74b872045d0abb4a6bbbb249453_0/explore?location=39.955164%2C-75.153952%2C14.43)
--   [Bike Network](https://opendataphilly.org/datasets/bike-network/)
--   [311 Requests](https://opendataphilly.org/datasets/311-service-and-information-requests/)
 
 ```{r neighborhood_wrangle, quiet = TRUE, results = 'hide'}
 nhoods <- 
@@ -420,7 +573,7 @@ calculate_nearest_distance <- function(set_points, other_layer) {
   st_distance(set_points, other_layer[nearest_idx, ], by_element = TRUE) %>% as.numeric()
 }
 
-Luming_property <- property_studyarea %>%
+Luming_property <- property_original %>%
   dplyr::select(objectid, geometry, sale_price) %>%
   rename(orig_objectid = objectid)
 
@@ -456,6 +609,9 @@ Luming_property <- Luming_property %>%
       
       crime_nn5 = nn_function(st_coordinates(Luming_property), 
                               st_coordinates(phillyCrimes), k = 5))
+
+# Save as CSV
+# write.csv(st_drop_geometry(Luming_property), "Dataset/Luming_property.csv", row.names = FALSE)
 ```
 
 ## Social Survey
@@ -1381,7 +1537,7 @@ This demonstrates that in our study area, the **highway has a very small influen
 
 ## Modeling
 
-Built on our simple OLS model, we train four models based on Ordinary Least Squares (OLS), Regularized Linear Regression, Random Forest, and XGBoost respectively for property price predictions:
+Built on our simple OLS model, we train **four models** based on Ordinary Least Squares (OLS), Regularized Linear Regression, Random Forest, and XGBoost respectively for property price predictions:
 
 + **Ordinary Least Squares (OLS)** is a basic linear model that captures simple relationships but struggles with messy or complex data.
 
@@ -1391,12 +1547,11 @@ Built on our simple OLS model, we train four models based on Ordinary Least Squa
 
 + **XGBoost (XGB)** builds trees sequentially, each learning from the last’s errors, excelling in accuracy for structured data tasks.
 
-After training and validation, the random forest model behaves the best with a MAPE of 32% and a MAE of $.
-
+After training and validation, the Random Forest model achieved the best performance among the tested models, with **a MAPE of 34.02% and a MAE of $214,118**, indicating a moderate level of accuracy, with average prediction errors of approximately one-third of actual prices. **The model performs particularly well for properties priced around $400,000 and demonstrates strong reliability for scenario-based forecasting in zoning categories such as RMX3, CMX3, and CMX4**. In contrast, its higher error rates in industrial zones and high-rise commercial areas (e.g., CMX5 and IRMX) reflect the more volatile and site-specific nature of property values in those markets, which may involve complex redevelopment potential or specialized land uses not fully captured by the model.
 
 ### Data Preparation
 
-Based on feature engineering results, we select the xx most relevant features plus geographical location (longitude and latitude) as independent variables, and use log-transformed property price as the dependent variable. To build and evaluate our model, we split the dataset into two parts: 70% as the training set to fit the model, and 30% as the test set to evaluate its accuracy.
+Based on feature engineering results, we select the xx most relevant features plus geographical location (longitude and latitude) as independent variables, and use log-transformed property price as the dependent variable. To build and evaluate our model, we split the dataset into two parts: **70%** as the training set to fit the model, and **30%** as the test set to evaluate its accuracy.
 
 ```{r modeling_data, quiet = TRUE, results = 'hide'}
 set.seed(123)
@@ -1404,7 +1559,7 @@ theme_set(theme_bw())
 
 "%!in%" <- Negate("%in%")
 g <- glimpse
-property_CT_FE <- st_read("E:/Spring/Practicum/DataAnalysis/Chinatown/Dataset/property_CT_FE.geojson") %>%
+property_CT_FE <- st_read("Dataset/property/property_CT_FE.geojson") %>%
   st_transform('EPSG:4326')
 
 property_modeling <- property_CT_FE %>%
@@ -1486,30 +1641,26 @@ ggplot() +
   geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
   geom_sf(data = property_train_geo, color = "#eb5600") +
   geom_sf(data = property_test_geo, color = "#1a9988") +
-  labs(title = glue("<span style='color:#eb5600;'>Train</span> & <span style='color:#1a9988;'>Test</span> Set")) +
+  labs(title = glue("<span style='color:#eb5600;'>Train (70%)</span> & <span style='color:#1a9988;'>Test (30%)</span> Set")) +
   theme_void() +
   theme(plot.title = ggtext::element_markdown(size = 16, face = "bold"))
 ```
 
 ### Model Training
 
-Within the training set, we use *spatial cross-validation*, which tests the model on different areas to avoid overfitting to nearby properties. *K-means Clustering* is used when creating the cross-validation folds. This helps prevent the model from "cheating" by seeing similar areas in both training and testing.
+Within the training set, we use **spatial cross-validation**, which tests the model on different areas to avoid overfitting to nearby properties. **K-means Clustering** is used when creating the cross-validation folds. This helps prevent the model from "cheating" by seeing similar areas in both training and testing.
 
-Each model is trained following a workflow, including defining, tuning, and evaluating. Here, we'd like to take Random Forest workflow as an example.
+Each model is trained following a workflow, including defining, tuning, and evaluating. Here, we'd like to take **Random Forest workflow** as an example.
 
  1. `rf_plan` defines the Random Forest model structure. A Random Forest is a collection of many decision trees. Each tree looks at the data differently, and their combined result gives a more accurate and stable prediction.
  
- 2. `rf_grid` is a grid of possible settings (combinations of `mtry` and `min_n`) for tuning. This lets the model try different setups and find what works best.
- 
- + `mtry`: How many features to look at when making each split in a tree
-
- + `min_n`: Minimum number of data points a final decision node must have
+ 2. `rf_grid` is a grid of possible settings (combinations of `mtry` and `min_n`) used for tuning the random forest model. The `mtry` parameter controls how many predictors are randomly selected at each split in a tree, affecting model diversity and performance. The `min_n` parameter sets the minimum number of observations required to split a node, influencing tree depth and overfitting. By **evaluating different combinations of these hyperparameters**, the model can identify the configuration that yields the best predictive performance.
  
  3. `rf_wf` is a workflow that connects our preprocessing (`model_rec`) and model (`rf_plan`) together. It ensures that all the data is cleaned the same way every time we train or test the model.
  
- 4. `rf_tuned` trains many Random Forest models using the different settings from `rf_grid`, and tests each one using our *spatial cross-validation* folds. This is the "try everything and see what works best" step. Each fold helps estimate how well the model will generalize.
+ 4. `rf_tuned` trains many Random Forest models using the different settings from `rf_grid`, and tests each one using our **spatial cross-validation folds**. This is the "try everything and see what works best" step. Each fold helps estimate how well the model will generalize.
  
- 5. `rf_best_params` picks the best settings from the tuning process based on which combination gave the *lowest RMSE*. Then `rf_best_wf` finalizes the workflow with the best-performing parameters locked in.
+ 5. `rf_best_params` picks the best settings from the tuning process based on which combination gave the **lowest RMSE**. Then `rf_best_wf` finalizes the workflow with the best-performing parameters locked in.
  
  6. `rf_val_fit_geo` finally train the finalized Random Forest on the entire training set and test its accuracy on the test set. This gives the most realistic estimate of how well the model will perform on new, unseen property data.
 
@@ -1545,9 +1696,9 @@ XGB_plan <- boost_tree() %>%
 glmnet_grid <- expand.grid(penalty = seq(0, 1, by = .25), 
                            mixture = seq(0,1,0.25))
 rf_grid <- expand.grid(mtry = c(2,5,10,13,30,45), 
-                       min_n = c(5,50,100,500)) # 50-250
-xgb_grid <- expand.grid(mtry = c(3,5),
-                        min_n = c(1,5)) # same as rf
+                       min_n = c(50,100,150,200,250)) # 50-250
+xgb_grid <- expand.grid(mtry = c(2,5,10,13,30,45), 
+                       min_n = c(50,100,150,200,250)) # same as rf
 
 # create workflow
 lm_wf <-
@@ -1586,7 +1737,7 @@ cv_splits_cluster <- spatial_clustering_cv(
 
 cv_splits_geo <- cv_splits_cluster
 control <- control_resamples(save_pred = TRUE, verbose = TRUE)
-metrics <- metric_set(rmse, rsq, mape, smape)
+metrics <- metric_set(yardstick::rmse, yardstick::rsq, yardstick::mape, yardstick::smape)
 ```
 
 ![Random Forest Workflow](Final%20R%20Markdown/Images/Random_Forest_workflow2.png)
@@ -1665,6 +1816,14 @@ xgb_val_fit_geo <- xgb_best_wf %>%
   last_fit(split     = data_split,
            control   = control,
            metrics   = metrics)
+
+## Fit and Extract final model
+## Final fit on all data
+full_fit_rf     <- rf_best_wf %>% fit(property_modeling)
+# extract final fit model object as native package type
+rf_full_mod     <- full_fit_rf  $fit$fit$fit
+# saveRDS(rf_full_mod,     file = "Modeling/results/rf_model_new.rds")
+# saveRDS(rf_best_wf, file = "Modeling/results/rf_workflow_new.rds")
 ```
 
 ### Model Validation and Comparison
@@ -1677,7 +1836,7 @@ After applying the models to the test set, we evaluate and compare models' accur
 
 + **Prediction v.s. Actual Value Scatter Plot**: This is a chart that helps us see how close our model's predictions are to the actual sale prices. Each dot on the chart represents one property. If all the dots are near a straight diagonal line, it means the predictions are very close to the real prices. If they are scattered far away from that line, the model’s predictions are less accurate.
 
-As a result, the **Random Forest model** shows the best performance, of which the price predictions are off by 34.48% ($229,765) on average.
+As a result, the **Random Forest model** shows the best performance, of which the price predictions are off by 34.02% ($214,118) on average.
 
 ```{r model_compare_data}
 # Pull best hyperparam preds from out-of-fold predictions
@@ -1816,9 +1975,9 @@ OOF_plot1 | OOF_plot2
 val_plot1 | val_plot2
 ```
 
-Putting the validation results of train and test set altogether, **Random Forest model** shows the best and a stable performance among the four models. Though the Regularized Linear Regression (RLS) model behaves well with a MAPE of 50.92%, it predicts 10% more error than the RF model, indicating a low level of stability. Within the test set, **the price predictions of the RF model are off by 34.48% ($229,765) on average**, which is still a little high requiring further examination.
+Putting the validation results of train and test set altogether, **Random Forest model shows the best and a stable performance among the four models**. Though the Regularized Linear Regression (RLS) model behaves well with a MAPE of 50.92%, it predicts 10% more error than the RF model, indicating a low level of stability. Within the test set, **the price predictions of the RF model are off by 34.02% ($214,118) on average**, which is still a little high requiring further examination.
 
-```{r}
+```{r model_compare_plot2}
 OOF_plot3 | val_plot3
 
 intersections <- val_preds %>%
@@ -1841,11 +2000,190 @@ intersections %>%
   row_spec(3, bold = T, background = "#7fe3d6")
 ```
 
-Predicted and observed prices are compared by the scatter plots. The orange and green lines are closer in the RF model, indicating a better performance overall. However, the deviation suggests that, on average, the model’s predictions are lower than the observed prices. Examining the data points further reveals that prediction accuracy decreases as prices rise, confirming our concerns about the variability in the higher price ranges of the dataset. The intersection point suggests that our **RF model performs better for lower-valued housing prices around $418,761**.
+Predicted and observed prices are compared by the scatter plots. The [orange]{style="color: #eb5600;"} and [green]{style="color: #1a9988;"} lines are closer in the RF model, indicating a better performance overall. However, the deviation suggests that, **on average, the model’s predictions are lower than the observed prices**. Examining the data points further reveals that prediction accuracy decreases as prices rise, confirming our concerns about the variability in the higher price ranges of the dataset. The intersection point suggests that our **RF model performs better for lower-valued housing prices around $422,857.5**.
 
 ### Random Forest Model
 
+Out of 1,529 properties in the study area, **460** were used for model validation. Beyond assessing overall prediction error statistics, we further evaluated the Random Forest model’s generalizability across different spatial contexts and zoning categories. The results indicate generally strong performance, with **prediction errors below 30% for residential and mixed-use properties**. In particular, the model proves to be reliable and generalizable for scenario-based forecasting focused on zoning types such as **RMX3, CMX3, and CMX4**.
 
+```{r RF_data}
+# join test data back to make spatial
+val_pred_sf <- val_preds %>% 
+  group_by(model) %>% 
+  rowwise() %>% 
+  mutate(RMSE = yardstick::rmse_vec(actual_price, predicted_price),
+    MAE  = yardstick::mae_vec(actual_price, predicted_price),
+    MAPE = mean(abs(predicted_price - actual_price) / actual_price)) %>% 
+  st_as_sf(., coords = c("Longitude", "Latitude"),
+           remove = FALSE,
+           crs = 4326)
+
+val_pred_sf_plot <- val_pred_sf %>%
+  filter(model == "RF")
+Mean_MAPE <- mean(val_pred_sf_plot$MAPE)
+
+# aggregate val error to zoning_group 
+val_MAPE_by_zoning <- val_preds %>% 
+  group_by(zoning_group, model) %>% 
+  summarise(RMSE = yardstick::rmse_vec(actual_price, predicted_price),
+    MAE  = yardstick::mae_vec(actual_price, predicted_price),
+    MAPE = mean(abs(predicted_price - actual_price) / actual_price)) %>% 
+  ungroup()
+
+val_MAPE_by_zoning_plot <- val_MAPE_by_zoning %>%
+  mutate(color = case_when(
+    zoning_group %in% c("Other", "IRMX", "CMX5") ~ "#eb5600",
+    !zoning_group %in% c("Other", "IRMX", "CMX5") ~ "#1a9988"
+  ))
+```
+
+```{r RF_MAPE_plot}
+ggplot(data = val_pred_sf_plot,aes(x = MAPE)) +
+  geom_histogram(color = "white", fill = "#1a9988") +
+  scale_x_continuous(breaks = seq(0,8,0.5)) +
+  labs(title = "Distribution of MAPE", 
+       subtitle = "Random Forest model; Test set validation",
+       # caption = "Figure 4.2",
+       x = "Mean Absolute Percentage Error (MAPE)", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        plot.caption = element_text(hjust = 0)) +
+  geom_vline(aes(xintercept=mean(MAPE, na.rm=T)),
+               color="#eb5600", linetype="dashed", size=1) +
+  annotate(geom = "text", label = paste("Mean of MAPE:", paste0(round(Mean_MAPE*100, 2),"%")), # Insert correlation here
+    x = .6, y = 120,
+    hjust = 0, size = 4, color = "#eb5600")
+```
+
+```{r}
+ggplot(val_pred_sf_plot %>% 
+         filter(!MAPE<.34), 
+       aes(x = log_adj_sale_price, y = .pred)) +
+  geom_point(color = "grey", alpha = 0.3, size = 1) +
+  geom_point(data = val_pred_sf_plot %>% 
+               filter(MAPE<.34), 
+             aes(x = log_adj_sale_price, y = .pred), 
+             color = "#1a9988", alpha = 0.5, size = 2) +
+  geom_abline(linetype = "dashed", color = "black") +
+  geom_smooth(method = "lm", color = "black", se = FALSE) +
+  coord_equal() +
+  labs(x = "Observed value", y = "Predicted value",
+       title = "Prediction Accuracy <span style='color:#1a9988;'>(Errors < 30%)</span>",
+       subtitle = "Random Forest model; Test set validation") +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    plot.title = ggtext::element_markdown(size = 16, face = "bold"),
+    axis.title = element_blank()
+  )
+```
+
+
+With a mean MAPE of 34.02%, **most predictions deviate by less than 30%**, though some outliers are overestimated by as much as two to eight times the actual sale price. This indicates a moderate level of accuracy overall, with a long-tailed error distribution driven by a small number of extreme mispredictions.
+
+
+```{r RF_MAPE_plot2}
+# Create a continuous color palette for MAPE
+pal_mape <- colorNumeric(
+  palette = colorRampPalette(c("#7fe3d6","#eba075","#eb5600"))(50),
+  domain = val_pred_sf_plot$MAPE
+)
+
+RF_MAPE_leaflet <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addPolygons(data = studyarea_4326,
+              color = "black",       # Black border
+              weight = 4,            # Border thickness
+              dashArray = "8,12",     # Dashed line pattern (5px on, 5px off)
+              fill = FALSE) %>%
+  # Points colored by MAPE
+  addCircleMarkers(
+    data = val_pred_sf_plot,
+    color = ~pal_mape(MAPE),
+    weight = 0.8,
+    fillColor = ~pal_mape(MAPE),
+    fillOpacity = 0.7,
+    radius = 3.5,
+    popup = ~paste(
+  "MAPE:", round(MAPE, 3), "<br>",
+  "Zoning:", zoning_group, "<br>",
+  "Property Price:", round(actual_price, 2), "<br>",
+  "Predicted Price:", round(predicted_price, 2)
+)) %>%
+  
+  # Add a legend for MAPE
+  addLegend(
+    pal = pal_mape,
+    values = val_pred_sf_plot$MAPE,
+    title = "MAPE",
+    position = "bottomright"
+  )
+
+div(class = "center-leaflet", RF_MAPE_leaflet)
+```
+
+The distribution of prediction errors shows **no obvious spatial clustering**, suggesting that the model performs reasonably well in predicting future property prices across the study area.
+
+```{r RF_MAPE_plot3}
+# plot MAPE by zoning
+ggplot(val_MAPE_by_zoning_plot, aes(x = reorder(zoning_group, MAPE), y = MAPE)) +
+  geom_bar(stat = "identity", aes(fill = color), width = .7, alpha = .7) +
+  scale_fill_identity() + 
+  scale_y_continuous(breaks = seq(0,6,0.5)) +
+  labs(x = "Re-categorized zoning type",
+       title = "MAPE by Zoning Group",
+       subtitle = "Random Forest model; Test set validation") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+    axis.text.x = element_text(angle = -45, hjust = 0)
+  )
+```
+
+In the previous OLS model (Section 3.3.3.1), property price showed a strong relationship with zoning type, suggesting that **zoning serves as a meaningful proxy for how property value is perceived and regulated in practice**. For example, properties located in higher-density commercial zones such as CMX-4 or CMX-5 tended to exhibit significantly higher prices compared to those in residential zones like RM-1 or RSA-5. This reflects the **greater development potential and permitted uses in commercial mixed-use zones**, which typically allow for larger floor-area ratios (FAR), more flexible building types, and access to high-traffic areas—factors that increase market demand and drive up land value.
+
+This pattern may also explain a preference for using the model’s predictions in future planning scenarios. Our random forest model shows high error rates in zones such as Unknown, SPPOA, CMX5, and IRMX, with some predictions exceeding four times the actual price. However, **it performs relatively well in RMX3, CMX3, and CMX4**, zones that are primarily residential or commercial mixed-use and are central to future zoning changes and community impact. While the model has an overall MAPE of 34%, its stronger performance in RMX and CMX zones suggests it is more reliable and generalizable for **scenario-based forecasting** focused on these zoning types.
+
+
+```{r RF_without_zoning_plot}
+# Filtered results
+RF_filtered_results <- val_pred_sf_plot %>% 
+  filter(!zoning_group %in% c("IRMX", "CMX5", "Other")) %>% 
+  st_drop_geometry() %>%
+  group_by(model) %>%
+  summarise(
+    RMSE = yardstick::rmse_vec(actual_price, predicted_price),
+    MAE  = yardstick::mae_vec(actual_price, predicted_price),
+    MAPE = paste0(round(100 * mean(abs(predicted_price - actual_price) / actual_price), 2), "%"),
+    .groups = "drop"
+  ) %>%
+  mutate(zoning_scope = "Without IRMX, CMX5, Other")
+
+# Unfiltered results
+RF_all_results <- val_pred_sf_plot %>% 
+  st_drop_geometry() %>%
+  group_by(model) %>%
+  summarise(
+    RMSE = yardstick::rmse_vec(actual_price, predicted_price),
+    MAE  = yardstick::mae_vec(actual_price, predicted_price),
+    MAPE = paste0(round(100 * mean(abs(predicted_price - actual_price) / actual_price), 2), "%"),
+    .groups = "drop"
+  ) %>%
+  mutate(zoning_scope = "All Zoning")
+
+# Combine
+RF_combined_results <- bind_rows(RF_all_results, RF_filtered_results) %>%
+  relocate(zoning_scope, .after = model)
+
+# Display table
+RF_combined_results %>%
+  kbl(align = c("c", "c", "c", "c"),
+      caption = "Validation Results by Zoning Scope") %>%
+  kable_styling() %>%
+  kable_classic(full_width = FALSE, html_font = "Cambria") %>% 
+  row_spec(2, bold = T, background = "#7fe3d6")
+```
+
+Excluding industrial zones and high-rise office buildings from the analysis (IRMX, CMX5), the validation results show a MAPE of 30.21% and a MAE of $198,983.6, representing **an improvement of approximately 4% points in error and a reduction of over $20,000 in average absolute deviation compared to the full-sample predictions**. This suggests that the model performs more accurately when focused on residential and mixed-use properties, which are more consistent in pricing patterns and better represented in the training data. In contrast, **industrial parcels and high-density commercial zones** like CMX5 often exhibit highly variable and site-specific values driven by factors such as floor-area bonuses, special-use permits, and redevelopment potential—factors that are **difficult to capture with general property features alone**.
 
 # Scenario Planning
 
