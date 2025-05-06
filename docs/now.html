@@ -20,7 +20,7 @@
   <nav id="navbar" class="navbar">
     <div class="logo-title">
       <img src="/img/icon.png" alt="logo" class="logo">
-      <span class="project-name">Project Team</span>
+      <a class="nav-btn" href="about.html">Project Team</a>
     </div>
     
     <div class="nav-buttons">
@@ -47,14 +47,17 @@
   </div>
 
   <!--slides-->
-  <!-- <div class="map-container">
+  <div class="map-container">
     <div class="map" id="map"></div>
-  </div> -->
+  </div>
 
+  <!-- Start Slides over the map -->
+  <section class="slide-section">
   <!-- Slide 0: The Chinatown Stitch Intro -->
+    <!-- Slide 0: The Chinatown Stitch Intro -->
     <!-- Map of study area -->
     <article class="slide" id="stitchintro">
-      <div class="background-layer"></div>
+      <!-- <div class="background-layer"></div> -->
       <div class="text">
         <h1>1. <a class="titlelink" href="https://www.phila.gov/programs/complete-streets/projects/the-chinatown-stitch-reconnecting-philadelphia-to-vine-street/">The Chinatown Stitch</a></h1>
         <h3>Project Summary</h3>
@@ -80,21 +83,37 @@
     <!--slide 1: The Chinatown Stitch Timeline-->
     <!-- Map that highlights the Stitch + emphasizes phase I section -->
     <article class="slide" id="stitchtimeline">
-      <div class="background-layer"></div>
+      <!-- <div class="background-layer"></div> -->
       <div class="text">
         <h3>Chinatown Stitch Construction Timeline</h3>
 
-        <p class="timelineitem" style="color: #299988;"><strong>2023</strong> <br> Engagement and brainstorming</p>
-
-        <p class="timelineitem" style="color: #299988;"><strong>2024</strong> <br> Initial data collection, analysis and engineering</p>
-
-        <p class="timelineitem" style="color: #DB5420;" id="timeline25"><strong>2025</strong> <br> Refining the Concept in community. Look out for <a class="extlink" href="https://www.phila.gov/the-latest/all-events/?category=Office%20of%20Transportation,%20Infrastructure%20and%20Sustainability">pop-up events</a> to stay involved!</p>
-
-        <p class="timelineitem" id="timeline26"><strong>2026</strong> <br> Design Finalization</p>
-
+        <div class="hiddenimg-container">
+          <p class="timelineitem" id="timeline23" style="color: #299988;"><strong>2023</strong> <br> Engagement and brainstorming</p>
+          <img class="hiddenimg" id="img23_1" src="img/rect_23_1.png"/>
+          <img class="hiddenimg" id="img23_2" src="img/rect_23_2.png"/>
+        </div>
+        
+        <div class="hiddenimg-container">
+          <p class="timelineitem" id="timeline24" style="color: #299988;"><strong>2024</strong> <br> Initial data collection, analysis and engineering</p>
+          <img class="hiddenimg" id="img24" href="https://www.flaticon.com/free-icons/worker" title="Worker icons created by Vectors Market - Flaticon" src="img/engineers.png"/>
+        </div>
+        
+        <div class="hiddenimg-container">
+          <p class="timelineitem" style="color: #DB5420;" id="timeline25"><strong>2025</strong> <br> Refining the Concept in community. Look out for <a class="extlink" href="https://www.phila.gov/the-latest/all-events/?category=Office%20of%20Transportation,%20Infrastructure%20and%20Sustainability">pop-up events</a> to stay involved!</p>
+          <img class="hiddenimg" id="img25_1" src="img/rect_25_1.png"/>
+          <img class="hiddenimg" id="img25_2" src="img/rect_25_2.png"/>
+        </div>
+        
+        <div class="hiddenimg-container">
+          <p class="timelineitem" id="timeline26"><strong>2026</strong> <br> Design Finalization</p>
+          <img class="hiddenimg" id="img26" src="img/rect_26.png"/>
+        </div>
+        
         <p class="timelineitem" id="timeline27"><strong>2027</strong> <br> Phase I construction begins</p>
         
         <p class="timelineitem" id="timeline30"><strong>2030</strong> <br> Phase I construction expected to finish</p>
+
+        <p class="caption">**All photos were taken from the OTIS Chinatown Stitch Reports and Newsletters.</p>
       </div>
     </article>
 
@@ -108,13 +127,13 @@
         <h1>2. Highway Caps in Other Cities</h1>
         <h3>What can we learn from Highway Caps built in other cities?</h3>
       </div>
-     </article>
+    </article>
     
     <!--Transition: banner moves up to reveal map of Texas-->
 
     <!--slide 2: Klyde Warren Park-->
     <article class="slide" id="othercity1">
-      <div class="background-layer"></div>
+      <!-- <div class="background-layer"></div> -->
       <div class="othercity-container">
         <div class="text">
           <h2>Klyde Warren Park</h2>
@@ -144,7 +163,7 @@
 
     <!--slide 3: Cap at Union Station-->
     <article class="slide" id="othercity2">
-      <div class="background-layer"></div>
+      <!-- <div class="background-layer"></div> -->
       <div class="othercity-container">
         <div class="text">
           <h2>Cap at Union Station</h2>
@@ -175,7 +194,7 @@
 
     <!--slide 4: The Big Dig at the Central Artery -->
     <article class="slide" id="othercity3">
-      <div class="background-layer"></div>
+      <!-- <div class="background-layer"></div> -->
       <div class="othercity-container">
         <div class="text">
           <h2>The Big Dig at the Central Artery</h2>
@@ -205,16 +224,15 @@
 
     <!-- Banner 2: Summary and comparison to Chinatown Stitch -->
     <article class="banner" id="othercapssum">
+      <div class="opaquecircle" ></div>
       <div class="text">
         <h2>Other Caps Summary and Comparison to Chinatown Stitch</h2>
-        <p>A common thread across the impacts of caps in other cities is <strong>neighborhood access and connection</strong> as well as <strong>increased value of land</strong>. The <strong style="color: #DB5420;">Chinatown Stitch</strong> will not only reconnect Chinatown North to Chinatown, but also provide much needed open, green space for the community. A potential challenge after the construction of the Chinatown Stitch will be balancing the positive effects of higher land value and the <strong>activation of commercial and residential opportunities</strong> with <strong>affordability and cultural preservation</strong> of the character of Philadelphia's Chinatown. </p>
-        <p> <br> In our analyses, we explore how <strong>property price may change</strong> in three imagined futures after the implementation of the Chinatown Stitch.</p>
+        <p style="font-size: 1.25em; line-height: 1.25;">A common thread across the impacts of caps in other cities is <strong>neighborhood access and connection</strong> as well as <strong>increased value of land</strong>. The <strong style="color: #DB5420;">Chinatown Stitch</strong> will not only reconnect Chinatown North to Chinatown, but also provide much needed open, green space for the community. A potential challenge after the construction of the Chinatown Stitch will be balancing the positive effects of higher land value and the <strong>activation of commercial and residential opportunities</strong> with <strong>affordability and cultural preservation</strong> of the character of Philadelphia's Chinatown. </p>
+        <p style="font-size: 1.25em;"> <br>  <br>  <br> In our analyses, we explore how <strong>property price may change</strong> in three imagined futures after the implementation of the Chinatown Stitch.</p>
       </div>
     </article>
-  <!-- Start Slides over the map -->
-  <section class="slide-section">
+  
 
-    <!-- temporarily moved everything out of slides -->
 
   <!-- End Slides over the map -->
   </section>
@@ -227,9 +245,26 @@
       <div class="text">
         <h1 style="text-align: center;">3. Our Prediction Model</h1>
         <p class="modelfeatures">We trained a model that incorporates many <strong>features of properties</strong> (<ic>internal characteristics</ic> like number of bedrooms, <am>amenities</am> like distance to City Hall, and <lo>location</lo> like neighborhood names) to predict property prices using the following formula:</p>
-        <p class="equation">Price = <ic>Internal Characteristics</ic> + <am>Amenities</am> + <lo>Location</lo></p>
-        <p class="footnote">Please refer to our <a class="extlink2" href="">markdown</a> for more detailed information on our data analysis and modeling process.</p>
-        <p>Click "Next" to explore how we <strong>predict property prices</strong> to change as a result of the Chinatown Stitch!</p>
+        <div class="hiddenimg-container">
+          <p class="equation">Price = <ic>Internal Characteristics</ic> + <am>Amenities</am> + <lo>Location</lo></p>
+          <img class="hiddenimg" id="icon_bed" src="img/icon_bed.png" alt="bed icon"/>
+          <img class="hiddenimg" id="icon_AC" src="img/icon_AC.png" alt="air conditioner icon"/>
+          <img class="hiddenimg" id="icon_heater" src="img/icon_heater.png" alt="heater icon"/>
+          <img class="hiddenimg" id="icon_highway" src="img/icon_highway.png" alt="highway icon"/>
+          <img class="hiddenimg" id="icon_park" src="img/icon_park.png" alt="park icon"/>
+          <img class="hiddenimg" id="icon_train" src="img/icon_train.png" alt="train icon"/>
+          <img class="hiddenimg" id="icon_nhood" src="img/icon_nhood.png" alt="neighborhood icon"/>
+        </div>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <p class="caption" style="margin-left: 10%; margin-right: 10%;">**Please refer to our <a class="extlink2" href="">markdown</a> for more detailed information on our data analysis and modeling process.</p>
+        <p style="margin-left: 10%; margin-right: 10%; font-size: 1.25em;">Click "Next" to explore how we <strong>predict property prices</strong> to change as a result of the Chinatown Stitch!</p>
       </div>
 
       <a class="next-button" href="future.html">NEXT</a>
@@ -241,6 +276,7 @@
   
   <script src="js/topbar.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/slidedeck_now.js" type="module"></script>
   <script type="module" src="js/index_now.js"></script>
 
 </body>
