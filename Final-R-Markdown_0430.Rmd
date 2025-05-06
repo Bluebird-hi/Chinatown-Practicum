@@ -78,25 +78,23 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 # wd <- "E:/Spring/Practicum/DataAnalysis/Chinatown"
 
 # Aki
-#knitr::opts_knit$set(root.dir = "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/")
-#wd <- "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/"
+knitr::opts_knit$set(root.dir = "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/")
+wd <- "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/"
 
 # sijia
-knitr::opts_knit$set(root.dir = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum")
+# knitr::opts_knit$set(root.dir = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum")
 #setwd("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum/")  # for interactive chunks
-wd <- "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum"
+# wd <- "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum"
 
 nhoods_4326 <- 
-  # st_read("DataWrangling/akidata/philadelphia-neighborhoods.geojson") %>% # Luming
- # st_read("akidata/philadelphia-neighborhoods.geojson") %>% # Aki
   st_read("Dataset/philly_neighborhoods.geojson")%>%
   st_transform('EPSG:4326')
 
 # philly properties (from Sijia)
 # from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
-#philly_properties <- st_read("akidata/property_philly.geojson") # Aki, from most recent update, 4/21/25, 88,571 rows
+philly_properties <- st_read("akidata/property_philly.geojson") # Aki, from most recent update, 4/21/25, 88,571 rows
 # philly_properties <- st_read("DataWrangling/akidata/property_philly_cleaned.geojson") # Luming
-philly_properties <- st_read("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/DataWrangling/property_philly.geojson") #sijia
+# philly_properties <- st_read("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/DataWrangling/property_philly.geojson") #sijia
 ```
 
 # Use Case
@@ -164,8 +162,8 @@ property_studyarea_FE <- st_read("Dataset/property_CT_FE.geojson")
 ```
 
 ```{r read_data, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
-property <- st_read("Dataset/property/opa_properties_public2.geojson") %>%
-  st_transform('EPSG:2272')
+# property <- st_read("Dataset/property/opa_properties_public2.geojson") %>%
+#   st_transform('EPSG:2272')
 
 property2 <- st_read("Dataset/property/property2.geojson") %>%
   st_transform('EPSG:2272')
@@ -177,7 +175,7 @@ newpark <- st_read("Dataset/ParksModified/Park_join_I676_1.geojson")%>%
   st_transform('EPSG:2272')
 property2$distance_to_nearest_park <- property_park$distance_to_nearest_park
 
-nhood <- st_read("~/Documents/Upenn/Practicum/2025/Data/philly_neighborhoods.geojson")  #######change here!!!!!!!!!!!!!!!!!!!!!!
+# nhood <- st_read("~/Documents/Upenn/Practicum/2025/Data/philly_neighborhoods.geojson")  #######change here!!!!!!!!!!!!!!!!!!!!!!
 
 landuse <- st_read("Dataset/landuse_clip/Land_Use_ClipLayer.shp")
 
@@ -1024,11 +1022,47 @@ buff500 <- 500 * 3.28084
 hiway_500buff <- st_union(st_buffer(philly_highways, buff500))
 
 # read in pre-saved file
-#prop500 <- st_read("akidata/philly_prop500_dst2hghwy_250421.geojson") %>% # Aki, (download from Box)
-#  mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
+prop500 <- st_read("akidata/philly_prop500_dst2hghwy_250421.geojson") %>% # Aki, (download from Box)
+ mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
 
-prop500 <- st_read("~/Documents/Upenn/Practicum/2025/Data/philly_prop500_dst2hghwy_250421.geojson") %>% # sijia, (download from Box)
-  mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
+# prop500 <- st_read("~/Documents/Upenn/Practicum/2025/Data/philly_prop500_dst2hghwy_250421.geojson") %>% # sijia, (download from Box)
+#   mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
+
+# median price of properties around 50m away from all highways
+med_price_50m_us1 <- prop500 %>% 
+  filter(grepl("US", closest_highway),
+         dist_to_closest_highwaym > 45,
+         dist_to_closest_highwaym < 55) %>% 
+  pull(adj_sale_price) %>% 
+  median() # 265364.2
+
+med_price_50m_i76 <- prop500 %>% 
+  filter(grepl("-76", closest_highway),
+         dist_to_closest_highwaym > 45,
+         dist_to_closest_highwaym < 55) %>% 
+  pull(adj_sale_price) %>% 
+  median() # 220395.1
+
+med_price_50m_i95 <- prop500 %>% 
+  filter(grepl("95", closest_highway),
+         dist_to_closest_highwaym > 45,
+         dist_to_closest_highwaym < 55) %>% 
+  pull(adj_sale_price) %>% 
+  median() # 504324.8
+
+med_price_50m_676 <- prop500 %>% 
+  filter(grepl("676", closest_highway),
+         dist_to_closest_highwaym > 45,
+         dist_to_closest_highwaym < 55) %>% 
+  pull(adj_sale_price) %>% 
+  median() # 469939.4
+
+med_price_50m <- prop500 %>% 
+  filter(dist_to_closest_highwaym > 45,
+         dist_to_closest_highwaym < 55) %>% 
+  pull(adj_sale_price) %>% 
+  median() # 354044.7
+
 ```
 
 ```{r map_prop500}
@@ -1237,6 +1271,71 @@ We now zoom into our **study area** to further understand highway effects in our
 For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((2^coef_i676)*100000) - 100000)` more expensive** (assuming a block is about 100m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((2^coef_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((2^coef_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
 
 The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((2^coef_i95), 5)*100000)` less expensive**.
+
+
+### Interpreting Philly Highway Effects (using median price of \$350,000 as base line and comparing to a property 200m further away from highway)
+
+For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$350,000 (median price of properties within 45-55m away from any Philly highway) is 50m away from the highway, we can expect a similar property a block (assuming a block is about 200m) further from the highway to be about **`r paste0("$", round((4^coef_i676)*350000) - 350000)` more expensive** (or a `r round(100*((4^coef_i676)*350000 - 350000)/350000, 1)` % change). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_i76)*350000) - 350000)` more expensive** (`r round(100*((4^coef_i76)*350000 - 350000)/350000, 1)` % change) if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_us1)*350000) - 350000)` more expensive** (`r round(100*((4^coef_us1)*350000 - 350000)/350000, 1)` % change) if it were a block further from the highway.
+
+The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 350000 - round((4^coef_i95), 5)*350000)` less expensive** (`r round(100*((4^coef_i95)*350000 - 350000)/350000, 1)` % change).
+
+### using Sijia's interpretation method
+```{r prop500_predtable}
+# models
+lm_us1 <- lm(log_price ~ log_dist_to_closest_highway,
+             data = prop500 %>% 
+               filter(grepl("US", closest_highway)))
+
+lm_i76 <- lm(log_price ~ log_dist_to_closest_highway,
+             data = prop500 %>% 
+               filter(grepl("-76", closest_highway)))
+
+lm_i95 <- lm(log_price ~ log_dist_to_closest_highway,
+             data = prop500 %>% 
+               filter(grepl("95", closest_highway)))
+
+lm_676 <- lm(log_price ~ log_dist_to_closest_highway,
+             data = prop500 %>% 
+               filter(grepl("676", closest_highway)))
+
+distances <- seq(50, 250, by = 50)
+
+# model predictions
+pred_us1 <- exp(predict(lm_us1, newdata = data.frame(log_dist_to_closest_highway = log(distances))))
+
+pred_i76 <- exp(predict(lm_i76, newdata = data.frame(log_dist_to_closest_highway = log(distances))))
+
+pred_i95 <- exp(predict(lm_i95, newdata = data.frame(log_dist_to_closest_highway = log(distances))))
+
+pred_676 <- exp(predict(lm_676, newdata = data.frame(log_dist_to_closest_highway = log(distances))))
+
+# get predicted price changes from philly scale analysis
+prop500_pred_table <- data.frame(
+  Analysis_Scale = "Philadelphia",
+  Distance_m = distances,
+  US1_Prices = round(pred_us1),
+  I76_Prices = round(pred_i76),
+  I95_Prices = round(pred_i95),
+  I676_Prices = round(pred_676),
+  Chng_US1_Prices = round(pred_us1 - pred_us1[1]),
+  Chng_I76_Prices = round(pred_i76 - pred_i76[1]),
+  Chng_I95_Prices = round(pred_i95 - pred_i95[1]),
+  Chng_I676_Prices = round(pred_676 - pred_676[1]),
+  PercChng_US1_Prices = round(100*(pred_us1 - pred_us1[1])/pred_us1[1], 1),
+  PercChng_I76_Prices = round(100*(pred_i76 - pred_i76[1])/pred_i76[1], 1),
+  PercChng_I95_Prices = round(100*(pred_i95 - pred_i95[1])/pred_i95[1], 1),
+  PercChng_I676_Prices = round(100*(pred_676 - pred_676[1])/pred_676[1], 1)
+)
+prop500_pred_table %>% 
+  kbl(align = "c",
+      caption = "Regression Predictions: Log Price ~ Log Distance to Closest Highway",
+      col.names = c("Analysis Scale", "Distance (m)", "US-1 Prices", "I-76 Prices", "I-95 Prices", "I-676 Prices", "Change US-1 Prices", "Change I-76 Prices", "Change I-95 Prices", "Change I-676 Prices", "% Change US-1 Prices", "% Change I-76 Prices", "% Change I-95 Prices", "% Change I-676 Prices")) %>% 
+  kable_styling() %>% 
+  kable_classic(full_width = F, html_font = "Cambria") %>% 
+  row_spec(c(1,3), bold = T, background = "#7fe3d6")
+
+```
+
 
 
 ### I-95 Exploration
@@ -1611,6 +1710,13 @@ props_i676_tomodel <- property_studyarea_new %>%
     I676_NS
   )
 
+med_price_50m_studyarea <- props_i676_tomodel %>% 
+  mutate(dist_to_i676m = distance_to_I676 * 0.3048) %>% 
+  filter(dist_to_i676m > 45,
+         dist_to_i676m < 55) %>% 
+  pull(adj_sale_price) %>% 
+  median() # 639764.6
+
 ```
 
 ```{r RMSE_calculator}
@@ -1628,6 +1734,39 @@ getRMSE <- function(model_results) {
 ```
 
 #### Model Results
+
+```{r i676effects_plot_studyareanew}
+# model with just distance to highway
+model_i676 <- lm(log_price ~ log_dist_highway,
+                 data = props_i676_tomodel)
+# log_dist_highway  0.11110
+# Multiple R-squared:  0.01228,	Adjusted R-squared:  0.01163
+
+model_i676_summary <- summary(model_i676)
+model_i676_RMSE <- getRMSE(model_i676)
+
+# scatter plot of dist to I-676 and property price
+model_i676_scatter <- 
+  ggplot(data = props_i676_tomodel, 
+       aes(x = log_dist_highway, y = log_price)) +
+  geom_point(alpha = .2, size = 0.3, show.legend = F,
+             color = "#7fe3d6") +
+  geom_smooth(method = "lm", size = 1.2, show.legend = F,
+              color = "#7fe3d6", fill = "#7fe3d6") +
+  geom_text(aes(label = paste(model_i676_table$Estimate[2]),
+                x = 5.25,
+                y = 14.25),
+            color = "#7fe3d6",
+            show.legend = F) +
+  labs(title = "Property Price (log) as a function of Distance to I-676 (log)",
+       subtitle = "Properties in Study Area",
+       x = "Log Distance to I-676",
+       y = "Log Property Price") +
+  theme_minimal()
+
+model_i676_scatter
+
+```
 
 ```{r i676effects_model1_studyareanew}
 # model with just distance to highway
@@ -1659,7 +1798,7 @@ model_i676_table %>%
 
 ```
 
-From an overly simple model, just looking at how logged distance to [I-676]{style="color: #7fe3d6;"} predicts logged property price, we see that for properties within 500m of [I-676]{style="color: #7fe3d6;"}, distance from the highway does not have a large effect on property price. We see that for every 1% increase in distance to the highway, **property price increases by `r paste0(round(1.01^model_i676_table$Estimate[2] - 1, 4)*100,"%")`**. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^model_i676_table$Estimate[2])*100000) - 100000)` more expensive** (assuming a block is about 200m). The R-squared value of the model is very low at `r round(model_i676_summary$r.squared, 3)` and the RMSE is very high `r round(model_i676_RMSE,3)`, meaning the model is terrible.
+From an overly simple model, just looking at how logged distance to [I-676]{style="color: #7fe3d6;"} predicts logged property price, we see that for properties within 500m of [I-676]{style="color: #7fe3d6;"}, distance from the highway does not have a large effect on property price. We see that for every 1% increase in distance to the highway, **property price increases by `r paste0(round(1.01^model_i676_table$Estimate[2] - 1, 4)*100,"%")`**. In more understandable terms, this means that if a property that is \$650,000 (median price of properties between 45-55m from I-676) is 50m away from the highway, we can expect a similar property a block further from the highway (assuming a block is about 200m) to be about **`r paste0("$", round((4^model_i676_table$Estimate[2])*650000) - 650000)` more expensive** (`r round(100*((4^model_i676_table$Estimate[2])*650000 - 650000)/650000, 1)` % change). The R-squared value of the model is very low at `r round(model_i676_summary$r.squared, 3)` and the RMSE is very high `r round(model_i676_RMSE,3)`, meaning the model is terrible.
 
 ```{r i676effects_model2_studyareanew}
 # simple model but with more predictors
@@ -1698,7 +1837,53 @@ model_i676_more_table %>%
 
 Finally, we look at a more robust model (which is still relatively simple, including only internal features of the property in addition to ZIP code and logged distance to [I-676]{style="color: #7fe3d6;"}). This model includes the following predictors: year_built_group (categorical), quality_grade (categorical), number_of_bathrooms (categorical), number_of_bedrooms (categorical), total_area (continuous), central_air (categorical), building_code (categorical), zoning group (categorical), and a variable dictating whether the property is residential or not (binary). This more complex model does a better job at explaining the variance in property price than our previous two models, but is not optimal either. The **adjusted R-squared** for this model is **`r round(model_i676_more_summary$adj.r.squared, 3)`** and our **RMSE** is **`r round(model_i676_more_RMSE, 3)`**. 
 
-When including these other predictors, the **effect of logged distance to [I-676]{style="color: #7fe3d6;"} decreases** but remains statistically significant (beta coefficient of `r model_i676_more_table$Estimate[2]`). This means that for every 1% increase in distance from the highway, property price increases by `r paste0(round(abs(1.01^model_i676_more_table$Estimate[2] - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^model_i676_more_table$Estimate[2])*100000) - 100000)` more expensive**.
+When including these other predictors, the **effect of logged distance to [I-676]{style="color: #7fe3d6;"} decreases** but remains statistically significant (beta coefficient of `r model_i676_more_table$Estimate[2]`). This means that for every 1% increase in distance from the highway, property price increases by `r paste0(round(abs(1.01^model_i676_more_table$Estimate[2] - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^model_i676_more_table$Estimate[2])*650000) - 650000)` more expensive** (`r round(100*((4^model_i676_more_table$Estimate[2])*650000 - 650000)/650000, 1)` % change).
+
+#### Model Predictions to look at price changes
+
+```{r i676_predtable}
+distances <- seq(50, 250, by = 50)
+
+# model predictions
+pred_i676_simple <- exp(predict(model_i676, newdata = data.frame(log_dist_highway = log(distances))))
+
+# this complicated model needs more parameters
+# where possible, i use the median value, otherwise the most common value for these other control variables
+pred_i676_more <- exp(predict(model_i676_more, 
+                              newdata = data.frame(
+                                log_dist_highway = log(distances),
+                                residential = 1,
+                                building_code_description_new = "LeastExpensive",
+                                zoning_group = "CMX(3,4)",
+                                year_built_group = "Pre-War",
+                                central_air = "Unknown",
+                                number_of_bedrooms = "0",
+                                number_of_bathrooms = "0",
+                                total_area = 0,
+                                quality_grade = "Below Average",
+                                zip_code = "19107")
+                              ))
+
+# get predicted price changes from philly scale analysis
+i676_pred_table <- data.frame(
+  Analysis_Scale = "I-676 Effects in Study Area",
+  Distance_m = distances,
+  HighwayOnly_Prices = round(pred_i676_simple),
+  HighwayPlus_Prices = round(pred_i676_more),
+  Chng_HighwayOnly_Prices = round(pred_i676_simple - pred_i676_simple[1]),
+  Chng_HighwayPlus_Prices = round(pred_i676_more - pred_i676_more[1]),
+  PercChng_HighwayOnly_Prices = round(100*(pred_i676_simple - pred_i676_simple[1]) / pred_i676_simple[1], 1),
+  PercChng_HighwayPlus_Prices = round(100*(pred_i676_more - pred_i676_more[1]) / pred_i676_more[1], 1)
+)
+i676_pred_table %>% 
+  kbl(align = "c",
+      caption = "Regression Predictions for I-676 Effects",
+      col.names = c("Analysis Scale", "Distance (m)", "Highway Only Prices", "Highway Plus Prices", "Change Highway Only Prices", "Change Highway Plus Prices", "% Change Highway Only Prices", "% Change Highway Plus Prices")) %>% 
+  kable_styling() %>% 
+  kable_classic(full_width = F, html_font = "Cambria") %>% 
+  row_spec(c(1,3), bold = T, background = "#7fe3d6")
+
+```
 
 ### Discontinuity Effects
 
@@ -1714,7 +1899,7 @@ discontinuity_plot_ungrouped <- props_i676_tomodel %>%
            I676_NS == "south" ~ -distance_to_I676m
            ))
 
-discontinuity_plot <- discontinuity_plot_ungrouped%>% 
+discontinuity_plot <- discontinuity_plot_ungrouped %>% 
   group_by(distance_to_highway, I676_NS) %>%
   summarise(mean_log_price = mean(log_price, na.rm = T), .groups = "drop")
 
@@ -1822,6 +2007,14 @@ coef_north <- round(
                 I676_NS == "north")) # 609 properties
     )$coefficients[2,1], 3) # p = 0.636
 
+coef_north_unrounded <- 
+  summary(
+    lm(log_price ~ distance_to_highway,
+       data = discontinuity_plot_ungrouped %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "north")) # 609 properties
+    )$coefficients[2,1] # p = 0.636
+
 coef_south <- round(
   summary(
     lm(log_price ~ abs(distance_to_highway), # need to use absolute value cause distance values are negative
@@ -1829,6 +2022,14 @@ coef_south <- round(
          filter(abs(distance_to_highway) <= 500,
                 I676_NS == "south")) # 811 properties
     )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_south_unrounded <- 
+  summary(
+    lm(log_price ~ abs(distance_to_highway), # need to use absolute value cause distance values are negative
+       data = discontinuity_plot_ungrouped %>% 
+         filter(abs(distance_to_highway) <= 500,
+                I676_NS == "south")) # 811 properties
+    )$coefficients[2,1] # *** p < 0.001
 
 discont_plot_ungrouped <- discontinuity_plot_ungrouped %>% 
   filter(abs(distance_to_highway) <= 500) %>% # limiting it to the properties within 500m
@@ -1863,18 +2064,152 @@ discont_plot_ungrouped <- discontinuity_plot_ungrouped %>%
                 y = 11.825),
             color = "#1a9988",
             show.legend = F)
+
+discont_plot_ungrouped_adjsaleprice <- discontinuity_plot_ungrouped %>% 
+  filter(abs(distance_to_highway) <= 500) %>% # limiting it to the properties within 500m
+  ggplot(aes(x = distance_to_highway, y = adj_sale_price, color = I676_NS)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, size = 1.2) +
+  geom_vline(xintercept = 0, color = "black", size = 2) +
   
+  # custom colors
+  scale_colour_manual(values = c("#eb5600", "#1a9988")) +
+  
+  theme_minimal() +
+  theme(legend.position = "None",
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = ggtext::element_markdown(size = 12),
+        plot.caption = element_text(hjust = 0)) +
+  labs(title = 'Logged Sale Price as a Function of Distance to I-676', 
+       subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+       x = "Distance to the Highyway (m)",
+       y = "Log-transformed Sale Price") +
+  # add annotations
+  geom_label(aes(x = 0, y = 0, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+  geom_text(aes(label = coef_north,
+                x = 250,
+                y = 2750000),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = coef_south,
+                x = -250,
+                y = 2750000),
+            color = "#1a9988",
+            show.legend = F)
+
 discont_plot
 discont_plot_ungrouped
+discont_plot_ungrouped_adjsaleprice
 
 # save image for powerpoint
 # ggsave("PPT/Images/p2_discontinuity_within_500m.png",
+#        plot = discont_plot_ungrouped,
 #        height = 7, width = 10, units = "in")
 ```
+
+```{r discontinuity_plot_morethan500}
+# idk why we limited our plot to 500m but it's erasing the effect of the properties more than 500m away
+coef_north_all <- summary(
+  lm(log_price ~ distance_to_highway,
+                 data = discontinuity_plot_ungrouped %>% 
+                   filter(I676_NS == "north")) # 717 properties
+  )$coefficients[2,1] # -0.000, p = 0.556
+
+coef_south_all <- summary(
+  lm(log_price ~ abs(distance_to_highway), # need to use abs value cause distance values are neg
+                 data = discontinuity_plot_ungrouped %>% 
+                   filter(I676_NS == "south")) # 811 properties
+  )$coefficients[2,1] # 0.001, *** p < 0.001
+
+discont_plot_ungrouped_all <- discontinuity_plot_ungrouped %>% 
+  ggplot(aes(x = distance_to_highway, y = log_price, color = I676_NS)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, size = 1.2) +
+  geom_vline(xintercept = 0, color = "black", size = 2) +
+  
+  # custom colors
+  scale_colour_manual(values = c("#eb5600", "#1a9988")) +
+  
+  theme_minimal() +
+  theme(legend.position = "None",
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = ggtext::element_markdown(size = 12),
+        plot.caption = element_text(hjust = 0)) +
+  labs(title = 'Logged Sale Price as a Function of Distance to I-676', 
+       subtitle = glue("<span style='color:#1a9988;'>South Side</span> vs. <span style='color:#eb5600;'>North Side</span>"),
+       x = "Distance to the Highyway (m)",
+       y = "Log-transformed Sale Price") +
+  
+  # add annotations
+  geom_label(aes(x = 0, y = 11, label = "I-676"),
+             fill = "black", color = "white", fontface = "bold", size = 5) +
+  geom_text(aes(label = coef_north,
+                x = 250,
+                y = 11.825),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = coef_south,
+                x = -250,
+                y = 11.825),
+            color = "#1a9988",
+            show.legend = F)
+
+discont_plot_ungrouped_all
+
+```
+
 
 In the plot above, we see that on the [North side]{style="color: #eb5600;"} of [I-676]{style="color: #7fe3d6;"}, property prices remain relatively stable and unaffected by distance to the highway. The median property price in the [North]{style="color: #eb5600;"} is `r paste0("$", substr(med_north, 1, 3), ",", substr(med_north, 4, 6))`. When predicting logged property price, the beta coefficient for distance to highway is `r coef_north`, meaning the **highway has no effect on the price**.
 
 On the other hand, in the [South side]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"}, property prices are within the same range of prices as in the [North side]{style="color: #eb5600;"}, but the median property price is slightly higher at `r paste0("$", substr(med_south, 1, 3), ",", substr(med_south, 4, 6))`. When predicting logged property price to the [South]{style="color: #1a9988;"} of the highway, the beta coefficient for distance to highway is `r coef_south`, meaning **distance to highway has a very small, positive effect on the price**. For every 1m increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(exp(coef_south)-1, 3)*100,"%")`. In more understandable terms, a property that is \$100,000 and 50m [South]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"} would be about **`r paste0("$", round((exp(coef_south)^150)*100000) - 100000)` more expensive** a block further from the highway.
+
+#### Interpretation with median price of $650,000 and 200m away
+
+In the plot above, we see that on the [North side]{style="color: #eb5600;"} of [I-676]{style="color: #7fe3d6;"}, property prices remain relatively stable and unaffected by distance to the highway. The median property price in the [North]{style="color: #eb5600;"} is `r paste0("$", substr(med_north, 1, 3), ",", substr(med_north, 4, 6))`. When predicting logged property price, the beta coefficient for distance to highway is `r coef_north`, meaning the **highway has no effect on the price**. More precisely, for a property that is \$650,000 (median price of properties between 45-55m from I-676) and 50m [north]{style="color: #eb5600;"} of the highway, we can expect a similar property a block further from the highway (assuming a block is about 200m) to be about **`r paste0("$", round(650000 - (exp(coef_north_all)^150)*650000))` cheaper** (`r round(100*((exp(coef_north_all)^150)*650000 - 650000)/650000, 1)` % change).
+
+On the other hand, in the [South side]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"}, property prices are within the same range of prices as in the [North side]{style="color: #eb5600;"}, but the median property price is slightly higher at `r paste0("$", substr(med_south, 1, 3), ",", substr(med_south, 4, 6))`. When predicting logged property price to the [South]{style="color: #1a9988;"} of the highway, the beta coefficient for distance to highway is `r coef_south`, meaning **distance to highway has a positive effect on the price**. For every 1m increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(exp(coef_south_all)-1, 3)*100,"%")`. In more understandable terms, a property that is \$650,000 and 50m [South]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"} would be about **`r paste0("$", round((exp(coef_south_all)^150)*650000) - 650000)` more expensive** a block further from the highway (`r round(100*((exp(coef_south_all)^150)*650000 - 650000)/650000, 1)` % change).
+
+#### Model Predictions to look at Price change
+
+```{r disc_predtable}
+# models (redoing them because i want to use log_dist_highway)
+i676_north <- lm(log_price ~ log_dist_highway,
+                 data = discontinuity_plot_ungrouped %>% 
+                   filter(I676_NS == "north"))
+
+i676_south <- lm(log_price ~ abs(log_dist_highway),
+                 data = discontinuity_plot_ungrouped %>% 
+                   filter(I676_NS == "south"))
+
+distances <- seq(50, 250, by = 50)
+
+# model predictions
+pred_i676_n <- exp(predict(i676_north, newdata = data.frame(log_dist_highway = log(distances))))
+
+pred_i676_s <- exp(predict(i676_south, newdata = data.frame(log_dist_highway = log(distances))))
+
+# get predicted price changes from philly scale analysis
+i676NS_pred_table <- data.frame(
+  Analysis_Scale = "I-676 Effects -- North/South",
+  Distance_m = distances,
+  HighwayOnly_Prices = round(pred_i676_n),
+  HighwayPlus_Prices = round(pred_i676_s),
+  Chng_HighwayOnly_Prices = round(pred_i676_n - pred_i676_n[1]),
+  Chng_HighwayPlus_Prices = round(pred_i676_s - pred_i676_s[1]),
+  PercChng_HighwayOnly_Prices = round(100*(pred_i676_n - pred_i676_n[1]) / pred_i676_n[1], 1),
+  PercChng_HighwayPlus_Prices = round(100*(pred_i676_s - pred_i676_s[1]) / pred_i676_s[1], 1)
+)
+i676NS_pred_table %>% 
+  kbl(align = "c",
+      caption = "Regression Predictions for I-676 Effects -- North/South",
+      col.names = c("Analysis Scale", "Distance (m)", "North of I-676 Prices", "South of I-676 Prices", "Change North of I-676 Prices", "Change South of I-676 Prices", "% Change North of I-676 Prices", "% Change South of I-676 Prices")) %>% 
+  kable_styling() %>% 
+  kable_classic(full_width = F, html_font = "Cambria") %>% 
+  row_spec(c(1,3), bold = T, background = "#7fe3d6")
+
+```
+
 
 This demonstrates that in our study area, the **highway has a very small influence on property price** that is only really seen on the [South side]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"}.
 
@@ -2421,12 +2756,12 @@ cor_selected <- correlation_long %>%
     vjust_pos = ifelse(I676_NS == "north", 1.1, -1.1)
   )
 
-ggplot(correlation_long %>% filter(use_in_plot),
+CH_676_TLA_plot <- ggplot(correlation_long %>% filter(use_in_plot),
        aes(x = Value, y = log_sale_price)) +
   geom_point(aes(color = I676_NS), alpha = 0.4, size = 0.3) +
   geom_smooth(aes(color = I676_NS), method = "lm", se = FALSE, linewidth = 1) +
   facet_wrap(~ Variable, scales = "free", ncol = 3) +
-  scale_color_manual(values = c("north" = "#1a9988", "south" = "#eb5600")) +
+  scale_color_manual(values = c("north" = "#eb5600", "south" = "#1a9988")) +
   labs(
     title = "Log-transformed Sale Price vs Continuous Features by I-676 Side",
     caption = "Figure X.X",
@@ -2441,6 +2776,15 @@ ggplot(correlation_long %>% filter(use_in_plot),
     plot.caption = element_text(hjust = 0.5),
     legend.position = "bottom"
   )
+
+CH_676_TLA_plot
+
+# ggsave("PPT/Images/cityhall_highway_effects.png",
+#        plot = CH_676_TLA_plot,
+#        height = 5,
+#        width = 8.5,
+#        units = "in",
+#        dpi = 300)
 
 ```
 
@@ -2464,7 +2808,7 @@ base_font_size <- 10
 
 plot_zoning <- ggplot(zoning_bar_data, aes(x = zoning_group, y = mean_sale_price, fill = I676_NS)) +
   geom_col(position = "dodge", alpha = 0.9) +
-  scale_fill_manual(values = c("north" = "#1a9988", "south" = "#eb5600")) +
+  scale_fill_manual(values = c("north" = "#eb5600", "south" = "#1a9988")) +
   labs(
     title = "Average Sale Price by Zoning Group and I-676 Side",
     x = "Zoning Group", y = "Avg Sale Price ($)"
@@ -2478,7 +2822,7 @@ plot_zoning <- ggplot(zoning_bar_data, aes(x = zoning_group, y = mean_sale_price
 
 plot_quality <- ggplot(quality_bar_data, aes(x = factor(quality_grade), y = mean_sale_price, fill = I676_NS)) +
   geom_col(position = "dodge", alpha = 0.9) +
-  scale_fill_manual(values = c("north" = "#1a9988", "south" = "#eb5600")) +
+  scale_fill_manual(values = c("north" = "#eb5600", "south" = "#1a9988")) +
   labs(
     title = "Average Sale Price by Quality Grade and I-676 Side",
     x = "Quality Grade", y = "Avg Sale Price ($)",
