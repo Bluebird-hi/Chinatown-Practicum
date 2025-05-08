@@ -118,6 +118,13 @@ This purpose of this study is to help OTIS **understand the housing market of Ph
 
 ## Study Area
 
+```{r}
+# hydro <- st_read("https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Hydrographic_Features_Poly/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson") %>% 
+#     st_transform(crs = 'EPSG:2272') %>% 
+#   st_intersection(philly_bounds)
+```
+
+
 ```{r StudyArea_data, quiet = TRUE, results = 'hide'}
 Philly_blockgroup <- st_read("Dataset/Philly_blockgroup/Philly_blockgroup.shp") %>%
   st_transform('EPSG:2272')
@@ -156,8 +163,8 @@ property_south <- property_original %>%
   st_intersection(studyarea_south)
 
 # philly hydrology for mapping (bounded by philly_bounds; source: https://opendataphilly.org/datasets/hydrology/)
-hydro <- st_read("https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Hydrographic_Features_Poly/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson") %>% 
-    st_transform(crs = 'EPSG:2272') %>% 
+hydro <- st_read("https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Hydrographic_Features_Poly/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson") %>%
+    st_transform(crs = 'EPSG:2272') %>%
   st_intersection(philly_bounds)
 
 philly_highways <- st_read("Dataset/Highways/Casestudy_Highways.shp") %>% 
@@ -1561,6 +1568,8 @@ theme_set(theme_bw())
 g <- glimpse
 property_CT_FE <- st_read("Dataset/property/property_CT_FE.geojson") %>%
   st_transform('EPSG:4326')
+property_CT_FE <- property_CT_FE %>%
+  filter(objectid != 587388156)
 
 property_modeling <- property_CT_FE %>%
   mutate(
@@ -2032,8 +2041,8 @@ val_MAPE_by_zoning <- val_preds %>%
 
 val_MAPE_by_zoning_plot <- val_MAPE_by_zoning %>%
   mutate(color = case_when(
-    zoning_group %in% c("Other", "IRMX", "CMX5") ~ "#eb5600",
-    !zoning_group %in% c("Other", "IRMX", "CMX5") ~ "#1a9988"
+    zoning_group %in% c("IRMX", "CMX5") ~ "#eb5600",
+    !zoning_group %in% c("IRMX", "CMX5") ~ "#1a9988"
   ))
 ```
 
@@ -2055,27 +2064,28 @@ ggplot(data = val_pred_sf_plot,aes(x = MAPE)) +
     hjust = 0, size = 4, color = "#eb5600")
 ```
 
-```{r}
-ggplot(val_pred_sf_plot %>% 
-         filter(!MAPE<.34), 
+```{r RF_MAPE_plot1-2}
+RF_MAPE_plot1_2 <- ggplot(val_pred_sf_plot %>% 
+         filter(!MAPE<.3193), 
        aes(x = log_adj_sale_price, y = .pred)) +
-  geom_point(color = "grey", alpha = 0.3, size = 1) +
+  geom_point(color = "grey", alpha = 0.4, size = 1.5) +
   geom_point(data = val_pred_sf_plot %>% 
-               filter(MAPE<.34), 
+               filter(MAPE<.3193), 
              aes(x = log_adj_sale_price, y = .pred), 
              color = "#1a9988", alpha = 0.5, size = 2) +
   geom_abline(linetype = "dashed", color = "black") +
   geom_smooth(method = "lm", color = "black", se = FALSE) +
   coord_equal() +
   labs(x = "Observed value", y = "Predicted value",
-       title = "Prediction Accuracy <span style='color:#1a9988;'>(Errors < 30%)</span>",
+       title = "Prediction Accuracy <span style='color:#1a9988;'>(Errors < 31.93%)</span>",
        subtitle = "Random Forest model; Test set validation") +
   theme_minimal() +
   theme(
     axis.text = element_blank(),
-    plot.title = ggtext::element_markdown(size = 16, face = "bold"),
-    axis.title = element_blank()
+    plot.title = ggtext::element_markdown(size = 16, face = "bold")
   )
+RF_MAPE_plot1_2
+#ggsave(filename = "PPT/Images/RF_MAPE_plot1_2.png", plot = RF_MAPE_plot1_2, height = 5, width = 8.5, units = "in", dpi = 300)
 ```
 
 
@@ -2126,7 +2136,7 @@ The distribution of prediction errors shows **no obvious spatial clustering**, s
 
 ```{r RF_MAPE_plot3}
 # plot MAPE by zoning
-ggplot(val_MAPE_by_zoning_plot, aes(x = reorder(zoning_group, MAPE), y = MAPE)) +
+RF_MAPE_plot3 <- ggplot(val_MAPE_by_zoning_plot, aes(x = reorder(zoning_group, MAPE), y = MAPE)) +
   geom_bar(stat = "identity", aes(fill = color), width = .7, alpha = .7) +
   scale_fill_identity() + 
   scale_y_continuous(breaks = seq(0,6,0.5)) +
@@ -2137,6 +2147,8 @@ ggplot(val_MAPE_by_zoning_plot, aes(x = reorder(zoning_group, MAPE), y = MAPE)) 
   theme(plot.title = element_text(size = 16, face = "bold"),
     axis.text.x = element_text(angle = -45, hjust = 0)
   )
+RF_MAPE_plot3
+#ggsave(filename = "PPT/Images/RF_MAPE_plot3.png", plot = RF_MAPE_plot3, height = 5, width = 8.5, units = "in", dpi = 300)
 ```
 
 In the previous OLS model (Section 3.3.3.1), property price showed a strong relationship with zoning type, suggesting that **zoning serves as a meaningful proxy for how property value is perceived and regulated in practice**. For example, properties located in higher-density commercial zones such as CMX-4 or CMX-5 tended to exhibit significantly higher prices compared to those in residential zones like RM-1 or RSA-5. This reflects the **greater development potential and permitted uses in commercial mixed-use zones**, which typically allow for larger floor-area ratios (FAR), more flexible building types, and access to high-traffic areas—factors that increase market demand and drive up land value.
@@ -2147,7 +2159,7 @@ This pattern may also explain a preference for using the model’s predictions i
 ```{r RF_without_zoning_plot}
 # Filtered results
 RF_filtered_results <- val_pred_sf_plot %>% 
-  filter(!zoning_group %in% c("IRMX", "CMX5", "Other")) %>% 
+  filter(!zoning_group %in% c("IRMX", "CMX5")) %>% 
   st_drop_geometry() %>%
   group_by(model) %>%
   summarise(
@@ -2156,7 +2168,7 @@ RF_filtered_results <- val_pred_sf_plot %>%
     MAPE = paste0(round(100 * mean(abs(predicted_price - actual_price) / actual_price), 2), "%"),
     .groups = "drop"
   ) %>%
-  mutate(zoning_scope = "Without IRMX, CMX5, Other")
+  mutate(zoning_scope = "Without IRMX, CMX5")
 
 # Unfiltered results
 RF_all_results <- val_pred_sf_plot %>% 
