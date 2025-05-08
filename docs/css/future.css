@@ -197,7 +197,7 @@ body {
     border-radius: 0.5rem;
     pointer-events: initial;
   
-    width: 40rem;
+    width: 30rem;
   
     background-color: white; /* background of the slides*/
     color: #279382;
@@ -315,15 +315,6 @@ body {
   margin-left: 30%;
   margin-right: 20%;
   }
-
-  h1{
-    font-weight: 800;
-    font-size: 6rem;
-    margin-top: auto;
-    margin-bottom: auto;
-    width: 100%;
-    font-style: bold;
-  }
   
   .layout0 .timeline .image {
   width: 100%;
@@ -417,3 +408,310 @@ body {
   color: rgb(255, 255, 255);
   font-size: 0.8em;
 }
+
+
+
+
+
+
+
+
+/* 3. Slides */
+
+.layout0 {
+  position: relative; /* allow child positioning */
+  overflow: hidden;
+  min-height: 100vh;
+  width: 100vw;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0; /* remove side padding to allow full-width background */
+  box-sizing: border-box;
+  
+  color: #0D564B;
+  }
+  
+  /* 3.1 Timeline*/
+  
+  /* Fixed, full-screen background image */
+  .layout0 .background-layer {
+  background-image: url('../img/Storymap-background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* makes it stay in place */
+  }
+  
+.layout0.timeline {
+  background-color: #279382;
+  }
+  
+.layout0 .text {
+  color: #ffffff;
+  font-size: 1.3em;
+  text-align: left;
+  margin-left: 30%;
+  margin-right: 20%;
+  }
+  
+.layout0.timeline .image {
+  width: 100%;
+  max-width: 100%;
+  padding: 0 10%;
+  box-sizing: border-box;
+  }
+  
+.layout0.timeline .image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  }
+  
+.layout0.timeline {
+  padding: 40px 0;
+  }
+  
+  /* Remove all padding and margin from the timeline page */
+.layout0.timeline .content {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* center the image horizontally */
+  }
+  
+  /* Make the image fill full width */
+.layout0.timeline .image {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  }
+  
+  /* Remove auto margin and scale image */
+.layout0.timeline .image img {
+  width: 100%;
+  height: auto;
+  margin: 0;
+  display: block;
+  }
+  
+  /* 3.2 slide background */
+  
+  .background-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  z-index: 0; /* stay behind content */
+  }
+  
+  .layout0{
+    background-color: #f2f2f2;
+  }
+  
+  
+  /* 3.3 layouts */
+  
+  .layout0 .content {
+  position: relative;
+  z-index: 1; /* above background */
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding-left: 10%;
+  padding-right: 10%;
+  margin-right: 10%;
+  }
+  
+ .layout0 {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .layout0 .text {
+    margin-bottom: 40px;
+    margin-left: 20%;
+    margin-right: 10%;
+    text-align: left;
+  }
+  
+  .layout0 .ul li a {
+    text-decoration:none;
+  }
+  
+  .layout0 .image {
+    width: 1000px;
+    height: 300px;
+    margin: 0 auto;
+    background-color: transparent;
+  }
+  
+  .responsive-img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  
+
+/* 3.4 use case */
+.new-usecase-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 40px;
+}
+
+.usecase-text {
+  max-width: 800px;
+  color: #ffffff;
+  font-size: larger;
+}
+
+/* Only center the h1 inside usecase-text */
+.usecase-text h1 {
+  text-align: center;
+}
+
+/* Left-align all the paragraphs */
+.usecase-text p {
+  text-align: left;
+}
+
+.future-horizontal {
+  display: flex;
+  justify-content: center;
+  gap: 40px; /* Space between cards */
+}
+
+.future-horizontal .grid-item {
+  width: 250px; /* Same size as your original cards */
+  text-align: center;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.future-horizontal .grid-item img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+}
+
+.future-horizontal .grid-item:hover img {
+  transform: scale(1.05);
+}
+
+.future-horizontal .grid-item h3 {
+  margin-top: 10px;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: white;
+  transition: color 0.3s;
+}
+
+.future-horizontal .grid-item:hover h3 {
+  color: #ffae00;
+}
+
+
+
+
+
+
+  /* 3.5 Problems */
+  
+  /* Container for problem cards */
+  .problem-container {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  padding: 40px;
+  flex-wrap: wrap;
+  }
+  
+  .problem-card {
+    width: 300px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    text-align: left;
+    transition: transform 0.3s;
+  }
+  
+  .problem-card p {
+    word-wrap: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
+    font-size: 14px;
+    color: #279382;
+    margin-top: 10px;
+  }
+  
+  
+  .problem-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .problem-img {
+    width: 100%;
+    height: 200px;
+    background-color: #ddd;
+    margin-bottom: 15px;
+  }
+
+  .problem-link{
+    text-decoration: none;
+    color: #279382;
+  }
+  
+  
+  /* Button */
+  .next-button {
+    align-self: flex-end;
+    margin-top: auto;
+    margin-right: 10%;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 5px;
+    background-color: white;
+    color: #279382;
+    font-weight: bold;
+    font-size: 16px;
+    text-decoration: none;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  /* Hover effect */
+  .next-button:hover {
+    background-color: #DB5420;
+    color: white;
+  }
+  
+   /*make sure the card and button above background*/
+  .problem-container,
+  .next-button {
+    position: relative;
+    z-index: 1;
+  }
+  
+
+
+  .info.legend {
+    background: white;
+    padding: 10px;
+    font-size: 13px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.4);
+    border-radius: 5px;
+  }
+  
