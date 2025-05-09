@@ -101,9 +101,9 @@ philly_properties <- st_read("akidata/property_philly.geojson") # Aki, from most
 
 ## Background
 
-It is hard to talk about the history of the **Philadelphia Chinatown** without the construction of **I-676**, also known as the **Vine Street Expressway**. Although the highway serves as a significant thoroughfare through Center City Philadelphia, the indispensable repercussion on the adjacent neighborhoods still lingers today. Consequences of the highway such as demolishment of buildings, pedestrian safety threats, traffic congestion, as well as noise and air pollutions had been harming Chinatown and its surrounding neighborhoods over the past decades and are yet to be addressed.
+It is hard to talk about the history of the **Philadelphia Chinatown** without the construction of **I-676**, also known as the **Vine Street Expressway** which bisected the neighborhood. Although the highway serves as a significant thoroughfare through Center City Philadelphia, the indispensable repercussions on the adjacent neighborhoods still lingers today. Consequences of the highway such as demolition of buildings, pedestrian safety threats, traffic congestion, as well as noise and air pollution has been harming Chinatown and its surrounding neighborhoods over the past decades and are yet to be addressed.
 
-Standing in opposition to the issues, [City of Philadelphia Office of Transportation and Infrastructure and Sustainability (OTIS)](https://www.phila.gov/departments/office-of-transportation-and-infrastructure-systems/) brought forth the plan of capping sections of the expressway as a solution to address its historical harms on the Chinatown region. This “cap”, named **the Chinatown Stitch project**, aimed to create a safe and equitable green space for the public that would reconnect areas north and south to the Vine Street expressway. Receiving funds from the US department of Transportation and the local organizations, the construction of the Chinatown Stitch will start in 2027 and is expected to be completed in early 2030.
+In the last couple of years, [City of Philadelphia Office of Transportation and Infrastructure Systems (OTIS)](https://www.phila.gov/departments/office-of-transportation-and-infrastructure-systems/) brought forth the plan to cap sections of the expressway to address its historical harms on the Chinatown region. This “cap”, named **the Chinatown Stitch project**, aimed to create a safe and equitable green space for the public that would reconnect areas north and south to the Vine Street expressway. Receiving funds from the US department of Transportation and the local organizations, the construction of the Chinatown Stitch will start in 2027 and is expected to be completed in early 2030.
 
 This purpose of this study is to help OTIS **understand the housing market of Philadelphia Chinatown region before and after the implementation of the Chinatown Stitch**. The first part of the study will focus the effects of highways on sales prices in the study region as well as the entire Philadelphia. House prices will then be estimated using **three predictive models under three different future scenarios**: business as usual without the implementation of the Chinatown Stitch, business as usual with the implementation of the Chinatown Stitch, and an alternative future in which the Chinatown Stitch significantly reshapes the urban landscape of the study region.
 
@@ -1745,7 +1745,14 @@ model_i676 <- lm(log_price ~ log_dist_highway,
 model_i676_summary <- summary(model_i676)
 model_i676_RMSE <- getRMSE(model_i676)
 
-# scatter plot of dist to I-676 and property price
+# create a clean table to show model results
+model_i676_table <- data.frame(model_i676_summary$coefficients) %>% 
+  rename(p = `Pr...t..`) %>% 
+  select(Estimate, p) %>% 
+  mutate(Estimate = round(Estimate, 3),
+         p = round(p, 3))
+row.names(model_i676_table) <- c("Intercept", "Log Dist. to I-676")
+
 model_i676_scatter <- 
   ggplot(data = props_i676_tomodel, 
        aes(x = log_dist_highway, y = log_price)) +
@@ -1769,23 +1776,6 @@ model_i676_scatter
 ```
 
 ```{r i676effects_model1_studyareanew}
-# model with just distance to highway
-model_i676 <- lm(log_price ~ log_dist_highway,
-                 data = props_i676_tomodel)
-# log_dist_highway  0.11110
-# Multiple R-squared:  0.01228,	Adjusted R-squared:  0.01163
-
-model_i676_summary <- summary(model_i676)
-model_i676_RMSE <- getRMSE(model_i676)
-
-# create a clean table to show model results
-model_i676_table <- data.frame(model_i676_summary$coefficients) %>% 
-  rename(p = `Pr...t..`) %>% 
-  select(Estimate, p) %>% 
-  mutate(Estimate = round(Estimate, 3),
-         p = round(p, 3))
-row.names(model_i676_table) <- c("Intercept", "Log Dist. to I-676")
-
 model_i676_table %>% 
   kbl(align = c("l", rep("c", 2)),
       caption = "Regression Results: Log Price ~ Log Distance to I-676",
@@ -3568,14 +3558,14 @@ discontinuity_plot_S1 <- ggplot(data = discontinuity_S1_predict) +
             show.legend = F)
 discontinuity_plot_S1
 
-ggsave(
-  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S1.png",
-  plot = discontinuity_plot_S1,
-  height = 5,
-  width = 8.5,
-  units = "in",
-  dpi = 300
-)
+# ggsave(
+#   filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S1.png",
+#   plot = discontinuity_plot_S1,
+#   height = 5,
+#   width = 8.5,
+#   units = "in",
+#   dpi = 300
+# )
 ```
 
 
@@ -3848,7 +3838,7 @@ S2_changed_map <- ggplot() +
   )
 
 S2_changed_map
-ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S2_comm_map.png", plot =S2_changed_map, height = 5, width = 8.5, units = "in", dpi = 300)
+# ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S2_comm_map.png", plot =S2_changed_map, height = 5, width = 8.5, units = "in", dpi = 300)
 ```
 
 ### Alternate Commercial - discontinuity plot
@@ -3916,14 +3906,14 @@ discontinuity_plot_S2 <- ggplot(data = discontinuity_S2) +
 
 discontinuity_plot_S2
 
-ggsave(
-  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S2.png",
-  plot = discontinuity_plot_S2,
-  height = 5,
-  width = 8.5,
-  units = "in",
-  dpi = 300
-)
+# ggsave(
+#   filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S2.png",
+#   plot = discontinuity_plot_S2,
+#   height = 5,
+#   width = 8.5,
+#   units = "in",
+#   dpi = 300
+# )
 ```
 
 
@@ -4196,7 +4186,7 @@ S3_changed_map <- ggplot() +
   )
 
 S3_changed_map
-ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S3_res_map.png", plot = S3_changed_map, height = 5, width = 8.5, units = "in", dpi = 300)
+# ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S3_res_map.png", plot = S3_changed_map, height = 5, width = 8.5, units = "in", dpi = 300)
 
 ```
 
@@ -4266,14 +4256,14 @@ discontinuity_plot_S3 <- ggplot(data = discontinuity_S3) +
             show.legend = F)
 
 discontinuity_plot_S3
-ggsave(
-  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S3.png",
-  plot = discontinuity_plot_S3,
-  height = 5,
-  width = 8.5,
-  units = "in",
-  dpi = 300
-)
+# ggsave(
+#   filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S3.png",
+#   plot = discontinuity_plot_S3,
+#   height = 5,
+#   width = 8.5,
+#   units = "in",
+#   dpi = 300
+# )
 
 ```
 
@@ -4528,7 +4518,7 @@ S4_map <- ggplot() +
   theme(plot.title = element_text(size = 18, face = "bold"),
         plot.subtitle = element_text(size = 12))
 
-ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S4_map.png", plot = S4_map, height = 5, width = 8.5, units = "in", dpi = 300)
+# ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S4_map.png", plot = S4_map, height = 5, width = 8.5, units = "in", dpi = 300)
 ```
 
 ### discontinuity plot
@@ -4628,14 +4618,14 @@ discontinuity_plot_S4_with_S1 <- ggplot() +
             color = "#eb5600", size = 4, fontface = "bold")
 
 discontinuity_plot_S4_with_S1
-ggsave(
-  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S2_S1.png",
-  plot = discontinuity_plot_S4_with_S1,
-  height = 5,
-  width = 8.5,
-  units = "in",
-  dpi = 300
-)
+# ggsave(
+#   filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S2_S1.png",
+#   plot = discontinuity_plot_S4_with_S1,
+#   height = 5,
+#   width = 8.5,
+#   units = "in",
+#   dpi = 300
+# )
 ```
 
 ######## here is the price changes 100m away from i676 for all scenarios, unorganized version for your exploration
@@ -4730,12 +4720,12 @@ S0_S1_S4_density <- ggplot() +
     legend.position = "none"
   )
 
-ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S1_S4_median_density.png",
-       plot = S0_S1_S4_density,
-       height = 5,
-       width = 8.5,
-       units = "in",
-       dpi = 300)
+# ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S1_S4_median_density.png",
+#        plot = S0_S1_S4_density,
+#        height = 5,
+#        width = 8.5,
+#        units = "in",
+#        dpi = 300)
 ```
 
 
@@ -5115,14 +5105,14 @@ S0_S1_density <- ggplot() +
   )
 
 # 保存图片
-ggsave(
-  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S1_median_density.png",
-  plot = S0_S1_density,
-  height = 5,
-  width = 8.5,
-  units = "in",
-  dpi = 300
-)
+# ggsave(
+#   filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S1_median_density.png",
+#   plot = S0_S1_density,
+#   height = 5,
+#   width = 8.5,
+#   units = "in",
+#   dpi = 300
+# )
 ```
 
 
@@ -5165,14 +5155,14 @@ S0_S2_density <- ggplot() +
   )
 
 # 保存图片
-ggsave(
-  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S2_median_density.png",
-  plot = S0_S2_density,
-  height = 5,
-  width = 8.5,
-  units = "in",
-  dpi = 300
-)
+# ggsave(
+#   filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S2_median_density.png",
+#   plot = S0_S2_density,
+#   height = 5,
+#   width = 8.5,
+#   units = "in",
+#   dpi = 300
+# )
 ```
 
 ```{r}
@@ -5214,14 +5204,14 @@ S1_S2_density <- ggplot() +
   )
 
 # 保存图片
-ggsave(
-  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S1_median_density.png",
-  plot = S0_S1_density,
-  height = 5,
-  width = 8.5,
-  units = "in",
-  dpi = 300
-)
+# ggsave(
+#   filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/S0_S1_median_density.png",
+#   plot = S0_S1_density,
+#   height = 5,
+#   width = 8.5,
+#   units = "in",
+#   dpi = 300
+# )
 ```
 
 
