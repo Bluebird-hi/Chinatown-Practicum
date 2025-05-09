@@ -55,9 +55,9 @@ h4 {
   
 .nav-buttons {
   display: flex;
-  justify-content: center; /* Center the buttons horizontally */
-  gap: 20px; /* Add spacing between buttons */
-  flex-grow: 1; /* Allow the buttons to take up remaining space */
+  justify-content: center;
+  gap: 20px; 
+  flex-grow: 1;
 }
 
 .nav-btn {
@@ -115,19 +115,7 @@ h4 {
 }
 
 .bg-1 {
-  background-image: url('../img/background_project_team1.png'); /* Ensure the path is correct */
-}
-
-.fixed-bg .title-title {
-  display: table-cell;
-  transform: translate(-50%, -50%);
-  color: #299988;
-  font-size: 3em;
-  font-weight: bold; 
-  text-align: center;
-  font-family: 'Poppins', sans-serif;
-  text-shadow: 0px 2px 5px white; 
-  animation: flashColor 2s infinite steps(1, end);
+  background-image: url('../img/background_project_team.png');
 }
 
 .fixed-bg .title-title {
@@ -213,7 +201,7 @@ h4 {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 100px;
+  gap: 200px;
   padding: 20px;
 
   z-index: 1;
@@ -247,14 +235,24 @@ h4 {
   font-weight: bold;
   color: #0D5C4B;
   transition: color 0.3s;
-  text-shadow: 0rem 0.25rem 0.75rem white;
+  text-shadow: 0rem 0.25rem 1rem white;
+}
+
+.bio-container .grid-item p {
+  color: black;
+  text-shadow: 0rem 0.25rem 1rem white;
 }
 
 .bio-container .grid-item h4, .bio-container .grid-item p {
   transition: color 0.3s;
-  text-shadow: 0rem 0.25rem 0.75rem white;
+  text-shadow: 0rem 0.25rem 1rem white;
 }
 
 .bio-container .grid-item:hover h3 {
   color: #ffae00;
+}
+
+.bio-container .grid-item:hover h4,
+.bio-container .grid-item:hover p {
+  color: #E7551B;
 }

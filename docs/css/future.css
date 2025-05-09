@@ -4,7 +4,6 @@ body, html {
   box-sizing: border-box;
   height: 100vh;
   font-family: "Rubik", sans-serif;
-  /* overflow-x: hidden; */
   background-color: #f2f2f2;
 }
 
@@ -52,12 +51,15 @@ body {
 
 .project-name:hover {
   text-decoration: underline;
+  color: #E7551B;
+  font-weight: bold;
 }
 
-.nav-buttons,
-.about-btn {
+.nav-buttons {
   display: flex;
+  justify-content: center; 
   gap: 20px;
+  flex-grow: 1; 
 }
 
 .nav-btn {
@@ -87,7 +89,6 @@ body {
 .navbar a:active {
   text-decoration: underline;
 }
-
 
 .upper-area {
   position: fixed;
