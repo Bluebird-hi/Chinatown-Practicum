@@ -384,167 +384,167 @@ landuse_rename <- landuse %>%
 
 ```{r message=FALSE, warning=FALSE, quiet = TRUE}
 #### clean data for city wise - sale price
-colnames(cpi_data) <- c("half1", "half2", "cpi_date")
-cpi_long <- cpi_data %>%
-  mutate(
-    Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
-    Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
-  ) %>%
-  select(-half1, -half2) %>%
-  pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
-  mutate(
-    Month = match(Month, month.abb),
-    date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
-  ) %>%
-  select(date, CPI)
-
-property_philly <-property%>%
-  mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
-  filter(sale_date >= as.Date("2020-01-01") & sale_date <= as.Date("2024-12-31"))%>%
-  filter(!is.na(sale_price), !is.na(total_livable_area))%>%
-  mutate(
-    sale_month = floor_date(sale_date, "month"))%>%
-  left_join(cpi_long, by = c("sale_month" = "date"))%>%
-  mutate(CPI = as.numeric(CPI))%>%
-  mutate(adj_sale_price = sale_price * (340.331/CPI))%>%
-  select(-sale_month, -recording_date,  -other_building, 
-         -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of)
-
-#mean_price <- mean(property_philly$adj_sale_price, na.rm = TRUE)
-#sd_price <- sd(property_philly$adj_sale_price, na.rm = TRUE)
-#extreme_outlier <- mean_price + 5 * sd_price
-price_filtered_philly <- property_philly %>%
-  filter(adj_sale_price >= 100)
-
-q_philly <- quantile(price_filtered_philly$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
-
-property_philly2 <- property_philly %>%
-  filter(adj_sale_price >= q_philly[1], adj_sale_price <= q_philly[2])
-
-#property_philly <- property_philly%>%
-#  filter(adj_sale_price > 30000, adj_sale_price < extreme_outlier) %>%
-#  filter(total_livable_area >= 100)
-
-property_philly <- st_transform(property_philly2, crs = 2272)
-
-#st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-
-#### clean data for study area - sale price 
-#study area intersection
-property_studyarea <- st_intersection(property, studyarea)
-
-#sale price clean up and inflation adjusted
-colnames(cpi_data) <- c("half1", "half2", "cpi_date")
-cpi_long <- cpi_data %>%
-  mutate(
-    Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
-    Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
-  ) %>%
-  select(-half1, -half2) %>%
-  pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
-  mutate(
-    Month = match(Month, month.abb),
-    date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
-  ) %>%
-  select(date, CPI)
-
-property_data <-property_studyarea%>%
-  mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
-  filter(!is.na(sale_price))%>%
-  filter(sale_date <= as.Date("2024-12-31"))%>%
-  mutate(
-    sale_date = as.Date(sale_date, format = "%Y-%m-%d"), 
-    sale_month = floor_date(sale_date, "month"))%>%
-  left_join(cpi_long, by = c("sale_month" = "date"))%>%
-  mutate(CPI = as.numeric(CPI))%>%
-  mutate(adj_sale_price = sale_price * (340.331/CPI)) %>%
-  select(-sale_month,-recording_date,  -other_building, 
-         -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of, -state_code)%>%
-  relocate(adj_sale_price, sale_price, .after = 2)
-
-price_filtered <- property_data %>%
-  filter(adj_sale_price >= 100)
-
-q <- quantile(price_filtered$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
-
-property_data2 <- property_data %>%
-  filter(adj_sale_price >= q[1], adj_sale_price <= q[2])
-
-property1 <- st_transform(property_data2, crs = 2272)
-
-#join attributes - I676(NS) - nhood1 (neighborhoods in study area)
-property1 <- rbind(
-    property1 %>% st_intersection(studyarea_north["geometry"]) %>%
-      mutate(I676_NS = "north"),
-    property1 %>% st_intersection(studyarea_south["geometry"]) %>%
-      mutate(I676_NS = "south")
-  )
-nhood1 <- st_intersection(nhood, studyarea)
-
-#Features clean up for future FE and modeling
-## Zoning
-property1 <- property1%>%
-  select(1:2, zoning, location, everything())
-
-property1 <- property1 %>%
-  mutate(zoning = case_when(
-    location == "1310-16 VINE ST" ~ "CMX4",   
-    location == "252-56 N 13TH ST" ~ "CMX4",
-    location == "255-57 N BROAD ST" ~ "CMX4",
-    location == "451 N 12TH ST" ~ "CMX3",
-    location == "453 N 12TH ST" ~"CMX3",
-    location == "447 N 12TH ST" ~ "CMX3",
-    location == "1108 BUTTONWOOD ST" ~ "CMX3",
-    location == "1104 BUTTONWOOD ST" ~ "CMX3",
-    location == "256-60 N MARVINE ST" ~ "CMX4",
-    location == "820 VINE ST" ~ "CMX4",
-    TRUE ~ zoning                        
-  ))
-
-## central air
-target_locations_N <- c(
-                      "1232 SUMMER ST",	
-                      "1030 BRANDYWINE ST",
-                      "214 N 12TH ST",
-                      "1021 SPRING ST")
-
-property1 <- property1 %>%
-  mutate(
-    central_air = ifelse(location %in% target_locations_N & central_air == "N", "Y", central_air)
-  )
-## year built - clean up values of 1 and delete the other rows which are parking plot properties that have no year_built data
-valid_locations <- c(
-  "305-09 N 12TH ST",
-  "1008-16 WOOD ST",
-  "1004-06 WOOD ST",
-  "211 N CAMAC ST",
-  "231-33 N BROAD ST",
-  "225-27 N 12TH ST"
-)
-property1 <- property1 %>%
-  filter(location != "711-39 SPRING GARDEN ST") %>%
-  mutate(year_built = as.numeric(year_built)) %>%
-  mutate(
-    year_built = case_when(
-      location == "305-09 N 12TH ST" & year_built < 1750 ~ 1950,
-      location == "1008-16 WOOD ST" & year_built < 1750 ~ 1978,
-      location == "1004-06 WOOD ST" & year_built < 1750 ~ 1920,
-      location == "211 N CAMAC ST" & year_built < 1750 ~ 1900,
-      location == "231-33 N BROAD ST" & year_built < 1750 ~ 2020,
-      location == "225-27 N 12TH ST" & year_built < 1750 ~ 2024,
-      
-      !is.na(year_built) & year_built < 1750 &
-        !(location %in% c(
-          "305-09 N 12TH ST",
-          "1008-16 WOOD ST",
-          "1004-06 WOOD ST",
-          "211 N CAMAC ST",
-          "231-33 N BROAD ST",
-          "225-27 N 12TH ST"
-        )) ~ NA_real_,
-      TRUE ~ year_built
-    )
-  )
+# colnames(cpi_data) <- c("half1", "half2", "cpi_date")
+# cpi_long <- cpi_data %>%
+#   mutate(
+#     Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
+#     Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
+#   ) %>%
+#   select(-half1, -half2) %>%
+#   pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
+#   mutate(
+#     Month = match(Month, month.abb),
+#     date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
+#   ) %>%
+#   select(date, CPI)
+# 
+# property_philly <-property%>%
+#   mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+#   filter(sale_date >= as.Date("2020-01-01") & sale_date <= as.Date("2024-12-31"))%>%
+#   filter(!is.na(sale_price), !is.na(total_livable_area))%>%
+#   mutate(
+#     sale_month = floor_date(sale_date, "month"))%>%
+#   left_join(cpi_long, by = c("sale_month" = "date"))%>%
+#   mutate(CPI = as.numeric(CPI))%>%
+#   mutate(adj_sale_price = sale_price * (340.331/CPI))%>%
+#   select(-sale_month, -recording_date,  -other_building, 
+#          -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of)
+# 
+# #mean_price <- mean(property_philly$adj_sale_price, na.rm = TRUE)
+# #sd_price <- sd(property_philly$adj_sale_price, na.rm = TRUE)
+# #extreme_outlier <- mean_price + 5 * sd_price
+# price_filtered_philly <- property_philly %>%
+#   filter(adj_sale_price >= 100)
+# 
+# q_philly <- quantile(price_filtered_philly$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+# 
+# property_philly2 <- property_philly %>%
+#   filter(adj_sale_price >= q_philly[1], adj_sale_price <= q_philly[2])
+# 
+# #property_philly <- property_philly%>%
+# #  filter(adj_sale_price > 30000, adj_sale_price < extreme_outlier) %>%
+# #  filter(total_livable_area >= 100)
+# 
+# property_philly <- st_transform(property_philly2, crs = 2272)
+# 
+# #st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+# 
+# #### clean data for study area - sale price 
+# #study area intersection
+# property_studyarea <- st_intersection(property, studyarea)
+# 
+# #sale price clean up and inflation adjusted
+# colnames(cpi_data) <- c("half1", "half2", "cpi_date")
+# cpi_long <- cpi_data %>%
+#   mutate(
+#     Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
+#     Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
+#   ) %>%
+#   select(-half1, -half2) %>%
+#   pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
+#   mutate(
+#     Month = match(Month, month.abb),
+#     date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
+#   ) %>%
+#   select(date, CPI)
+# 
+# property_data <-property_studyarea%>%
+#   mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+#   filter(!is.na(sale_price))%>%
+#   filter(sale_date <= as.Date("2024-12-31"))%>%
+#   mutate(
+#     sale_date = as.Date(sale_date, format = "%Y-%m-%d"), 
+#     sale_month = floor_date(sale_date, "month"))%>%
+#   left_join(cpi_long, by = c("sale_month" = "date"))%>%
+#   mutate(CPI = as.numeric(CPI))%>%
+#   mutate(adj_sale_price = sale_price * (340.331/CPI)) %>%
+#   select(-sale_month,-recording_date,  -other_building, 
+#          -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of, -state_code)%>%
+#   relocate(adj_sale_price, sale_price, .after = 2)
+# 
+# price_filtered <- property_data %>%
+#   filter(adj_sale_price >= 100)
+# 
+# q <- quantile(price_filtered$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+# 
+# property_data2 <- property_data %>%
+#   filter(adj_sale_price >= q[1], adj_sale_price <= q[2])
+# 
+# property1 <- st_transform(property_data2, crs = 2272)
+# 
+# #join attributes - I676(NS) - nhood1 (neighborhoods in study area)
+# property1 <- rbind(
+#     property1 %>% st_intersection(studyarea_north["geometry"]) %>%
+#       mutate(I676_NS = "north"),
+#     property1 %>% st_intersection(studyarea_south["geometry"]) %>%
+#       mutate(I676_NS = "south")
+#   )
+# nhood1 <- st_intersection(nhood, studyarea)
+# 
+# #Features clean up for future FE and modeling
+# ## Zoning
+# property1 <- property1%>%
+#   select(1:2, zoning, location, everything())
+# 
+# property1 <- property1 %>%
+#   mutate(zoning = case_when(
+#     location == "1310-16 VINE ST" ~ "CMX4",   
+#     location == "252-56 N 13TH ST" ~ "CMX4",
+#     location == "255-57 N BROAD ST" ~ "CMX4",
+#     location == "451 N 12TH ST" ~ "CMX3",
+#     location == "453 N 12TH ST" ~"CMX3",
+#     location == "447 N 12TH ST" ~ "CMX3",
+#     location == "1108 BUTTONWOOD ST" ~ "CMX3",
+#     location == "1104 BUTTONWOOD ST" ~ "CMX3",
+#     location == "256-60 N MARVINE ST" ~ "CMX4",
+#     location == "820 VINE ST" ~ "CMX4",
+#     TRUE ~ zoning                        
+#   ))
+# 
+# ## central air
+# target_locations_N <- c(
+#                       "1232 SUMMER ST",	
+#                       "1030 BRANDYWINE ST",
+#                       "214 N 12TH ST",
+#                       "1021 SPRING ST")
+# 
+# property1 <- property1 %>%
+#   mutate(
+#     central_air = ifelse(location %in% target_locations_N & central_air == "N", "Y", central_air)
+#   )
+# ## year built - clean up values of 1 and delete the other rows which are parking plot properties that have no year_built data
+# valid_locations <- c(
+#   "305-09 N 12TH ST",
+#   "1008-16 WOOD ST",
+#   "1004-06 WOOD ST",
+#   "211 N CAMAC ST",
+#   "231-33 N BROAD ST",
+#   "225-27 N 12TH ST"
+# )
+# property1 <- property1 %>%
+#   filter(location != "711-39 SPRING GARDEN ST") %>%
+#   mutate(year_built = as.numeric(year_built)) %>%
+#   mutate(
+#     year_built = case_when(
+#       location == "305-09 N 12TH ST" & year_built < 1750 ~ 1950,
+#       location == "1008-16 WOOD ST" & year_built < 1750 ~ 1978,
+#       location == "1004-06 WOOD ST" & year_built < 1750 ~ 1920,
+#       location == "211 N CAMAC ST" & year_built < 1750 ~ 1900,
+#       location == "231-33 N BROAD ST" & year_built < 1750 ~ 2020,
+#       location == "225-27 N 12TH ST" & year_built < 1750 ~ 2024,
+#       
+#       !is.na(year_built) & year_built < 1750 &
+#         !(location %in% c(
+#           "305-09 N 12TH ST",
+#           "1008-16 WOOD ST",
+#           "1004-06 WOOD ST",
+#           "211 N CAMAC ST",
+#           "231-33 N BROAD ST",
+#           "225-27 N 12TH ST"
+#         )) ~ NA_real_,
+#       TRUE ~ year_built
+#     )
+#   )
 #st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
