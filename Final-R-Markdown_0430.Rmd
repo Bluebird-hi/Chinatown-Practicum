@@ -4934,7 +4934,6 @@ get_price_change_full <- function(data, price_col, scenario_label, distances = s
     mutate(dist_model = abs(distance_to_highway)) %>%
     filter(!is.na(!!sym(price_col)), !is.na(distance_to_highway))
 
-  # 回归模型
   formula_all   <- as.formula(paste0("log(", price_col, " + 1) ~ log(dist_model + 1)"))
   formula_south <- as.formula(paste0("log(", price_col, " + 1) ~ log(abs(distance_to_highway) + 1)"))
   formula_north <- as.formula(paste0("log(", price_col, " + 1) ~ distance_to_highway"))
@@ -4943,22 +4942,18 @@ get_price_change_full <- function(data, price_col, scenario_label, distances = s
   lm_south <- lm(formula_south, data = data_all %>% filter(I676_NS == "south"))
   lm_north <- lm(formula_north, data = data_all %>% filter(I676_NS == "north"))
 
-  # 基准 log(price)
   baseline_log_all   <- predict(lm_all,   newdata = data.frame(dist_model = 50))
   baseline_log_south <- predict(lm_south, newdata = data.frame(distance_to_highway = 50))
   baseline_log_north <- predict(lm_north, newdata = data.frame(distance_to_highway = 50))
 
-  # 预测 log 值
   pred_log_all   <- predict(lm_all,   newdata = data.frame(dist_model = distances))
   pred_log_south <- predict(lm_south, newdata = data.frame(distance_to_highway = distances))
   pred_log_north <- predict(lm_north, newdata = data.frame(distance_to_highway = distances))
 
-  # 转换为价格
   price_est_all   <- baseline_price * exp(pred_log_all - baseline_log_all)
   price_est_south <- baseline_price * exp(pred_log_south - baseline_log_south)
   price_est_north <- baseline_price * exp(pred_log_north - baseline_log_north)
 
-  # 构建表格
   tibble(
     Scenario            = scenario_label,
     Distance_m          = distances,
@@ -5080,14 +5075,14 @@ discontinuity_plot_S1 <- ggplot() +
             color = "#1a9988", show.legend = FALSE)
 
 discontinuity_plot_S1
-#ggsave(
-#  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S0_S1.png",
-#  plot = discontinuity_plot_S1,
-# width = 10,
-#  height = 5,
-# dpi = 300,
-# units = "in"
-#)
+ggsave(
+  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S0_S1.png",
+   plot = discontinuity_plot_S1,
+   width = 8.5,
+   height = 5,
+   dpi = 300,
+   units = "in"
+)
 
 ```
 
@@ -6041,7 +6036,6 @@ ggsave(
   dpi = 300
 )
 ```
-
 
 ```{r,eval=FALSE}
 S0_S2_density <- ggplot() +
