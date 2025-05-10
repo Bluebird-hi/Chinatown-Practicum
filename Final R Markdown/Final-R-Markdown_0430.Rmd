@@ -4784,11 +4784,11 @@ S2_map
 ### Median Property Value  
 **South side price increases across interventions** is first evidenced in the shift of median values.  
 From Scenario 0 to Scenario 2, the median price increases from <span style="color: #eb5600;"><b>$402,561</b></span> (observed baseline, <span style="color: #eb5600;"><b>Scenario 0</b></span>)  
-to <span style="color: #1a9988;"><b>$438,338</b></span> in <b>Scenario 1</b>  
-and further to <span style="color: #a66bbe;"><b>$487,683</b></span> in <b>Scenario 2</b>.  
+to <span style="color: #1a9988;"><b>$438,338</b></span> in <b>Scenario 1</b> and further to <span style="color: #a66bbe;"><b>$487,683</b></span> in <b>Scenario 2</b>.  
 This progressive shift aligns with the intervention logic:  
 - <span style="color: #1a9988;"><b>Scenario 1</b></span> introduces physical reconnection through caps, producing moderate price uplift.  
 - <span style="color: #a66bbe;"><b>Scenario 2</b></span> builds upon this with zoning reform, pushing the distribution further rightward.  
+The results suggest that each layer of intervention contributes incrementally to value change. Physical improvements alone offer moderate benefits, while combining them with zoning changes lead to price increasing.
 
 ```{r}
 S0_S1_S2_density <- ggplot() +
@@ -4844,7 +4844,7 @@ ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/final
 ```
 
 ### Discontinuity Across I-676  
-To quantify highway-related land value effects for each scenario, we build on the discontinuity analysis by estimating price changes at varying distances from the highway, controlling for side-specific spatial patterns.  
+To further quantify highway-related land value effects for each scenario, we build on the discontinuity analysis by estimating price changes at varying distances from the highway, controlling for side-specific spatial patterns.  
 
 We fit separate log-linear models for the north and south using observed prices (or predicted prices under each scenario), regressing `log price` on log-transformed or linear distance, respectively.  
 
@@ -4934,7 +4934,6 @@ get_price_change_full <- function(data, price_col, scenario_label, distances = s
     mutate(dist_model = abs(distance_to_highway)) %>%
     filter(!is.na(!!sym(price_col)), !is.na(distance_to_highway))
 
-  # 回归模型
   formula_all   <- as.formula(paste0("log(", price_col, " + 1) ~ log(dist_model + 1)"))
   formula_south <- as.formula(paste0("log(", price_col, " + 1) ~ log(abs(distance_to_highway) + 1)"))
   formula_north <- as.formula(paste0("log(", price_col, " + 1) ~ distance_to_highway"))
@@ -4943,22 +4942,18 @@ get_price_change_full <- function(data, price_col, scenario_label, distances = s
   lm_south <- lm(formula_south, data = data_all %>% filter(I676_NS == "south"))
   lm_north <- lm(formula_north, data = data_all %>% filter(I676_NS == "north"))
 
-  # 基准 log(price)
   baseline_log_all   <- predict(lm_all,   newdata = data.frame(dist_model = 50))
   baseline_log_south <- predict(lm_south, newdata = data.frame(distance_to_highway = 50))
   baseline_log_north <- predict(lm_north, newdata = data.frame(distance_to_highway = 50))
 
-  # 预测 log 值
   pred_log_all   <- predict(lm_all,   newdata = data.frame(dist_model = distances))
   pred_log_south <- predict(lm_south, newdata = data.frame(distance_to_highway = distances))
   pred_log_north <- predict(lm_north, newdata = data.frame(distance_to_highway = distances))
 
-  # 转换为价格
   price_est_all   <- baseline_price * exp(pred_log_all - baseline_log_all)
   price_est_south <- baseline_price * exp(pred_log_south - baseline_log_south)
   price_est_north <- baseline_price * exp(pred_log_north - baseline_log_north)
 
-  # 构建表格
   tibble(
     Scenario            = scenario_label,
     Distance_m          = distances,
@@ -5080,14 +5075,14 @@ discontinuity_plot_S1 <- ggplot() +
             color = "#1a9988", show.legend = FALSE)
 
 discontinuity_plot_S1
-#ggsave(
-#  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S0_S1.png",
-#  plot = discontinuity_plot_S1,
-# width = 10,
-#  height = 5,
-# dpi = 300,
-# units = "in"
-#)
+ggsave(
+  filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/discontinuity_plot_S0_S1.png",
+   plot = discontinuity_plot_S1,
+   width = 8.5,
+   height = 5,
+   dpi = 300,
+   units = "in"
+)
 
 ```
 
@@ -5463,30 +5458,45 @@ price_layer_s2 + studyarea_layer + highway_layer + stitch_fill_layer + stitch_co
 #st_write(property_S2_perc_change,"~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s0_s2.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-# Conclusion
+# Recommendations
 
-The Chinatown Stitch project holds transformative potential for the neighborhoods surrounding I-676. Our modeling of three scenarios reveals the following patterns:  
+<h5><b>**1. Target development toward parcels with strong market signals**</b></h5>
 
-1. **Scenario 0** reflects the status quo: the highway remains a barrier, suppressing value especially on the north side. Prices on the south side rise with distance from the highway, while the north shows little responsiveness — confirming a spatial divide in opportunity.  
-2. **Scenario 1**, which adds caps to improve connectivity without land use changes, stabilizes values across both sides. South side parcels near the Stitch show moderate growth, with some price increases exceeding 200%. However, the north remains less responsive, especially near the highway.  
-3. **Scenario 2**, combining physical reconnection with land use changes (rezoning vacant, industrial, and low-density parcels), leads to stronger and more spatially clustered price increases — especially in the south core and parcels surrounding the cap park. On the north side, while most gains occur farther from the highway, persistent limitations remain.  
+In both Scenario 1 and Scenario 2, our modeling shows that south-side parcels, especially those adjacent to the park cap and close to I-676, experienced substantial price increases. The discontinuity plots reveal a positive correlation between greater distance from I-676 and property values on the south side. This is further supported by the percentage change maps, where many parcels increased by over 50%, with some exceeding 200%. These patterns suggest that these parcels already meet key feasibility conditions, and current market signals support their potential for more intensive land use.
 
-These outcomes highlight the uneven geography of land value recovery and the lingering effect of historical disinvestment. South-side parcels near the Stitch show the strongest increase potential when both physical and regulatory barriers are addressed.
+We recommend OTIS prioritize investment, densification, and infrastructure support in these high-potential areas. This approach ensures that new development occurs where the market is already active, reducing risk of displacement by reinforcing value where it is already rising.
 
-<span style="color: #eb5600; font-size: 18px;"><b>Recommendations</b></span>
+<h5><b>**2. Reevaluate underutilized areas by assessing capacity and constraints**</b></h5>
 
-1. **Target development toward parcels with strong market signals**  
-   Parcels on the south side with clustered high-value responses, especially those near the park cap, are demonstrating clear potential for higher density and more intensive commercial or mixed uses. These areas should be prioritized for investment, infrastructure upgrades, and development incentives.  
+Scenario 2 reveals that land use adjustments alone are insufficient to generate price increases on the north side comparable to those observed on the south side. Despite zoning changes, parcels adjacent to the highway continued to experience price decreases. This is confirmed by the discontinuity plots, which show a persistently negative slope. However, several parcel clusters located farther from I-676 present price increases, suggesting spatial variation in how parcels respond to zoning changes.
 
-2. **Reevaluate underperforming areas through the lens of capacity and constraints**  
-   On the north side, even with the same zoning changes, value recovery lags. This suggests zoning strategies alone are insufficient. According to the highest and best use principle, land should be used in a way that is legally permissible, physically possible, financially feasible, and maximally productive. Some north-side parcels may not yet meet these conditions. Tailored interventions — such as infrastructure improvement, transit access, and community services — are needed to unlock value.  
+This suggests that underutilized areas require more than regulatory change. OTIS should consider physical access, transit connectivity, and infrastructure readiness before promoting development in these zones. Without addressing these baseline constraints, rezoning may not yield equitable or effective results.
 
-3. **Pair zoning change with implementation checks**  
-   Before rezoning, assess each site’s development feasibility (market demand, infrastructure, access). Don’t assume zoning change equals value creation — align regulation with realistic pathways to land activation.  
+<h5><b>**3. Align zoning changes with implementation checks**</b></h5>
 
-4. **Strengthen monitoring mechanisms**  
-   As price increases may indicate future market pressure and displacement risk, particularly in vulnerable communities, use ongoing property value tracking as a baseline for targeting anti-displacement and housing affordability strategies.
+Our scenario-based price change evaluation, using a 150-meter baseline, shows clear divergence in responsiveness across the highway divide, suggesting underlying differences in market readiness and infrastructure.
 
+Therefore, OTIS should conduct feasibility checks before rezoning, considering each site’s current use, infrastructure, surrounding parcel dynamics, and market demand. This avoids speculative mismatches and ensures zoning reforms translate into actionable and equitable development when implementing the Stitch project.
+
+<h5><b>**4. Strengthen monitoring mechanisms for equity**</b></h5>
+
+Median property prices increase significantly from ~$402,000 in Scenario 0 to ~$488,000 in Scenario 2. These increases were spatially concentrated, particularly on the two sides.
+
+We recommend OTIS monitor these trends closely. Parcels with large increases should be flagged for early intervention through affordability protections or land value stabilization tools. Simultaneously, parcels with slow or negative growth should be prioritized for supportive investment to prevent missed development opportunity across the corridor.
+
+<span style="color: #eb5600; font-size: 18px;"><b>**Conclusions**</b></span>
+
+In summary, the four recommendations we propose are not simply about promoting higher density or maximizing property value. They are grounded in spatial pattern recognition, identifying where development potential exists and where structural constraints persist.
+
+The goal is to provide OTIS with a framework for advancing the Chinatown Stitch project while reminding OTIS to manage the market pressures that come with property value changes, so that sale price increase does not become a driver of displacement in the Chinatown community.
+
+For areas where property values are already increasing, we emphasize that development efforts should be built on real and measurable feasibility. This means considering not only zoning adjustments but also the actual conditions of each site, including infrastructure capacity and the ability of the surrounding community to absorb change.
+
+In areas where performance is weaker or conditions are less favorable, unlocking value will require improvements in infrastructure and the provision of essential public services. These areas should not be approached with investment decisions that rely only on projected value increases.
+
+We also encourage OTIS to use property value changes as an early signal to guide housing policy. By establishing a mechanism to monitor and track areas that are sensitive to displacement risk, the city can respond proactively and prevent market-led redevelopment from becoming harmful.
+
+By combining these strategies, city planners and policymakers can pursue a balanced path that advances physical reconnection and zoning changes while also preserving housing stability and long-term community presence in Chinatown.
 
 # Code Appendix
 ## Case Studies
@@ -6041,7 +6051,6 @@ ggsave(
   dpi = 300
 )
 ```
-
 
 ```{r,eval=FALSE}
 S0_S2_density <- ggplot() +
