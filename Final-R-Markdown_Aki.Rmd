@@ -191,8 +191,8 @@ property_final <- st_read("Dataset/property/property_final.geojson")%>%
 Three study areas are used in our report and they are as follows. 
 
 -   **Philadelphia:** We look at properties within the city of Philadelphia to conduct the first step of our highway analysis.
--   **Main study area (10 block groups):** to figure out the correlation between I-676 and property sales price and make future predictions based on three potential scenarios.
--   **Compared study area (north and south sides):** to investigate the different situations of the Chinatown region under the construction of I-676.
+-   **Main study area (10 block groups):** Incorporating block groups from Chinatown, Callowhill, Logan Square, Center City East, Old City, and West Poplar, this study area is used to figure out the relationship between I-676 and property sales price. This is the main study area we use for our predictive model as well.
+-   **North and South Split:** We split our main study area into areas North and South of I-676 (which we refer to as Callowhill and Chinatown, respectively, for simplicity). This allows us to see how the highway effect is felt differently across the highway.
 
 ```{r StudyArea_plot}
 StudyArea_plot1 <- ggplot() +
