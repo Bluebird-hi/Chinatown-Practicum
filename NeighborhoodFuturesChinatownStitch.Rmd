@@ -1297,6 +1297,10 @@ coef_i676 <- round(
 
 ```
 
+The scatter plot below shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) are associated with moving away from a highway which agrees with our literature review of highway effects on property prices. 
+
+When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, this coefficient was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
+
 ```{r prop500_scatter}
 scatter_4highways <- 
   ggplot(data = prop500, 
@@ -1340,11 +1344,6 @@ scatter_4highways <-
 
 scatter_4highways
 ```
-
-
-The scatter plot below shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) are associated with moving away from a highway which agrees with our literature review of highway effects on property prices. 
-
-When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, this coefficient was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
 
 
 ```{r prop500_predtable}
@@ -1519,8 +1518,7 @@ model_i676_table %>%
   kable_classic(full_width = F, html_font = "Cambria") %>% 
   row_spec(2, bold = T, background = "#7fe3d6") %>% 
   add_footnote(label = paste0("R-squared: ", round(model_i676_summary$r.squared, 3), ", RMSE: ", round(model_i676_RMSE, 3)),
-               notation = "none") %>%
-  scroll_box(height = "350px") 
+               notation = "none")
 
 ```
 
@@ -1814,38 +1812,45 @@ This demonstrates that in our study area, increased **distance to the highway is
 
 Three completed highway capping projects in the United States were selectively included here as case studies and guideline for constructing our alternatives in the context of the Chinatown Stitch. These sites either share similar traits with the Chinatown Stitch or possess dramatically different parameters of both the surrounding neighborhood and the project itself. 
 
-### Klyde Warren
+### Klyde Warren Park
 
-This project connected the predominantly Black Uptown neighborhood with the arts district and Downtown while also providing a community gathering space with free programming year-round. Since its opening in 2012, the park has enhanced the land value in the surrounding area, creating a positive economic impact on the City of Dallas including faster office and multifamily construction growth. However, it brought up concerns of “green gentrification” which benefits the interests of developers over displaced communities.
+This project **connected** the predominantly Black Uptown neighborhood with the arts district and Downtown while also providing a community gathering space with free programming year-round. Since its opening in 2012, the park has **enhanced the land value** in the surrounding area, creating a positive economic impact on the City of Dallas including faster office and multifamily construction growth. However, it brought up concerns of **"green gentrification"** which benefits the interests of developers over displaced communities.
 
-City: Dallas, TX
-Completion date: 2013
-Area Covered: 5.4 acres (235,000 sqft)
-Cost: $112 million
-Type of project: Park/Open Space
+![Klyde Warren Park - image and info from https://www.klydewarrenpark.org/](Final%20R%20Markdown/Images/KlydeWarrenPark.png)
+
++ **City:** Dallas, TX
++ **Completion date:** 2013
++ **Area Covered:** 5.4 acres (235,000 sqft)
++ **Cost:** $112 million
++ **Type of project:** Park/Open Space
 
 
 ### Cap at Union Station
 
-The project addressed the 40-year scar that was created by the construction of the inner-belt highway (I-670) by reconnecting the Columbus downtown area and the Short North neighborhood. The cap acts as a bridge for through traffic across I-670 while also providing leasable spaces to many retail shops and restaurants, ultimately providing an inviting urban streetscape.
+The project addressed the **40-year scar** that was created by the construction of the inner-belt highway (I-670) by **reconnecting the Columbus downtown area and the Short North neighborhood**. The cap acts as a bridge for through traffic across I-670 while also providing leasable spaces to many retail shops and restaurants, ultimately providing an **inviting urban streetscape**.
 
-City: Columbus, OH
-Completion date: 2004
-Area Covered: 25,500 sqft
-Cost: $7.8 million
-Type of project: Commercial
+![Cap at Union Park - image from https://www.crexi.com/properties/1653293/ohio-the-cap-at-union-station](Final%20R%20Markdown/Images/CapUnionStation.png)
+
++ **City:** Columbus, OH
++ **Completion date:** 2004
++ **Area Covered:** 25,500 sqft
++ **Cost:** $7.8 million
++ **Type of project:** Commercial
 
 
 ### The Big Dig at the Central Artery
 
-Creating more than 300 acres of open land with over 45 parks and public plazas, the Big Dig project replaced the deteriorating I-93 (Central Artery) with an underground expressway that links downtown Boston to the Boston Logan airport. This project also improved the North End and Waterfront neighborhoods’ access to downtown Boston and reduced traffic congestion, providing ~$168 million per year in time and cost savings.
+Creating more than 300 acres of open land with **over 45 parks and public plazas**, the Big Dig project replaced the deteriorating I-93 (Central Artery) with an underground expressway that links downtown Boston to the Boston Logan airport. This project also improved the North End and Waterfront neighborhoods’ access to downtown Boston and **reduced traffic congestion**, providing ~$168 million per year in time and cost savings.
 
+![Central Artery - image from https://themindcircle.com/boston-big-dig/](Final%20R%20Markdown/Images/CentralArtery.png)
 
-City: Boston, MA
-Completion date: 2007
-Area Covered: 2,350 acres
-Cost: $14.8 billion
-Type of project: Mixed Use
++ **City**: Boston, MA
++ **Completion date:** 2007
++ **Area Covered:** 2,350 acres
++ **Cost**: $14.8 billion
++ **Type of project:** Mixed Use
+
+#### Summary of Highway Cap Impacts
 
 A common thread across the impacts of caps in other cities is **neighborhood access and connection as well as increased value of land**. The Chinatown Stitch will not only reconnect Chinatown North to Chinatown, but also provide much needed open, green space for the community. A potential challenge after the construction of the Chinatown Stitch will be balancing the positive effects of higher land value and the **activation of commercial and residential opportunities** with **affordability and cultural preservation of the character** of Philadelphia's Chinatown.
 
