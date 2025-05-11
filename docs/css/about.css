@@ -29,7 +29,7 @@ h4 {
   top: 0;
   width: 100%;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* Space between logo-title and nav-buttons */
   align-items: center;
   padding: 30px 40px;
   background-color:  #f2f2f2;
@@ -45,6 +45,7 @@ h4 {
 .logo-title {
   display: flex;
   align-items: center;
+  margin-right: auto; /* Push the logo-title to the far left */
 }
   
 .logo {
@@ -54,9 +55,9 @@ h4 {
   
 .nav-buttons {
   display: flex;
-  justify-content: center; /* Center the buttons horizontally */
-  gap: 20px; /* Add spacing between buttons */
-  flex-grow: 1; 
+  justify-content: center;
+  gap: 20px; 
+  flex-grow: 1;
 }
 
 .nav-btn {
@@ -114,19 +115,7 @@ h4 {
 }
 
 .bg-1 {
-  background-image: url('../img/background_project_team1.png'); /* Ensure the path is correct */
-}
-
-.fixed-bg .title-title {
-  display: table-cell;
-  transform: translate(-50%, -50%);
-  color: #299988;
-  font-size: 3em;
-  font-weight: bold; 
-  text-align: center;
-  font-family: 'Poppins', sans-serif;
-  text-shadow: 0px 2px 5px white; 
-  animation: flashColor 2s infinite steps(1, end);
+  background-image: url('../img/background_project_team.png');
 }
 
 .fixed-bg .title-title {
@@ -155,14 +144,28 @@ h4 {
 
 .fixed-bg .title-wrapper {
   position: absolute;
-  top: 42.5%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   color: #434343;
   font-family: 'Poppins', sans-serif;
   text-align: center;
   
-  z-index: 1;
+  z-index: 5;
+}
+
+.opaquecircle {
+  position: absolute;
+  top: 35%;
+  left: 25%;
+  width: 650px;
+  height: 400px;
+  border-radius: 50%;
+  object-fit: cover;
+  z-index: 0.5;
+
+  background-color: #ffffff7d;
+  box-shadow: 0px 0px 100px 100px #ffffff7d; 
 }
 
 .fixed-bg .title-subtitle {
@@ -194,36 +197,43 @@ h4 {
 /* Team Bios */
 .bio-container {
   position: relative;
-  margin-top: 32.5em;
+  margin-top: 40em;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 20px;
-  padding: 20px;
+  gap: 100px;
+  padding: 5rem;
 
   z-index: 1;
 }
 
 .bio-container .grid-item {
   flex: 1 1 calc(25% - 20px);
-  max-width: 250px;
+  max-width: 350px;
   text-align: center;
   text-decoration: none;
-  color: ##299988;
+  color: #299988;
 }
 
-
 .bio-container .grid-item img {
-  width: 100%;
+  margin: 1rem;
+  max-width: 250px;
   height: auto;
   object-fit: cover;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s;
+  box-shadow: 0rem 0.25rem 0.75rem rgba(0 0 0 / 50%);
 }
 
 .bio-container .grid-item:hover img {
   transform: scale(1.05);
+}
+
+.bio-container .grid-item .text {
+  padding: 5px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
 }
 
 .bio-container .grid-item h3 {
@@ -234,10 +244,20 @@ h4 {
   transition: color 0.3s;
 }
 
+.bio-container .grid-item p {
+  padding: 5px;
+}
+
 .bio-container .grid-item h4, .bio-container .grid-item p {
   transition: color 0.3s;
+  text-shadow: 0rem 0.25rem 1rem white;
 }
 
 .bio-container .grid-item:hover h3 {
   color: #ffae00;
+}
+
+.bio-container .grid-item:hover h4,
+.bio-container .grid-item:hover p {
+  color: #E7551B;
 }

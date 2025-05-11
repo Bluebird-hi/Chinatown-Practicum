@@ -109,7 +109,7 @@ class SlideDeck {
         dashArray: '5,5'
       }, 'Chinatown');
       
-      await loadAndStyle('data/chinatownstitch.json', {
+      await loadAndStyle('data/chinatownstitch_phasestogether.json', {
         color: '#E7551B',
         weight: 2,
         fill: true,
@@ -152,7 +152,7 @@ class SlideDeck {
       };
 
       // Load stitch data
-      await loadAndStyle('data/chinatownstitch.json', {
+      await loadAndStyle('data/chinatownstitch_phasestogether.json', {
         color: false,
         weight: 2,
         fill: true,
@@ -161,7 +161,7 @@ class SlideDeck {
       }, 'Chinatown Stitch');
 
       // Draw stitch outline (grey dashed, no label needed here)
-      const stitchResp = await fetch('data/chinatownstitch.json');
+      const stitchResp = await fetch('data/chinatownstitch_phasestogether.json');
       const stitchData = await stitchResp.json();
       const stitchLayer = L.geoJSON(stitchData, {
         style: {
@@ -202,7 +202,7 @@ class SlideDeck {
         color: false,
         weight: 2,
         fill: true,
-        fillColor: '#ffd883',
+        fillColor: '#ffe3a8',
         fillOpacity: 0.25,
       }, 'Phase 2');
 
@@ -211,7 +211,7 @@ class SlideDeck {
       const phase2Data = await phase2Resp.json();
       const phase2Layer = L.geoJSON(phase2Data, {
         style: {
-          color: '#ffd883',
+          color: '#ffe3a8',
           weight: 2,
           fill: false,
           fillOpacity: 1,
