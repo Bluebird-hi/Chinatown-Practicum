@@ -3712,33 +3712,40 @@ property_S1_predict <- property_S1_predict %>%
                            include.lowest = TRUE))
 
 base_map <- list(
-  geom_sf(data = studyarea, fill = "transparent", color = "grey60", linewidth = 1.2, linetype = "dashed"),
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3),
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1),
   geom_sf(data = discontinuity, fill = "black", color = "transparent"),
   geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1),
   geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1)
 )
 
+# Scenario 0 map with legend
 S0_map <- ggplot() +
-  base_map +
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
+  geom_sf(data = discontinuity, fill = "black", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1) +
   geom_sf(data = property_S0, aes(color = price_group), size = 0.8, show.legend = "point") +
   scale_color_manual(values = palette5, labels = qBr_S1_labels, name = "Sale Price") +
   labs(title = "Scenario 0: Sale Price") +
   theme_void() +
-  theme(plot.title = element_text(size = 18, face = "bold",hjust = 0.5))
+  theme(plot.title = element_text(size = 18, face = "bold", hjust = 0.5))
 
+# Scenario 1 map without legend
 S1_map <- ggplot() +
-  base_map +
-  geom_sf(data = property_S1_predict, 
-        aes(color = price_group), 
-        size = 0.8, 
-        show.legend = FALSE)+ 
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
+  geom_sf(data = discontinuity, fill = "black", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1) +
+  geom_sf(data = property_S1_predict, aes(color = price_group), size = 0.8, show.legend = FALSE) +
   scale_color_manual(values = palette5, labels = qBr_S1_labels, name = "Sale Price") +
   labs(title = "Scenario 1: Predicted Sale Price") +
   theme_void() +
-  theme(plot.title = element_text(size = 18, face = "bold",hjust = 0.5),
-      legend.position = "none")
+  theme(plot.title = element_text(size = 18, face = "bold", hjust = 0.5))
 
-
+# Combine plots — only left one has legend
 combined_map <- S0_map + S1_map +
   plot_layout(ncol = 2, guides = "collect") &
   theme(
@@ -3747,7 +3754,7 @@ combined_map <- S0_map + S1_map +
     legend.box = "horizontal",
     legend.title = element_text(size = 12),
     legend.text = element_text(size = 10),
-    legend.key.width = unit(1.2, "cm")  # 控制每个图例项的宽度
+    legend.key.width = unit(1.2, "cm")
   )
 
 combined_map
@@ -4405,11 +4412,14 @@ property_S2_comm <- property_S2_fe %>%
     zoning_old != zoning_new
   )
 
+
+
 S2_changed_map <- ggplot() +
-  geom_sf(data = studyarea, fill = "transparent", color = "grey60", linetype = "dashed", linewidth = 1.2) +
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
   geom_sf(data = discontinuity, fill = "black", color = "transparent") +
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 500391), fill = "grey", color = "grey", linewidth = 1) +
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 500391), fill = "white", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1) +
   
   geom_sf(data = property_S2_comm %>% filter(!is.na(predicted_price)), 
           aes(colour = cut(predicted_price, breaks = qBr_S1, labels = qBr_S1_labels, include.lowest = TRUE)),
@@ -4438,14 +4448,15 @@ property_S2_res <- property_S3_fe %>%
   filter(
     landuse_old != landuse_new |
     category_code_old != category_code_new |
-    zoning_old != zoning_old
+    zoning_old != zoning_new
   )
 
 S3_changed_map <- ggplot() +
-  geom_sf(data = studyarea, fill = "transparent", color = "grey60", linetype = "dashed", linewidth = 1.2) +
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
   geom_sf(data = discontinuity, fill = "black", color = "transparent") +
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 500391), fill = "grey", color = "grey", linewidth = 1) +
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 500391), fill = "white", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1) +
 
   geom_sf(data = property_S2_res %>% filter(!is.na(predicted_price)), 
           aes(colour = cut(predicted_price, breaks = qBr_S1, labels = qBr_S1_labels, include.lowest = TRUE)),
@@ -5229,13 +5240,13 @@ studyarea_layer <- studyarea %>%
           legend = FALSE, layer.name = "Study Area")
 
 stitch_fill_layer <- Chinatown_Stitch %>%
-  filter(FID_ != 500391) %>%
+  filter(FID_ != 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "white", alpha.regions = 0.8, lwd = 1,
           legend = FALSE, layer.name = "Stitch Area")
 
 stitch_core_layer <- Chinatown_Stitch %>%
-  filter(FID_ == 500391) %>%
+  filter(FID_ == 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "grey", alpha.regions = 0.8, lwd = 1,
           legend = FALSE, layer.name = "Cap Park")
@@ -5358,12 +5369,12 @@ studyarea_layer <- studyarea %>%
   mapview(color = "grey60", lwd = 2, alpha.regions = 0, lty = "dashed", legend = FALSE, layer.name = "Study Area")
 
 stitch_fill_layer <- Chinatown_Stitch %>%
-  filter(FID_ != 500391) %>%
+  filter(FID_ != 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "white", alpha.regions = 0.8, lwd = 1, legend = FALSE, layer.name = "Stitch Area")
 
 stitch_core_layer <- Chinatown_Stitch %>%
-  filter(FID_ == 500391) %>%
+  filter(FID_ == 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "grey", alpha.regions = 0.8, lwd = 1, legend = FALSE, layer.name = "Cap Park")
 
@@ -5400,12 +5411,12 @@ studyarea_layer <- studyarea %>%
   mapview(color = "grey60", lwd = 2, alpha.regions = 0, lty = "dashed", legend = FALSE, layer.name = "Study Area")
 
 stitch_fill_layer <- Chinatown_Stitch %>%
-  filter(FID_ != 500391) %>%
+  filter(FID_ != 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "white", alpha.regions = 0.8, lwd = 1, legend = FALSE, layer.name = "Stitch Area")
 
 stitch_core_layer <- Chinatown_Stitch %>%
-  filter(FID_ == 500391) %>%
+  filter(FID_ == 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "grey", alpha.regions = 0.8, lwd = 1, legend = FALSE, layer.name = "Cap Park")
 
