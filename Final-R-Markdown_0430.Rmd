@@ -8,7 +8,7 @@ output:
     number_sections: true
     theme: sandstone
     toc_float: true
-    code_folding: none
+    code_folding: hide
     toc_depth: 3
 editor_options: 
   markdown: 

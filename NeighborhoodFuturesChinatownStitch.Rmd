@@ -8,7 +8,7 @@ output:
     number_sections: true
     theme: sandstone
     toc_float: true
-    code_folding: none
+    code_folding: hide
     toc_depth: 3
 editor_options: 
   markdown: 
@@ -1297,6 +1297,10 @@ coef_i676 <- round(
 
 ```
 
+The scatter plot below shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) are associated with moving away from a highway which agrees with our literature review of highway effects on property prices. 
+
+When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, this coefficient was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
+
 ```{r prop500_scatter}
 scatter_4highways <- 
   ggplot(data = prop500, 
@@ -1340,11 +1344,6 @@ scatter_4highways <-
 
 scatter_4highways
 ```
-
-
-The scatter plot below shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) are associated with moving away from a highway which agrees with our literature review of highway effects on property prices. 
-
-When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, this coefficient was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
 
 
 ```{r prop500_predtable}
@@ -1519,8 +1518,7 @@ model_i676_table %>%
   kable_classic(full_width = F, html_font = "Cambria") %>% 
   row_spec(2, bold = T, background = "#7fe3d6") %>% 
   add_footnote(label = paste0("R-squared: ", round(model_i676_summary$r.squared, 3), ", RMSE: ", round(model_i676_RMSE, 3)),
-               notation = "none") %>%
-  scroll_box(height = "350px") 
+               notation = "none")
 
 ```
 
@@ -1814,38 +1812,45 @@ This demonstrates that in our study area, increased **distance to the highway is
 
 Three completed highway capping projects in the United States were selectively included here as case studies and guideline for constructing our alternatives in the context of the Chinatown Stitch. These sites either share similar traits with the Chinatown Stitch or possess dramatically different parameters of both the surrounding neighborhood and the project itself. 
 
-### Klyde Warren
+### Klyde Warren Park
 
-This project connected the predominantly Black Uptown neighborhood with the arts district and Downtown while also providing a community gathering space with free programming year-round. Since its opening in 2012, the park has enhanced the land value in the surrounding area, creating a positive economic impact on the City of Dallas including faster office and multifamily construction growth. However, it brought up concerns of “green gentrification” which benefits the interests of developers over displaced communities.
+This project **connected** the predominantly Black Uptown neighborhood with the arts district and Downtown while also providing a community gathering space with free programming year-round. Since its opening in 2012, the park has **enhanced the land value** in the surrounding area, creating a positive economic impact on the City of Dallas including faster office and multifamily construction growth. However, it brought up concerns of **"green gentrification"** which benefits the interests of developers over displaced communities.
 
-City: Dallas, TX
-Completion date: 2013
-Area Covered: 5.4 acres (235,000 sqft)
-Cost: $112 million
-Type of project: Park/Open Space
+![Klyde Warren Park - image and info from https://www.klydewarrenpark.org/](Final%20R%20Markdown/Images/KlydeWarrenPark.png)
+
++ **City:** Dallas, TX
++ **Completion date:** 2013
++ **Area Covered:** 5.4 acres (235,000 sqft)
++ **Cost:** $112 million
++ **Type of project:** Park/Open Space
 
 
 ### Cap at Union Station
 
-The project addressed the 40-year scar that was created by the construction of the inner-belt highway (I-670) by reconnecting the Columbus downtown area and the Short North neighborhood. The cap acts as a bridge for through traffic across I-670 while also providing leasable spaces to many retail shops and restaurants, ultimately providing an inviting urban streetscape.
+The project addressed the **40-year scar** that was created by the construction of the inner-belt highway (I-670) by **reconnecting the Columbus downtown area and the Short North neighborhood**. The cap acts as a bridge for through traffic across I-670 while also providing leasable spaces to many retail shops and restaurants, ultimately providing an **inviting urban streetscape**.
 
-City: Columbus, OH
-Completion date: 2004
-Area Covered: 25,500 sqft
-Cost: $7.8 million
-Type of project: Commercial
+![Cap at Union Park - image from https://www.crexi.com/properties/1653293/ohio-the-cap-at-union-station](Final%20R%20Markdown/Images/CapUnionStation.png)
+
++ **City:** Columbus, OH
++ **Completion date:** 2004
++ **Area Covered:** 25,500 sqft
++ **Cost:** $7.8 million
++ **Type of project:** Commercial
 
 
 ### The Big Dig at the Central Artery
 
-Creating more than 300 acres of open land with over 45 parks and public plazas, the Big Dig project replaced the deteriorating I-93 (Central Artery) with an underground expressway that links downtown Boston to the Boston Logan airport. This project also improved the North End and Waterfront neighborhoods’ access to downtown Boston and reduced traffic congestion, providing ~$168 million per year in time and cost savings.
+Creating more than 300 acres of open land with **over 45 parks and public plazas**, the Big Dig project replaced the deteriorating I-93 (Central Artery) with an underground expressway that links downtown Boston to the Boston Logan airport. This project also improved the North End and Waterfront neighborhoods’ access to downtown Boston and **reduced traffic congestion**, providing ~$168 million per year in time and cost savings.
 
+![Central Artery - image from https://themindcircle.com/boston-big-dig/](Final%20R%20Markdown/Images/CentralArtery.png)
 
-City: Boston, MA
-Completion date: 2007
-Area Covered: 2,350 acres
-Cost: $14.8 billion
-Type of project: Mixed Use
++ **City**: Boston, MA
++ **Completion date:** 2007
++ **Area Covered:** 2,350 acres
++ **Cost**: $14.8 billion
++ **Type of project:** Mixed Use
+
+#### Summary of Highway Cap Impacts
 
 A common thread across the impacts of caps in other cities is **neighborhood access and connection as well as increased value of land**. The Chinatown Stitch will not only reconnect Chinatown North to Chinatown, but also provide much needed open, green space for the community. A potential challenge after the construction of the Chinatown Stitch will be balancing the positive effects of higher land value and the **activation of commercial and residential opportunities** with **affordability and cultural preservation of the character** of Philadelphia's Chinatown.
 
@@ -1888,7 +1893,7 @@ A common thread across the impacts of caps in other cities is **neighborhood acc
 <h5><b>Correlation Matrix</b></h5>
 We examined correlations between continuous variables and sale price. This analysis aimed to identify variables with strong predictive relevance and assess potential multicollinearity. **Total Livable Area** shows the strongest positive correlation with **sale price**, reaffirming its role as a key structural determinant of property value. **Number of bedrooms** and **bathrooms** also exhibit moderate positive associations.  
 
-Among spatial accessibility variables, **sale price** is positively correlated with **distance to I-676**, supporting the assumption of highway-induced disamenity. Distances to **City Hall**, **transit**, and **water bodies** show weak but directionally consistent relationships.  
+Among spatial accessibility variables, **sale price** is positively correlated with **distance to I-676** as discussed before extensively, supporting the assumption of highway-induced disamenity. Distances to **City Hall**, **transit**, and **water bodies** show weak but directionally consistent relationships.  
 
 Importantly, **distance to park** shows relatively low correlation with price but is retained due to its direct policy relevance—Scenario 1 includes the construction of a cap park, making this variable critical for evaluating environmental improvements. **Crime Rate (crime_nn5)** is moderately negatively correlated with sale price, indicating that public safety remains a consistent influence on market value.  
 
@@ -2451,6 +2456,8 @@ final_plot
 ## OLS Modeling  
 The model achieves an R-squared of 0.45, indicating that approximately 45% of the variation in log-transformed sale prices is explained by the included predictors. The adjusted R-squared is 0.450, which adjusts for the number of predictors and confirms that the model has moderate explanatory power. The RMSE (Root Mean Squared Error) is 0.506, meaning the average deviation between the predicted and actual log sale prices is about 0.51. Given the complexity of housing markets and the limited sample size (N = 1528), this level of accuracy is acceptable for baseline modeling and policy scenario evaluation.  
 
+### Indicators
+
 Among the variables, several variables stand out as statistically significant and substantively important, and will serve as core inputs in our future predictive models.  
 
 1. `Distance to I-676` shows a positive and highly significant effect, the coefficient is 0.154, supporting the disamenity hypothesis and serving as a focal variable for the Stitch impact.  
@@ -2468,9 +2475,12 @@ In addition to these core variables, we retain several features that are current
 5. `Number of bedrooms` and `Number of bathrooms` show weaker effects once size is controlled for, but are retained for interpretability and flexibility in downstream scenario design.  
 6. `log_nearest_restaurant_dist_m` and `log_nearest_grocery_dist_m` are not statistically significant in the current model. This may suggest that in our study area—where most parcels are in walkable, amenity-rich neighborhoods like Center City and Chinatown—variation in food access is low, and therefore has limited power in explaining price differences. However, these variables are conceptually important and may gain significance in future scenario modeling, especially if the Stitch project leads to shifts in retail landscape or perceived accessibility. For that reason, we retain them in the feature set.  
 
-To address potential multicollinearity, we conducted a GVIF analysis. Most variables showed acceptable VIF values below 5. Only `garage_spaces` presented a high VIF (6.95), likely due to its overlap with other structural variables. We retained it due to its policy relevance, for example, its role in parking regulations, transit-oriented development, and future scenario simulation related to land use and accessibility.  
+### Multicollinearity
+
+To address potential multicollinearity, we conducted a **Generalized Variance Inflation Factor (GVIF)** analysis [@GVIFpaper]. Most variables showed acceptable VIF values below 5. Only `garage_spaces` presented a high Variance Inflation Factor or VIF (6.95), likely due to its overlap with other structural variables. We retained it due to its policy relevance—for example, its role in parking regulations, transit-oriented development, and future scenario simulation related to land use and accessibility.  
 
 As for `zip_code` and `nhoods_name`, we observed strong multicollinearity between them due to spatial nesting—most neighborhoods fall entirely within a single ZIP code. To maintain model stability in the OLS framework, we excluded `zip_code` and retained `nhoods_name` as a proxy for local fixed effects. However, in predictive modeling tasks (e.g., Random Forest, XGBoost), we reintroduce both variables. Tree-based and nonlinear models can handle multicollinearity more flexibly, and including both may improve prediction accuracy by capturing spatial heterogeneity at multiple administrative levels.
+
 
 Altogether, this comprehensive feature set reflects both current explanatory power and anticipated value for scenario modeling. The next stage will use this full variable group as input for machine learning models (`RF`, `XGBoost`,`RL`) to enable robust spatial prediction under different futures.
 ```{r message=FALSE, warning=FALSE}
@@ -2757,6 +2767,8 @@ ggplot() +
 ### Model Training
 
 Within the training set, we use **spatial cross-validation**, which tests the model on different areas to avoid overfitting to nearby properties. **K-means Clustering** is used when creating the cross-validation folds. This helps prevent the model from "cheating" by seeing similar areas in both training and testing.
+
+#### Workflow
 
 Each model is trained following a workflow, including defining, tuning, and evaluating. Here, we'd like to take **Random Forest workflow** as an example.
 
@@ -3108,7 +3120,7 @@ intersections %>%
   row_spec(3, bold = T, background = "#7fe3d6")
 ```
 
-Predicted and observed prices are compared by the scatter plots. The [orange]{style="color: #eb5600;"} and [green]{style="color: #1a9988;"} lines are closer in the RF model, indicating a better performance overall. However, the deviation suggests that, **on average, the model’s predictions are lower than the observed prices**. Examining the data points further reveals that prediction accuracy decreases as prices rise, confirming our concerns about the variability in the higher price ranges of the dataset. The intersection point suggests that our **RF model performs better for lower-valued housing prices around $422,857.5**.
+Predicted (in [orange]{style="color: #eb5600;"}) and observed (in [green]{style="color: #1a9988;"}) prices are compared by the scatter plots. The [orange]{style="color: #eb5600;"} and [green]{style="color: #1a9988;"} lines are closer in the RF model, indicating a better performance overall. However, the deviation suggests that, **on average, the model’s predictions are lower than the observed prices**. Examining the data points further reveals that prediction accuracy decreases as prices rise, confirming our concerns about the variability in the higher price ranges of the dataset. The intersection point suggests that our **RF model performs better for lower-valued housing prices around $422,857.5**.
 
 ### Random Forest Model
 
@@ -3167,13 +3179,13 @@ ggplot(data = val_pred_sf_plot,aes(x = MAPE)) +
 RF_MAPE_plot1_2 <- ggplot(val_pred_sf_plot %>% 
          filter(!MAPE<.3193), 
        aes(x = log_adj_sale_price, y = .pred)) +
-  geom_point(color = "grey", alpha = 0.4, size = 1.5) +
+  geom_point(color = "#eb5600", alpha = 0.4, size = 1.5) +
   geom_point(data = val_pred_sf_plot %>% 
                filter(MAPE<.3193), 
              aes(x = log_adj_sale_price, y = .pred), 
              color = "#1a9988", alpha = 0.5, size = 2) +
-  geom_abline(linetype = "dashed", color = "black") +
-  geom_smooth(method = "lm", color = "black", se = FALSE) +
+  geom_abline(linetype = "dashed", color = "#1a9988") +
+  geom_smooth(method = "lm", color = "#eb5600", se = FALSE) +
   coord_equal() +
   labs(x = "Observed value", y = "Predicted value",
        title = "Prediction Accuracy <span style='color:#1a9988;'>(Errors < 32.32%)</span>",
@@ -3297,6 +3309,9 @@ Excluding industrial zones and high-rise office buildings from the analysis (IRM
 
 
 # Scenario Planning
+
+## Scenarios
+
 ```{r message=FALSE, warning=FALSE, quiet = TRUE, results='hide'}
 property_raw_s1 <- st_transform(property_data, crs = 2272)
 
@@ -6355,3 +6370,5 @@ mapview(property_S0_js)
 ```
 
 # Reference
+
+
