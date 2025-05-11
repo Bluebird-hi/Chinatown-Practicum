@@ -8,7 +8,7 @@ output:
     number_sections: true
     theme: sandstone
     toc_float: true
-    code_folding: none
+    code_folding: true
     toc_depth: 3
 editor_options: 
   markdown: 
@@ -1893,7 +1893,7 @@ A common thread across the impacts of caps in other cities is **neighborhood acc
 <h5><b>Correlation Matrix</b></h5>
 We examined correlations between continuous variables and sale price. This analysis aimed to identify variables with strong predictive relevance and assess potential multicollinearity. **Total Livable Area** shows the strongest positive correlation with **sale price**, reaffirming its role as a key structural determinant of property value. **Number of bedrooms** and **bathrooms** also exhibit moderate positive associations.  
 
-Among spatial accessibility variables, **sale price** is positively correlated with **distance to I-676**, supporting the assumption of highway-induced disamenity. Distances to **City Hall**, **transit**, and **water bodies** show weak but directionally consistent relationships.  
+Among spatial accessibility variables, **sale price** is positively correlated with **distance to I-676** as discussed before extensively, supporting the assumption of highway-induced disamenity. Distances to **City Hall**, **transit**, and **water bodies** show weak but directionally consistent relationships.  
 
 Importantly, **distance to park** shows relatively low correlation with price but is retained due to its direct policy relevance—Scenario 1 includes the construction of a cap park, making this variable critical for evaluating environmental improvements. **Crime Rate (crime_nn5)** is moderately negatively correlated with sale price, indicating that public safety remains a consistent influence on market value.  
 
@@ -2456,6 +2456,8 @@ final_plot
 ## OLS Modeling  
 The model achieves an R-squared of 0.45, indicating that approximately 45% of the variation in log-transformed sale prices is explained by the included predictors. The adjusted R-squared is 0.450, which adjusts for the number of predictors and confirms that the model has moderate explanatory power. The RMSE (Root Mean Squared Error) is 0.506, meaning the average deviation between the predicted and actual log sale prices is about 0.51. Given the complexity of housing markets and the limited sample size (N = 1528), this level of accuracy is acceptable for baseline modeling and policy scenario evaluation.  
 
+### Most Powerful Predictors
+
 Among the variables, several variables stand out as statistically significant and substantively important, and will serve as core inputs in our future predictive models.  
 
 1. `Distance to I-676` shows a positive and highly significant effect, the coefficient is 0.154, supporting the disamenity hypothesis and serving as a focal variable for the Stitch impact.  
@@ -2473,7 +2475,9 @@ In addition to these core variables, we retain several features that are current
 5. `Number of bedrooms` and `Number of bathrooms` show weaker effects once size is controlled for, but are retained for interpretability and flexibility in downstream scenario design.  
 6. `log_nearest_restaurant_dist_m` and `log_nearest_grocery_dist_m` are not statistically significant in the current model. This may suggest that in our study area—where most parcels are in walkable, amenity-rich neighborhoods like Center City and Chinatown—variation in food access is low, and therefore has limited power in explaining price differences. However, these variables are conceptually important and may gain significance in future scenario modeling, especially if the Stitch project leads to shifts in retail landscape or perceived accessibility. For that reason, we retain them in the feature set.  
 
-To address potential multicollinearity, we conducted a GVIF analysis. Most variables showed acceptable VIF values below 5. Only `garage_spaces` presented a high VIF (6.95), likely due to its overlap with other structural variables. We retained it due to its policy relevance—for example, its role in parking regulations, transit-oriented development, and future scenario simulation related to land use and accessibility.  
+### Multicollinearity
+
+To address potential multicollinearity, we conducted a **Generalized Variance Inflation Factor (GVIF)** analysis [@GVIFpaper]. Most variables showed acceptable VIF values below 5. Only `garage_spaces` presented a high Variance Inflation Factor or VIF (6.95), likely due to its overlap with other structural variables. We retained it due to its policy relevance—for example, its role in parking regulations, transit-oriented development, and future scenario simulation related to land use and accessibility.  
 
 In addition, we identified that `zip_code` and `nhoods_name` are highly collinear. Certain neighborhoods are almost fully nested within specific ZIP codes, making the two variables statistically redundant. To avoid aliasing and ensure model stability, we removed `zip_code` and retained `nhoods_name` to capture neighborhood-level fixed effects.  
 
@@ -2762,6 +2766,8 @@ ggplot() +
 ### Model Training
 
 Within the training set, we use **spatial cross-validation**, which tests the model on different areas to avoid overfitting to nearby properties. **K-means Clustering** is used when creating the cross-validation folds. This helps prevent the model from "cheating" by seeing similar areas in both training and testing.
+
+#### Workflow
 
 Each model is trained following a workflow, including defining, tuning, and evaluating. Here, we'd like to take **Random Forest workflow** as an example.
 
@@ -3113,7 +3119,7 @@ intersections %>%
   row_spec(3, bold = T, background = "#7fe3d6")
 ```
 
-Predicted and observed prices are compared by the scatter plots. The [orange]{style="color: #eb5600;"} and [green]{style="color: #1a9988;"} lines are closer in the RF model, indicating a better performance overall. However, the deviation suggests that, **on average, the model’s predictions are lower than the observed prices**. Examining the data points further reveals that prediction accuracy decreases as prices rise, confirming our concerns about the variability in the higher price ranges of the dataset. The intersection point suggests that our **RF model performs better for lower-valued housing prices around $422,857.5**.
+Predicted (in [orange]{style="color: #eb5600;"}) and observed (in [green]{style="color: #1a9988;"}) prices are compared by the scatter plots. The [orange]{style="color: #eb5600;"} and [green]{style="color: #1a9988;"} lines are closer in the RF model, indicating a better performance overall. However, the deviation suggests that, **on average, the model’s predictions are lower than the observed prices**. Examining the data points further reveals that prediction accuracy decreases as prices rise, confirming our concerns about the variability in the higher price ranges of the dataset. The intersection point suggests that our **RF model performs better for lower-valued housing prices around $422,857.5**.
 
 ### Random Forest Model
 
@@ -3178,7 +3184,7 @@ RF_MAPE_plot1_2 <- ggplot(val_pred_sf_plot %>%
              aes(x = log_adj_sale_price, y = .pred), 
              color = "#1a9988", alpha = 0.5, size = 2) +
   geom_abline(linetype = "dashed", color = "black") +
-  geom_smooth(method = "lm", color = "black", se = FALSE) +
+  geom_smooth(method = "lm", color = "#eb5600", se = FALSE) +
   coord_equal() +
   labs(x = "Observed value", y = "Predicted value",
        title = "Prediction Accuracy <span style='color:#1a9988;'>(Errors < 32.32%)</span>",
