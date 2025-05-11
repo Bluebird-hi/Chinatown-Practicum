@@ -8,11 +8,12 @@ output:
     number_sections: true
     theme: sandstone
     toc_float: true
-    code_folding: hide
+    code_folding: none
     toc_depth: 3
 editor_options: 
   markdown: 
     wrap: 72
+bibliography: references.bib
 ---
 
 ```{css format, echo = FALSE}
@@ -22,8 +23,8 @@ editor_options:
 }
 ```
 
-```{r setup_general, message = FALSE, warning = FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
+```{r setup_general, message = FALSE, warning = FALSE, include =FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
     fig.align = "center") 
 options(scipen=999)
 
@@ -109,11 +110,15 @@ philly_properties <- st_read("~/Documents/Upenn/Practicum/2025/results/property_
 
 ## Background
 
-It is hard to talk about the history of the **Philadelphia Chinatown** without the construction of **I-676**, also known as the **Vine Street Expressway**. Although the highway serves as a significant thoroughfare through Center City Philadelphia, the indispensable repercussion on the adjacent neighborhoods still lingers today. Consequences of the highway such as demolishment of buildings, pedestrian safety threats, traffic congestion, as well as noise and air pollutions had been harming Chinatown and its surrounding neighborhoods over the past decades and are yet to be addressed.
+It is hard to talk about the history of the **Philadelphia Chinatown** without the construction of **I-676**, also known as the **Vine Street Expressway** which bisected the neighborhood. Although the highway serves as a significant thoroughfare through Center City Philadelphia, the indispensable repercussions on the adjacent neighborhoods still lingers today. Consequences of the highway such as demolition of buildings, pedestrian safety threats, traffic congestion, as well as noise and air pollution has been harming Chinatown and its surrounding neighborhoods over the past decades and are yet to be addressed.
 
-Standing in opposition to the issues, [City of Philadelphia Office of Transportation and Infrastructure and Sustainability (OTIS)](https://www.phila.gov/departments/office-of-transportation-and-infrastructure-systems/) brought forth the plan of capping sections of the expressway as a solution to address its historical harms on the Chinatown region. This “cap”, named **the Chinatown Stitch project**, aimed to create a safe and equitable green space for the public that would reconnect areas north and south to the Vine Street expressway. Receiving funds from the US department of Transportation and the local organizations, the construction of the Chinatown Stitch will start in 2027 and is expected to be completed in early 2030.
+In the last couple of years, [City of Philadelphia Office of Transportation and Infrastructure Systems (OTIS)](https://www.phila.gov/departments/office-of-transportation-and-infrastructure-systems/) brought forth the plan to cap sections of the expressway to address its historical harms to the Chinatown region. This project, titled **the Chinatown Stitch project**, is aimed to create a safe and equitable green space for the public that would reconnect areas north and south to the Vine Street expressway. Receiving funds from the US department of Transportation through the [Bipartisan Infrastructure Law](https://www.transit.dot.gov/IIJA), the construction of phase one the Chinatown Stitch will start in 2027 and is expected to be completed in early 2030.
 
-This purpose of this study is to help OTIS **understand the housing market of Philadelphia Chinatown region before and after the implementation of the Chinatown Stitch**. The first part of the study will focus the effects of highways on sales prices in the study region as well as the entire Philadelphia. House prices will then be estimated using **three predictive models under three different future scenarios**: business as usual without the implementation of the Chinatown Stitch, business as usual with the implementation of the Chinatown Stitch, and an alternative future in which the Chinatown Stitch significantly reshapes the urban landscape of the study region.
+This purpose of this study is to help OTIS **understand how the property values in Philadelphia's Chinatown region will change after the implementation of the Chinatown Stitch**. The first part of the study will focus on the effects of highways on property sales prices in Philadelphia and more specifically in our study area. We also include key findings from our qualitative research on highway effects and caps in other cities. Prices will then be estimated using **a predictive model** which we validate with real data. We then use this model to predict how property price will change in **three alternate futures**: Scenario 0 - business as usual, without the implementation of the Chinatown Stitch; Scenario 1 - implementation of the Chinatown Stitch; and Scenario 2 - implementation of the Chinatown Stitch and the addition of more commercial and residential transformations in our study area.
+
+We were tasked with building a [data-driven story map](https://yixuanzhou123.github.io/Practicum_Storymap/introduction.html) to explain possible impacts of the **Chinatown Stitch** to residents of neighborhoods surrounding the project area (we will define this area shortly). This report includes **all** of the analysis that we conducted, while the story map highlights what we deemed most pressing and important to residents. 
+
+A note to the reader: please click on "SHOW" to see the code behind all of our analyses. Some code chunks may have code commented out. This usually signifies that we have already run the code chunks and have saved the data on our [Github repository](https://github.com/Bluebird-hi/Chinatown-Practicum/tree/main). We call in the pre-saved data, but provide our code for transparency.
 
 ![](Final%20R%20Markdown/Images/background.png)
 
@@ -167,12 +172,9 @@ hydro <- st_read("https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/servi
 philly_highways <- st_read("Dataset/Highways/Casestudy_Highways.shp") %>% 
   st_transform('EPSG:2272')
 
-# cleaned and feature engineered property data for study area
-property_studyarea_FE <- st_read("Dataset/property/property_CT_FE.geojson")
+property_studyarea <- st_read("Dataset/original_property_studyarea.geojson") %>%
+  st_transform('EPSG: 2272')
 
-```
-
-```{r read_data, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
 #property <- st_read("Dataset/property/opa_properties_public2.geojson") %>%
 #  st_transform('EPSG:2272')
 
@@ -189,8 +191,8 @@ newpark <- st_read("Dataset/ParksModified/Park_join_I676_1.geojson")%>%
   st_transform('EPSG:2272')
 property2$distance_to_nearest_park <- property_park$distance_to_nearest_park
 
-nhood <- st_read("~/Documents/Upenn/Practicum/2025/Data/philly_neighborhoods.geojson")  #######change here!!!!!!!!!!!!!!!!!!!!!!
-
+nhood <- st_read("~/Documents/Upenn/Practicum/2025/Data/philly_neighborhoods.geojson")%>%
+  st_transform('EPSG:2272')
 landuse <- st_read("Dataset/landuse_clip/Land_Use_ClipLayer.shp")
 
 I676_2 <- st_read("Dataset/studyarea/discontinuity.shp")%>%
@@ -198,14 +200,17 @@ I676_2 <- st_read("Dataset/studyarea/discontinuity.shp")%>%
 
 cpi_data <- st_read("Dataset/property/cpi_data.csv")
 
+# cleaned property data before future engineerig for study area
 property_final <- st_read("Dataset/property/property_final.geojson")%>%
   st_transform('EPSG:2272')
+# cleaned and feature engineered property data for study area
+property_studyarea_FE <- st_read("Dataset/property/property_CT_FE.geojson")
 ```
-Three study areas are used in the analysis to reveal the effects of I-676 on the land market of the Chinatown region.
+Three study areas are used in our report and they are as follows. 
 
--   **Referable study area (Philadelphia):** to analyse the impact of different highways on the surrounding land markets in the context of the city.
--   **Main study area (10 block groups):** to figure out the correlation between I-676 and property sales price and make future predictions based on three potential scenarios.
--   **Compared study area (north and south sides):** to investigate the different situations of the Chinatown region under the construction of I-676.
+-   **Philadelphia:** We explore properties throughout the city of Philadelphia to conduct the first step of our highway analysis.
+-   **Main study area (10 block groups):** Incorporating block groups from Chinatown, Callowhill, Logan Square, Center City East, Old City, and West Poplar, this study area is used to investigate the relationship between I-676 and property sales price. This is the main study area we use for our predictive model as well.
+-   **North and South Split:** We split our main study area into areas [North]{style="color: #eb5600;"} and [South]{style="color: #1a9988;"} of I-676 (which we refer to as Callowhill and Chinatown, respectively, for simplicity). This allows us to see how the highway effect is felt differently across the highway.
 
 ```{r StudyArea_plot}
 StudyArea_plot1 <- ggplot() +
@@ -224,7 +229,6 @@ StudyArea_plot1 <- ggplot() +
 StudyArea_plot2 <- ggplot() +
   geom_sf(data = studyarea_north, fill = alpha("#eb5600", .1), color = "transparent") +
   geom_sf(data = studyarea_south, fill = alpha("#1a9988", .1), color = "transparent") +
-  # geom_sf(data = discontinuity, fill = "black", color = "transparent") +
   geom_sf(data = Chinatown_Stitch, fill = "grey", color = "transparent", linetype = "dashed", linewidth = 1) +
   geom_sf(data = studyarea_blockgroup, fill = "transparent", color = "grey", linewidth = .8, linetype = "dashed") +
   geom_sf(data = property_north, color = "#eb5600", size = .6) +
@@ -257,16 +261,18 @@ landuse_park_ing <- landuse_4326 %>%
 park_4326 <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
   st_transform('EPSG:4326')
 
-# nhoods_4326 <- 
-#   st_read("DataWrangling/akidata/philadelphia-neighborhoods.geojson") %>%
-#   # st_read("akidata/philadelphia-neighborhoods.geojson") %>%
-#   st_transform('EPSG:4326')
+#nhoods <- 
+#  st_read("Dataset/DataWrangle/philadelphia-neighborhoods.geojson") %>%
+#  st_transform('EPSG:2272')
+
+park <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
+  st_transform('EPSG:2272')
 
 Chinatown_Callowhill <- nhoods_4326 %>%
   filter(NAME %in% c("CHINATOWN", "CALLOWHILL"))
 ```
 
-In the vision of **a city park** in the future, the Chinatown Stitch will bring vitality to local residents and visitors along with other green spaces. Connected with the Stitch, the **Rail Park** in the [north (Callowhill neighborhood)]{style="color: #eb5600;"} is still in construction and will make an impact years later. With a foundation of **cultural and commercial resources**, the [southern part (Chinatown neighborhood)]{style="color: #1a9988;"} will provide services to the surrounding area, including the city center of Philadelphia.
+With all the green space that the Chinatown Stitch will provide, we treat the area as a **park**, providing residents and visitors not only a natural and inviting space, but increasing opportunities for social interaction or even rest from the buzzing city life. In addition, OTIS is designing the Chinatown Stitch with phase two of the **Rail Park** (in the [north (Callowhill)]{style="color: #eb5600;"}) in mind. There are many existing **cultural and commercial resources** to the [south (Chinatown)]{style="color: #1a9988;"} of the expressway, and [OTIS's community surveys](https://www.phila.gov/media/20231219094529/Chinatown-Stitch-Vision-Report-December-2023.pdf) have found that residents would like to see some commercial development in addition to a community garden and picnic area on the highway cap as well.
 
 ```{r UseCase_plot}
 UseCase <- leaflet() %>%
@@ -281,8 +287,19 @@ UseCase <- leaflet() %>%
               weight = 0.8,
               fillColor = "#DFF3E3",
               fillOpacity = 0.4) %>%
-  addPolygons(data = Chinatown_Callowhill,
+  addPolygons(data = Chinatown_Callowhill %>% 
+                filter(grepl("CH", NAME)),
               color = "#eb5600",
+              label = "Chinatown",
+              weight = 1,
+              opacity = 0.5,
+              dashArray = "5,5",
+              fillColor = "#eb5600",
+              fillOpacity = 0.1) %>%
+  addPolygons(data = Chinatown_Callowhill %>% 
+                filter(grepl("CA", NAME)),
+              color = "#eb5600",
+              label = "Callowhill",
               weight = 1,
               opacity = 0.5,
               dashArray = "5,5",
@@ -308,7 +325,6 @@ UseCase <- leaflet() %>%
               opacity = 1,
               fillColor = "#1a9988",
               fillOpacity = 0.8
-              # fill = alpha("#1a9988", 0.5)
               ) %>%
   fitBounds(
     lng1 = bbox$xmin, 
@@ -337,11 +353,15 @@ kable(
 
 ## Methodology
 
-To achieve the goal of **a data-rich story map**, the methodology is structured around **a robust model construction process**. By incorporating illustrative data visualizations throughout the data analysis, the story map features engaging maps and compelling narratives.
+With the goal of **a data-driven story map**, our methodology is structured around constructing **a robust model construction process**. By incorporating illustrative data visualizations throughout our data analysis, the story map features engaging maps and compelling narratives to guide residents through the very complex relationship between highways and property prices.
 
 ![](Final%20R%20Markdown/Images/methodology.png)
 
-TODO: include description of qualitative analysis
+To substantiate our quantitative investigation of how property value may react to the implementation of the Chinatown Stitch, a thorough **qualitative analysis** was undertaken. First, we conducted a literature review on the effects of highways in urban areas, specifically focusing on how proximity to highways influences home values, heavily leaning on the works of [Dr. Jeffrey Lin](https://www.philadelphiafed.org/our-people/jeffrey-lin), an economist from the Philadelphia Federal Reserve Bank. 
+
+In addition, we conducted a **series of interviews** with experts with an exhaustive understanding of the **highway effects** on property prices (Dr. Lin), **Philadelphia Chinatown** and other Chinatowns across the country ([Dr. Domenic Vitiello](https://www.design.upenn.edu/people/domenic-vitiello)), and **design perspectives** that landscape architects consider when working on projects like the Chinatown Stitch ([Dr. Yadan Luo](https://www.design.upenn.edu/people/yadan-luo)). These interviews provided us with an interdisciplinary perspectives on the potential impacts of the Chinatown Stitch on local communities. 
+
+We also explored **other completed highway capping projects** across the United States as case studies to hypothesize how the Chinatown Stitch Project may impact the social, environmental, and economical nature of the Philadelphia Chinatown.
 
 # Exploratory Data Analysis
 ## Data Wrangling
@@ -828,20 +848,14 @@ property_final <- clean_property_poi_distances(property_proj)
 st_write(property_final, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-### Neighborhood Context Data
-To capture the neighborhood context surrounding each parcel, we integrated multiple spatial datasets from [Open Data Philly](https://opendataphilly.org/datasets/), including parks, City Hall, transit stations (bus, metro and trolley), schools, hospitals, water bodies, bike networks, and POIs such as grocery stores and restaurants via Google Places API. For each type of feature, we computed the nearest distance from each property, generating a set of spatial accessibility indicators. We further spatially joined each parcel to its corresponding neighborhood name, land use category, and retail environment data (LPSS/HPSS) to enrich contextual attributes. Crime rate was calculated using historical crime records for Philadelphia. Specifically, we applied a k-nearest-neighbor (K-NN) approach (k = 1 to 5) to derive the distances from each property to the nearest reported incidents, reflecting localized safety levels. These variables are essential indicators in our analysis and modeling, capturing how the surrounding built and social environment may influence sale price and response to planning interventions.
+### Neighborhood Context Data  
+To capture the **neighborhood context** surrounding each parcel, we integrated multiple spatial datasets from [Open Data Philly](https://opendataphilly.org/datasets/), including parks, City Hall, transit stations (bus, metro and trolley), schools, hospitals, bodies of water, bike networks, and points-of-interest or POIs such as grocery stores and restaurants (via Google Places API). For each type of feature, we computed the distance to the nearest amenity for each property, generating a set of **spatial accessibility indicators** (i.e. distance to nearest restaurant, distance to nearest hospital, etc.). 
 
-```{r property_data, quiet = TRUE, results = 'hide'}
-# property <- st_read("DataWrangling/akidata/opa_properties_public.geojson") %>%
-#   st_transform('EPSG:2272')
-# 
-# property_studyarea <- st_intersection(property, studyarea)
-# 
-# st_write(property_studyarea %>% st_transform('EPSG:3857'), "Dataset/original_property_studyarea.geojson", driver = "GeoJSON")
+We further spatially joined each parcel to its corresponding **neighborhood name**, **land use** category, and **retail** environment data (low- or high-produce supply stores per 1,000 people, abbreviated to LPSS and HPSS, respectively) to enrich contextual attributes. **Crime rate** was calculated using historical crime records for Philadelphia. Specifically, we applied a k-nearest-neighbor (K-NN) approach (for values of k between 1 and 5) to derive the average distance to the nearest reported incidents for each property, reflecting localized safety levels.
 
-property_studyarea <- st_read("Dataset/original_property_studyarea.geojson") %>%
-  st_transform('EPSG: 2272')
+These variables are essential indicators in our analysis and modeling, capturing how the **surrounding built and social environments may influence sale price** and responses to planning interventions.
 
+```{r landuse_data, quiet = TRUE, results = 'hide'}
 landuse <- st_read("Dataset/landuse_clip/Land_Use_ClipLayer.shp") %>%
   st_transform('EPSG:2272')
 
@@ -865,20 +879,9 @@ landuse_rename <- landuse %>%
     C_DIG2DESC == 91 ~ "Vacant",
     C_DIG2DESC == 92 ~ "Other/Unknown"
   ))
-
-# philly properties (from Sijia)
-# from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
-# philly_properties <- st_read("akidata/property_philly_250318.geojson")
 ```
 
 ```{r neighborhood_wrangle, quiet = TRUE, results = 'hide'}
-nhoods <- 
-  st_read("Dataset/DataWrangle/philadelphia-neighborhoods.geojson") %>%
-  st_transform('EPSG:2272')
-
-park <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
-  st_transform('EPSG:2272')
-
 # philly park data (https://opendataphilly.org/datasets/ppr-properties/)
 philly_parks <- st_read("https://opendata.arcgis.com/datasets/d52445160ab14380a673e5849203eb64_0.geojson") %>%
   st_transform(crs = 'EPSG:2272') %>% 
@@ -927,7 +930,6 @@ phillyCrimes <-
   st_transform('EPSG:2272')
 
 # LPSS_PER1000: Number of low-produce supply stores per 1,000 people
-# HPSS_PER1000: Number of high-produce supply stores per 1,000 people
 retail <-
   st_read("https://opendata.arcgis.com/datasets/53b8a1c653a74c92b2de23a5d7bf04a0_0.geojson") %>%
   st_transform('EPSG:2272')
@@ -954,7 +956,7 @@ Luming_property <- Luming_property %>%
     distance_to_nearest_bikelane = calculate_nearest_distance(geometry, bike_network),
     distance_to_I676 = calculate_nearest_distance(geometry, I_676)
   ) %>%
-  st_join(nhoods["NAME"], left = TRUE) %>%
+  st_join(nhood["NAME"], left = TRUE) %>%
   rename(nhoods_name = NAME) %>%
   st_join(landuse_rename["landuse"], left = TRUE) %>%
   st_join(retail[, c("LPSS_PER1000", "HPSS_PER1000")], left = TRUE)
@@ -977,479 +979,9 @@ Luming_property <- Luming_property %>%
                               st_coordinates(phillyCrimes), k = 5))
 ```
 
+## Basic Geography of our Study Area
 
-## Highway Effects Analysis
-### Qualitative Research
-
-TODO: summary of Jeffrey Lin's paper and other literature.
-
-```{r eda_data, quiet = TRUE, results = 'hide'}
-# property_EDA <- st_read("Dataset/property_sijia_eda.geojson") %>%
-#   st_transform('EPSG:2272')
-# 
-# property_EDA_update <- property_EDA %>%
-#   dplyr::select(-sale_price.y) %>%
-#   rename(sale_price = sale_price.x) %>%
-#   mutate(log_sale_price = ifelse(!is.na(sale_price) & sale_price == 0, 
-#                                  log(sale_price + 1), 
-#                                  log(sale_price)))
-# 
-# property_EDA_update <- 
-#   rbind(
-#     property_EDA_update %>% st_intersection(studyarea_north["geometry"]) %>%
-#       mutate(I676 = "north"),
-#     property_EDA_update %>% st_intersection(studyarea_south["geometry"]) %>%
-#       mutate(I676 = "south")
-#   )
-
-# making sure philly_properties has the same columns as property_EDA_update
-# this dataset will be used for the Study Area Scale analysis (I-676 effects + Discontinuity effects)
-# also, only keep properties within the study area
-# names_toadd <- names(property_EDA_update)[which(!(names(property_EDA_update) %in% names(philly_properties)))]
-# 
-# properties_i676 <- philly_properties %>% 
-#   filter(objectid %in% property_studyarea$objectid) %>% # this limits what was formally 2394 properties in the study area, to only 94 properties..... definitely needs to be checked
-#   mutate(objectid = as.character(objectid)) %>% 
-#   left_join(property_EDA_update %>% 
-#               select(c(names_toadd, objectid)) %>% 
-#               st_drop_geometry(),
-#             by = "objectid")
-
-# checking that this worked
-# all(names(property_EDA_update) %in% names(properties_i676)) # TRUE, period!
-
-```
-
-### Philadelphia Scale Analysis
-
-Before jumping into modeling, we first explored the relationship between **distance to highway** and **property prices**. We used property data from OPA Philadelphia that was cleaned to include only the data from the last five years (Jan. 1st, 2020 to Dec. 31st, 2024) with prices adjusted for inflation after removing extreme outliers and improbable values (keeping rows with property price within the 5th and 95th percentile), and keeping properties with total area of over 100 square feet (see map below for the properties included in this analysis).
-
-Our **Philadelphia Scale Analysis** looks at properties (of all kinds, not limited to housing properties) within 500 m of Philadelphia's main highways -- [I-95]{style="color: #eba075;"} on the East, [I-76]{style="color: #eb5600;"} on the West, [US-1]{style="color: #1a9988;"} in the North, and [I-676]{style="color: #7fe3d6;"} through the city. We saw the following trends in property prices.
-
-```{r prep_500m_highway_data, quiet = TRUE, results = 'hide'}
-# create 500m buffer around philly highways
-buff500 <- 500 * 3.28084
-hiway_500buff <- st_union(st_buffer(philly_highways, buff500))
-
-# read in pre-saved file
-#prop500 <- st_read("akidata/philly_prop500_dst2hghwy_250421.geojson") %>% # Aki, (download from Box)
-#  mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
-
-prop500 <- st_read("Dataset/phl_properties_dist2highway/philly_prop500_dst2hghwy_250421.geojson") %>%
-  mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
-```
-
-```{r map_prop500}
-# map of properties within 500m of highway cored by which highway they're closest to
-ggplot() +
-  geom_sf(data = philly_bounds, fill = "#c9b887", color = "grey") +
-  geom_sf(data = hydro, fill = "#7d97c7", color = "transparent") +
-  geom_sf(data = philly_parks, fill = "#6b9169", color = "transparent") +
-  geom_sf(data = hiway_500buff,
-          color = "transparent", fill = "grey", alpha = 0.4) +
-  geom_sf(data = prop500,
-          aes(color = closest_highway), size = 0.3,
-          show.legend = F) +
-  geom_sf(data = philly_highways,
-          color = "black") +
-  
-  # add custom colors
-  scale_color_manual(values = c("US-1" = "#1a9988",
-                                "I-76" = "#eb5600",
-                                "I-95" = "#eba075",
-                                "I-676" = "#7fe3d6")) +
-  # labels for highway names
-  geom_text(aes(label = "US-1",
-                x = 2700000,
-                y = 256453.2),
-            color = "#1a9988") +
-  geom_text(aes(label = "I-76",
-                x = 2680000,
-                y = 235000),
-            color = "#eb5600") +
-  geom_text(aes(label = "I-95",
-                x = 2705200,
-                y = 235000),
-            color = "#eba075") +
-  geom_text(aes(label = "I-676",
-                x = 2694000,
-                y = 243000),
-            color = "#7fe3d6") +
-  
-  labs(title = "Properties within 500m of Highways in Philly",
-       subtitle = "US-1, I-76, I-95, and I-676",
-       color = "Closest Highway") +
-  theme_void()
-
-```
-
-```{r prop500_faceted}
-prop500_faceted <- 
-  ggplot(data = prop500,
-         aes(x = log_price, color = closest_highway, fill = closest_highway)) +
-  geom_histogram(bins = 50, show.legend = F) +
-  facet_wrap(~closest_highway, scales = "free_y") +
-  scale_color_manual(values = c("US-1" = "#1a9988",
-                                "I-76" = "#eb5600",
-                                "I-95" = "#eba075",
-                                "I-676" = "#7fe3d6")) +
-  scale_fill_manual(values = c("US-1" = "#1a9988",
-                               "I-76" = "#eb5600",
-                               "I-95" = "#eba075",
-                               "I-676" = "#7fe3d6")) +
-  labs(title = "Distribution of Property Sale Price",
-       subtitle = "Split by Closest Highway",
-       x = "Log Sale Price",
-       y = "Count") +
-  theme_minimal()
-
-prop500_faceted
-
-```
-
-```{r prop500_med_saleprices}
-# median sale prices to talk about in the text
-med_price_us1 <- round(median(prop500 %>% 
-                          filter(closest_highway == "US-1") %>% 
-                          pull(adj_sale_price)))
-
-med_price_i76 <- round(median(prop500 %>% 
-                          filter(closest_highway == "I-76") %>% 
-                          pull(adj_sale_price)))
-
-med_price_i95 <- round(median(prop500 %>% 
-                          filter(closest_highway == "I-95") %>% 
-                          pull(adj_sale_price)))
-
-med_price_676 <- round(median(prop500 %>% 
-                          filter(closest_highway == "I-676") %>% 
-                          pull(adj_sale_price)))
-
-# count of properties included in analysis 
-prop_count <- prop500 %>% 
-  st_drop_geometry() %>% 
-  group_by(closest_highway) %>% 
-  summarise(count = n())
-
-prop_count_676 <- prop_count %>% 
-  filter(grepl("676", closest_highway)) %>% 
-  pull(count)
-
-prop_count_us1 <- prop_count %>% 
-  filter(grepl("US", closest_highway)) %>% 
-  pull(count)
-
-prop_count_i76 <- prop_count %>% 
-  filter(grepl("-76", closest_highway)) %>% 
-  pull(count)
-
-prop_count_i95 <- prop_count %>% 
-  filter(grepl("95", closest_highway)) %>% 
-  pull(count)
-```
-
-`r paste0(substr(nrow(prop500), 1, 2), ",", substr(nrow(prop500), 3, 5))` total properties were included in this analysis. We see that the distribution of log sale prices of properties within 500m of highways in Philadelphia generally follow a normal distribution.
-
-Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r prop_count_676` properties) as there are near the other highways, they are most expensive group with a median property price of **`r paste0('$', substr(med_price_676, 1, 3), ',', substr(med_price_676, 4, 9))`**. 
-
-Properties near [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"} are among a similar range of prices with median property prices being **`r paste0('$', substr(med_price_i95, 1, 3), ',', substr(med_price_i95, 4, 9))`** and **`r paste0('$', substr(med_price_i76, 1, 3), ',', substr(med_price_i76, 4, 9))`**, respectively, though there are almost five times as many properties near [I-95]{style="color: #eba075;"} compared to [I-76]{style="color: #eb5600;"} (`r paste0(substr(prop_count_i95,1,1), ",", substr(prop_count_i95, 2,4))` and `r paste0(substr(prop_count_i76,1,1), ",", substr(prop_count_i76, 2,4))` properties around [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"}, respectively). 
-
-Finally, there are many properties within 500m of [US-1]{style="color: #1a9988;"} (`r paste0(substr(prop_count_us1,1,1), ",", substr(prop_count_us1, 2,4))` properties), but the median property price was lowest compared to other highways at **`r paste0('$', substr(med_price_us1, 1, 3), ',', substr(med_price_us1, 4, 9))`**.
-
-```{r prop500_scatter}
-# models + beta coefficients
-coef_us1 <- round(
-  summary(
-    lm(log_price ~ log_dist_to_closest_highway,
-       data = prop500 %>% 
-         filter(grepl("US", closest_highway)))
-    )$coefficients[2,1], 3) # *** p < 0.001
-
-coef_i76 <- round(
-  summary(
-    lm(log_price ~ log_dist_to_closest_highway, 
-       data = prop500 %>% 
-         filter(grepl("-76", closest_highway)))
-    )$coefficients[2,1], 3) # ** p < 0.05
-
-coef_i95 <- round(
-  summary(
-    lm(log_price ~ log_dist_to_closest_highway, 
-       data = prop500 %>% 
-         filter(grepl("95", closest_highway)))
-    )$coefficients[2,1], 3) # *** p < 0.001
-
-coef_i676 <- round(
-  summary(
-    lm(log_price ~ log_dist_to_closest_highway, 
-       data = prop500 %>%
-         filter(grepl("676", closest_highway)))
-    )$coefficients[2,1], 3) # not statistically significant, p = 0.0693
-
-scatter_4highways <- 
-  ggplot(data = prop500, 
-       aes(x = log_dist_to_closest_highway, y = log_price, 
-           color = closest_highway, fill = closest_highway)) +
-  geom_point(alpha = .2, size = 0.3, show.legend = F) +
-  geom_smooth(method = "lm", size = 1.2, show.legend = F) +
-  scale_color_manual(values = c("US-1" = "#1a9988",
-                                "I-76" = "#eb5600",
-                                "I-95" = "#eba075",
-                                "I-676" = "#7fe3d6")) +
-  scale_fill_manual(values = c("US-1" = "#1a9988",
-                               "I-76" = "#eb5600",
-                               "I-95" = "#eba075",
-                               "I-676" = "#7fe3d6")) +
-  geom_text(aes(label = paste("US-1:", coef_us1),
-                x = 4.25,
-                y = 11.75),
-            color = "#1a9988", 
-            show.legend = F) +
-  geom_text(aes(label = paste("I-76:", coef_i76),
-                x = 4.25,
-                y = 12.75),
-            color = "#eb5600",
-            show.legend = F) +
-  geom_text(aes(label = paste("I-95:", coef_i95),
-                x = 4.25,
-                y = 13.25),
-            color = "#eba075",
-            show.legend = F) +
-  geom_text(aes(label = paste("I-676:", coef_i676),
-                x = 4.25,
-                y = 13.75),
-            color = "#7fe3d6",
-            show.legend = F) +
-  labs(title = "Property Price (log) as a function of Distance to Closest Highway (log)",
-       subtitle = "Properties within 500m of highways",
-       x = "Log Distance to Closest Highway",
-       y = "Log Property Sale Price") +
-  theme_minimal()
-
-scatter_4highways
-
-```
-
-The scatter plot above shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) as we move away from a highway which tracks with our literature review of highway effects on property prices. 
-
-When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, it was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
-
-For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^coef_i676)*100000) - 100000)` more expensive** (assuming a block is about 200m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
-
-The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^coef_i95), 5)*100000)` less expensive**. We suspect that the negative effect distance to highways have on property price is driven by .....
-
-We now zoom into our **study area** to further understand highway effects in our region of interest.
-
-#### same interpretation but with 100m instead of 200m
-
-For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((2^coef_i676)*100000) - 100000)` more expensive** (assuming a block is about 100m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((2^coef_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((2^coef_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
-
-The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((2^coef_i95), 5)*100000)` less expensive**.
-
-
-#### I-95 Exploration
-
-Taking a look at the properties near I-95 to see why we see a different relationship between distance to highway and property price here.
-
-
-```{r i95_exploration}
-# trying to figure out why we see a negative relationship between distance to highway and property price by I-95
-i95_500 <- prop500 %>% 
-  filter(closest_highway == "I-95") # 6547 total properties
-
-# scatter plot to see relationship
-i95_scatter <- ggplot(i95_500, 
-                      aes(x = log_dist_to_closest_highway, y = log_price)) +
-  geom_point(color = "#eba075", alpha = .2, size = 0.3, show.legend = F) +
-  geom_smooth(color = "#eba075", fill = "#eba075", method = "lm", size = 1.2, show.legend = F) +
-  geom_text(aes(label = paste("I-95:", coef_i95),
-                x = 4.75,
-                y = 11.75),
-            color = "#eba075",
-            show.legend = F) +
-  labs(title = "Property Price (log) as a function of Distance to I-95 (log)",
-       subtitle = "Properties within 500m of highways",
-       x = "Log Distance to I-95",
-       y = "Log Property Sale Price") +
-  theme_minimal()
-i95_scatter
-
-```
-
-
-#### Philly Scale Analysis (Residential Properties only)
-
-Now, we conduct the same analyses to explore the relationship between **distance to highway** and **property prices** for residential properties only (excluding residential garages and vacant lots).  We saw the following trends in property prices.
-
-```{r prep_500_res, quiet = TRUE, results = 'hide'}
-# properties within 500 m of highway that are specifically housing related (excluding residential garages and vacant lands)
-prop500_res <- prop500 %>% 
-  filter(grepl("APARTMENTS|MIXED USE|MULTI FAMILY|SINGLE FAMILY", category_code_description))
-# 98.1% of the properties 500 m within highways are residential.
-
-```
-
-```{r prop500_res_faceted}
-prop500_res_faceted <- 
-  ggplot(data = prop500_res,
-         aes(x = log_price, color = closest_highway, fill = closest_highway)) +
-  geom_histogram(bins = 50, show.legend = F) +
-  facet_wrap(~closest_highway, scales = "free_y") +
-  scale_color_manual(values = c("US-1" = "#1a9988",
-                                "I-76" = "#eb5600",
-                                "I-95" = "#eba075",
-                                "I-676" = "#7fe3d6")) +
-  scale_fill_manual(values = c("US-1" = "#1a9988",
-                               "I-76" = "#eb5600",
-                               "I-95" = "#eba075",
-                               "I-676" = "#7fe3d6")) +
-  labs(title = "Distribution of Residential Property Sale Price",
-       subtitle = "Split by Closest Highway",
-       x = "Log Sale Price",
-       y = "Count") +
-  theme_minimal()
-
-prop500_res_faceted
-
-# this one is largely unchanged
-```
-
-```{r prop500_res_med_saleprices}
-# median sale prices to talk about in the text
-med_res_price_us1 <- round(median(prop500_res %>% 
-                          filter(closest_highway == "US-1") %>% 
-                          pull(adj_sale_price)))
-
-med_res_price_i76 <- round(median(prop500_res %>% 
-                          filter(closest_highway == "I-76") %>% 
-                          pull(adj_sale_price)))
-
-med_res_price_i95 <- round(median(prop500_res %>% 
-                          filter(closest_highway == "I-95") %>% 
-                          pull(adj_sale_price)))
-
-med_res_price_676 <- round(median(prop500_res %>% 
-                          filter(closest_highway == "I-676") %>% 
-                          pull(adj_sale_price)))
-
-# count of properties included in analysis 
-prop_res_count <- prop500_res %>% 
-  st_drop_geometry() %>% 
-  group_by(closest_highway) %>% 
-  summarise(count = n())
-
-prop_res_count_676 <- prop_res_count %>% 
-  filter(grepl("676", closest_highway)) %>% 
-  pull(count)
-
-prop_res_count_us1 <- prop_res_count %>% 
-  filter(grepl("US", closest_highway)) %>% 
-  pull(count)
-
-prop_res_count_i76 <- prop_res_count %>% 
-  filter(grepl("-76", closest_highway)) %>% 
-  pull(count)
-
-prop_res_count_i95 <- prop_res_count %>% 
-  filter(grepl("95", closest_highway)) %>% 
-  pull(count)
-```
-
-`r paste0(substr(nrow(prop500_res), 1, 2), ",", substr(nrow(prop500_res), 3, 5))` total properties were included in this analysis. We see that the distribution of log sale prices of properties within 500m of highways in Philadelphia generally follow a normal distribution.
-
-Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r prop_res_count_676` properties) as there are near the other highways, they are most expensive group with a median property price of **`r paste0('$', substr(med_res_price_676, 1, 3), ',', substr(med_res_price_676, 4, 9))`**. 
-
-Properties near [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"} are among a similar range of prices with median property prices being **`r paste0('$', substr(med_res_price_i95, 1, 3), ',', substr(med_res_price_i95, 4, 9))`** and **`r paste0('$', substr(med_res_price_i76, 1, 3), ',', substr(med_res_price_i76, 4, 9))`**, respectively, though there are almost five times as many properties near [I-95]{style="color: #eba075;"} compared to [I-76]{style="color: #eb5600;"} (`r paste0(substr(prop_res_count_i95,1,1), ",", substr(prop_res_count_i95, 2,4))` and `r paste0(substr(prop_res_count_i76,1,1), ",", substr(prop_res_count_i76, 2,4))` properties around [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"}, respectively). 
-
-Finally, there are many properties within 500m of [US-1]{style="color: #1a9988;"} (`r paste0(substr(prop_res_count_us1,1,1), ",", substr(prop_res_count_us1, 2,4))` properties), but the median property price was lowest compared to other highways at **`r paste0('$', substr(med_res_price_us1, 1, 3), ',', substr(med_res_price_us1, 4, 9))`**.
-
-```{r prop500_res_scatter}
-# models + beta coefficients
-coef_res_us1 <- round(
-  summary(
-    lm(log_price ~ log_dist_to_closest_highway,
-       data = prop500_res %>% 
-         filter(grepl("US", closest_highway)))
-    )$coefficients[2,1], 3) # *** p < 0.001
-
-coef_res_i76 <- round(
-  summary(
-    lm(log_price ~ log_dist_to_closest_highway, 
-       data = prop500_res %>% 
-         filter(grepl("-76", closest_highway)))
-    )$coefficients[2,1], 3) # ** p < 0.05
-
-coef_res_i95 <- round(
-  summary(
-    lm(log_price ~ log_dist_to_closest_highway, 
-       data = prop500_res %>% 
-         filter(grepl("95", closest_highway)))
-    )$coefficients[2,1], 3) # *** p < 0.001
-
-coef_res_i676 <- round(
-  summary(
-    lm(log_price ~ log_dist_to_closest_highway, 
-       data = prop500_res %>%
-         filter(grepl("676", closest_highway)))
-    )$coefficients[2,1], 3) # not statistically significant, p = 0.0693
-
-scatter_4highways_res <- 
-  ggplot(data = prop500_res, 
-       aes(x = log_dist_to_closest_highway, y = log_price, 
-           color = closest_highway, fill = closest_highway)) +
-  geom_point(alpha = .2, size = 0.3, show.legend = F) +
-  geom_smooth(method = "lm", size = 1.2, show.legend = F) +
-  scale_color_manual(values = c("US-1" = "#1a9988",
-                                "I-76" = "#eb5600",
-                                "I-95" = "#eba075",
-                                "I-676" = "#7fe3d6")) +
-  scale_fill_manual(values = c("US-1" = "#1a9988",
-                               "I-76" = "#eb5600",
-                               "I-95" = "#eba075",
-                               "I-676" = "#7fe3d6")) +
-  geom_text(aes(label = paste("US-1:", coef_res_us1),
-                x = 4.25,
-                y = 11.75),
-            color = "#1a9988", 
-            show.legend = F) +
-  geom_text(aes(label = paste("I-76:", coef_res_i76),
-                x = 4.25,
-                y = 12.75),
-            color = "#eb5600",
-            show.legend = F) +
-  geom_text(aes(label = paste("I-95:", coef_res_i95),
-                x = 4.25,
-                y = 13.25),
-            color = "#eba075",
-            show.legend = F) +
-  geom_text(aes(label = paste("I-676:", coef_res_i676),
-                x = 4.25,
-                y = 13.75),
-            color = "#7fe3d6",
-            show.legend = F) +
-  labs(title = "Residential Property Price (log) as a function of Distance to Closest Highway (log)",
-       subtitle = "Properties within 500m of highways",
-       x = "Log Distance to Closest Highway",
-       y = "Log Property Price") +
-  theme_minimal()
-
-scatter_4highways_res
-
-```
-
-The scatter plot above shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) as we move away from a highway which tracks with our literature review of highway effects on property prices. 
-
-When predicting property price, the beta coefficient for log distance to highway is `r coef_res_i676`, `r coef_res_i76`, and `r coef_res_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, it was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
-
-For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_res_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^coef_res_i676)*100000) - 100000)` more expensive** (assuming a block is about 200m). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_res_i76 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_res_i76)*100000) - 100000)` more expensive** if it were a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_res_us1 - 1, 4)*100,"%")`, meaning a property that is \$100,000 is 50m away from the highway would be about **`r paste0("$", round((4^coef_res_us1)*100000) - 100000)` more expensive** if it were a block further from the highway.
-
-The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_res_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_res_i95 - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", 100000 - round((4^coef_res_i95), 5)*100000)` less expensive**.
-
-We now zoom into our **study area** to further understand highway effects in our region of interest.
-
-### Study Region Scale Analysis
-
-#### Basic Geography
+This land use map of our study area reveals several important aspects of the two neighborhoods divided by the Vine Street Expressway. [Callowhill (north of I-676)]{style="color: #eb5600;"} and [Chinatown (south of I-676)]{style="color: #1a9988;"} have starkly different land use patterns likely due to historical development reasons. The [Callowhill neighborhood]{style="color: #eb5600;"} has a higher portion of **industrial and vacant land** in contrast with the [Chinatown area]{style="color: #1a9988;"} that is predominantly occupied by **commercial business and mixed residential use land**. 
 
 ```{r BasicGeo_data}
 park_clipped <- st_intersection(park, studyarea)
@@ -1558,7 +1090,13 @@ BasicGeo_plot1
 BasicGeo_plot2 | BasicGeo_plot3
 ```
 
+The amenities map indicates that there is a **scarcity of green open space** within the boundary of our study area, highlighting the **limited access to recreational spaces** therefore making the implementation of the Chinatown Stitch even more demanding. There is also an obvious concentration of vacant land to the north of the expressway while the land south of the highway seems to be more actively utilized in comparison.
+
 #### Sales Price Change
+
+The following charts are retrieved from Zillow’s website as they indicate the Zillow Home Value Index (ZHVI) trends of property values in [Chinatown]{style="color: #1a9988;"}, Callowhill, as well as the entire city. The plot on the left suggests that [Chinatown]{style="color: #1a9988;"} has a stronger housing demand than the city average home value since 2017. As shown on the right panel, we observe that [Chinatown’s]{style="color: #1a9988;"} property values were substantially lower than [Callowhill’s]{style="color: #eb5600;"} values throughout the past eight years. Over the course of history, [Callowhill]{style="color: #eb5600;"} has transformed from a post-industrial area into a mixed-use residential area while [Chinatown]{style="color: #1a9988;"} remained to be more stable and maintained its urban and commercial character. 
+
+We conclude that the difference in property price growth [north]{style="color: #eb5600;"} and [south]{style="color: #1a9988;"} of the highway may have been shaped by the construction of the Vine Street Expressway in addition to other historical large-scale development within the neighborhoods. 
 
 ```{r StudyPrice_change, echo=FALSE}
 # Create a table with images and captions
@@ -1572,8 +1110,303 @@ kable(
   col.names = NULL
 ) %>%
   kable_styling(position = "center")
+```
+
+## Highway Effects Analysis
+
+Before jumping into modeling, we first explored the relationship between **distance to highway** and **property prices**. 
+
+### Findings from Qualitative Research
+
+Our main takeaways from our literature review comes from the Lin and Brinkman paper which included the following findings [@LinHighwayEffects].
+
++ Freeways create both **accessibility benefits**, felt mostly in suburban neighborhoods, and **local disamenities** (noise, pollution, barrier effects) leading to reduced quality of life in central-city neighborhoods.
++ **One-third** of central-city population decline can be attributed to freeways disamenities, outweighing commuting and other benefits.
++ Targeted **policies to bury highways can provide net benefits**, especially ones that mitigate barrier effects created by highways.
++ Estimated lifetime **benefits of mitigation are comparable to costs**, suggesting some projects could pass a cost-benefit test.
+
+With this in mind, we start our quantitative analyses at three different scales. First, we look at the effect of the four main highways in Philadelphia on properties within 500m of them. Then, we zoom into our study area and look at I-676 effects. Finally, we separate our study area into North and South to see how the highway effects are felt differently across different neighborhoods.
+
+### Philadelphia Scale Analysis
+
+We used property data from OPA Philadelphia that was cleaned the way we reported in the [Property Data] section.
+
+Our **Philadelphia Scale Analysis** looks at properties (of all kinds, not limited to housing properties) within 500 m of Philadelphia's main highways -- [I-95]{style="color: #eba075;"} on the East, [I-76]{style="color: #eb5600;"} on the West, [US-1]{style="color: #1a9988;"} in the North, and [I-676]{style="color: #7fe3d6;"} through the city.
+
+For each scale of analysis, we report highway effects by discussing the change in predicted property price from 50 to 150m away from the highway, conceptualizing a block to be roughly 100m. We report this in absolute value of change as well as percent change.
+
+![](Final%20R%20Markdown/Images/reporting_highway_effect.png)
+
+We saw the following trends in property prices  
+
+```{r prep_500m_highway_data, quiet = TRUE, results = 'hide'}
+# create 500m buffer around philly highways
+buff500 <- 500 * 3.28084
+hiway_500buff <- st_union(st_buffer(philly_highways, buff500))
+
+prop500 <- st_read("Dataset/phl_properties_dist2highway/philly_prop500_dst2hghwy_250421.geojson") %>%
+  mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
+```
+
+```{r map_prop500}
+# map of properties within 500m of highway cored by which highway they're closest to
+ggplot() +
+  geom_sf(data = philly_bounds, fill = "#c9b887", color = "grey") +
+  geom_sf(data = hydro, fill = "#7d97c7", color = "transparent") +
+  geom_sf(data = philly_parks, fill = "#6b9169", color = "transparent") +
+  geom_sf(data = hiway_500buff,
+          color = "transparent", fill = "grey", alpha = 0.4) +
+  geom_sf(data = prop500,
+          aes(color = closest_highway), size = 0.3,
+          show.legend = F) +
+  geom_sf(data = philly_highways,
+          color = "black") +
+  
+  # add custom colors
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  # labels for highway names
+  geom_text(aes(label = "US-1",
+                x = 2700000,
+                y = 256453.2),
+            color = "#1a9988") +
+  geom_text(aes(label = "I-76",
+                x = 2680000,
+                y = 235000),
+            color = "#eb5600") +
+  geom_text(aes(label = "I-95",
+                x = 2705200,
+                y = 235000),
+            color = "#eba075") +
+  geom_text(aes(label = "I-676",
+                x = 2694000,
+                y = 243000),
+            color = "#7fe3d6") +
+  
+  labs(title = "Properties within 500m of Highways in Philly",
+       subtitle = "US-1, I-76, I-95, and I-676",
+       color = "Closest Highway") +
+  theme_void()
 
 ```
+
+
+```{r prop500_med_saleprices}
+# median sale prices to talk about in the text
+med_price_us1 <- round(median(prop500 %>% 
+                          filter(closest_highway == "US-1") %>% 
+                          pull(adj_sale_price)))
+
+med_price_i76 <- round(median(prop500 %>% 
+                          filter(closest_highway == "I-76") %>% 
+                          pull(adj_sale_price)))
+
+med_price_i95 <- round(median(prop500 %>% 
+                          filter(closest_highway == "I-95") %>% 
+                          pull(adj_sale_price)))
+
+med_price_676 <- round(median(prop500 %>% 
+                          filter(closest_highway == "I-676") %>% 
+                          pull(adj_sale_price)))
+
+# count of properties included in analysis 
+prop_count <- prop500 %>% 
+  st_drop_geometry() %>% 
+  group_by(closest_highway) %>% 
+  summarise(count = n())
+
+prop_count_676 <- prop_count %>% 
+  filter(grepl("676", closest_highway)) %>% 
+  pull(count)
+
+prop_count_us1 <- prop_count %>% 
+  filter(grepl("US", closest_highway)) %>% 
+  pull(count)
+
+prop_count_i76 <- prop_count %>% 
+  filter(grepl("-76", closest_highway)) %>% 
+  pull(count)
+
+prop_count_i95 <- prop_count %>% 
+  filter(grepl("95", closest_highway)) %>% 
+  pull(count)
+```
+  
+  
+`r paste0(substr(nrow(prop500), 1, 2), ",", substr(nrow(prop500), 3, 5))` total properties were included in this analysis. We see that the distribution of log sale prices of properties within 500m of highways in Philadelphia generally follow a normal distribution.
+
+Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r prop_count_676` properties) as there are near the other highways, they are most expensive group with a median property price of **`r paste0('$', substr(med_price_676, 1, 3), ',', substr(med_price_676, 4, 9))`**. 
+
+Properties near [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"} are among a similar range of prices with median property prices being **`r paste0('$', substr(med_price_i95, 1, 3), ',', substr(med_price_i95, 4, 9))`** and **`r paste0('$', substr(med_price_i76, 1, 3), ',', substr(med_price_i76, 4, 9))`**, respectively, though there are almost five times as many properties near [I-95]{style="color: #eba075;"} compared to [I-76]{style="color: #eb5600;"} (`r paste0(substr(prop_count_i95,1,1), ",", substr(prop_count_i95, 2,4))` and `r paste0(substr(prop_count_i76,1,1), ",", substr(prop_count_i76, 2,4))` properties around [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"}, respectively). 
+
+Finally, there are many properties within 500m of [US-1]{style="color: #1a9988;"} (`r paste0(substr(prop_count_us1,1,1), ",", substr(prop_count_us1, 2,4))` properties), but the median property price was lowest compared to other highways at **`r paste0('$', substr(med_price_us1, 1, 3), ',', substr(med_price_us1, 4, 9))`**.
+
+
+```{r prop500_faceted}
+prop500_faceted <- 
+  ggplot(data = prop500,
+         aes(x = log_price, color = closest_highway, fill = closest_highway)) +
+  geom_histogram(bins = 50, show.legend = F) +
+  facet_wrap(~closest_highway, scales = "free_y") +
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  scale_fill_manual(values = c("US-1" = "#1a9988",
+                               "I-76" = "#eb5600",
+                               "I-95" = "#eba075",
+                               "I-676" = "#7fe3d6")) +
+  labs(title = "Distribution of Property Sale Price",
+       subtitle = "Split by Closest Highway",
+       x = "Log Sale Price",
+       y = "Count") +
+  theme_minimal()
+
+prop500_faceted
+
+# models + beta coefficients
+coef_us1 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway,
+       data = prop500 %>% 
+         filter(grepl("US", closest_highway)))
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_i76 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500 %>% 
+         filter(grepl("-76", closest_highway)))
+    )$coefficients[2,1], 3) # ** p < 0.05
+
+coef_i95 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500 %>% 
+         filter(grepl("95", closest_highway)))
+    )$coefficients[2,1], 3) # *** p < 0.001
+
+coef_i676 <- round(
+  summary(
+    lm(log_price ~ log_dist_to_closest_highway, 
+       data = prop500 %>%
+         filter(grepl("676", closest_highway)))
+    )$coefficients[2,1], 3) # not statistically significant, p = 0.0693
+
+```
+
+```{r prop500_scatter}
+scatter_4highways <- 
+  ggplot(data = prop500, 
+       aes(x = log_dist_to_closest_highway, y = log_price, 
+           color = closest_highway, fill = closest_highway)) +
+  geom_point(alpha = .2, size = 0.3, show.legend = F) +
+  geom_smooth(method = "lm", size = 1.2, show.legend = F) +
+  scale_color_manual(values = c("US-1" = "#1a9988",
+                                "I-76" = "#eb5600",
+                                "I-95" = "#eba075",
+                                "I-676" = "#7fe3d6")) +
+  scale_fill_manual(values = c("US-1" = "#1a9988",
+                               "I-76" = "#eb5600",
+                               "I-95" = "#eba075",
+                               "I-676" = "#7fe3d6")) +
+  geom_text(aes(label = paste("US-1:", coef_us1),
+                x = 4.25,
+                y = 11.75),
+            color = "#1a9988", 
+            show.legend = F) +
+  geom_text(aes(label = paste("I-76:", coef_i76),
+                x = 4.25,
+                y = 12.75),
+            color = "#eb5600",
+            show.legend = F) +
+  geom_text(aes(label = paste("I-95:", coef_i95),
+                x = 4.25,
+                y = 13.25),
+            color = "#eba075",
+            show.legend = F) +
+  geom_text(aes(label = paste("I-676:", coef_i676),
+                x = 4.25,
+                y = 13.75),
+            color = "#7fe3d6",
+            show.legend = F) +
+  labs(title = "Property Price (log) as a function of Distance to Closest Highway (log)",
+       subtitle = "Properties within 500m of highways",
+       x = "Log Distance to Closest Highway",
+       y = "Log Property Sale Price") +
+  theme_minimal()
+
+scatter_4highways
+```
+
+
+The scatter plot below shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) are associated with moving away from a highway which agrees with our literature review of highway effects on property prices. 
+
+When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, this coefficient was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
+
+
+```{r prop500_predtable}
+# models
+lm_us1 <- lm(log_price ~ log_dist_to_closest_highway,
+             data = prop500 %>% 
+               filter(grepl("US", closest_highway)))
+
+lm_i76 <- lm(log_price ~ log_dist_to_closest_highway,
+             data = prop500 %>% 
+               filter(grepl("-76", closest_highway)))
+
+lm_i95 <- lm(log_price ~ log_dist_to_closest_highway,
+             data = prop500 %>% 
+               filter(grepl("95", closest_highway)))
+
+lm_676 <- lm(log_price ~ log_dist_to_closest_highway,
+             data = prop500 %>% 
+               filter(grepl("676", closest_highway)))
+
+distances <- seq(50, 250, by = 50)
+
+# model predictions
+pred_us1 <- exp(predict(lm_us1, newdata = data.frame(log_dist_to_closest_highway = log(distances))))
+
+pred_i76 <- exp(predict(lm_i76, newdata = data.frame(log_dist_to_closest_highway = log(distances))))
+
+pred_i95 <- exp(predict(lm_i95, newdata = data.frame(log_dist_to_closest_highway = log(distances))))
+
+pred_676 <- exp(predict(lm_676, newdata = data.frame(log_dist_to_closest_highway = log(distances))))
+
+# get predicted price changes from philly scale analysis
+prop500_pred_table <- data.frame(
+  Analysis_Scale = "Philadelphia",
+  Distance_m = distances,
+  US1_Prices = round(pred_us1),
+  I76_Prices = round(pred_i76),
+  I95_Prices = round(pred_i95),
+  I676_Prices = round(pred_676),
+  Chng_US1_Prices = round(pred_us1 - pred_us1[1]),
+  Chng_I76_Prices = round(pred_i76 - pred_i76[1]),
+  Chng_I95_Prices = round(pred_i95 - pred_i95[1]),
+  Chng_I676_Prices = round(pred_676 - pred_676[1]),
+  PercChng_US1_Prices = round(100*(pred_us1 - pred_us1[1])/pred_us1[1], 1),
+  PercChng_I76_Prices = round(100*(pred_i76 - pred_i76[1])/pred_i76[1], 1),
+  PercChng_I95_Prices = round(100*(pred_i95 - pred_i95[1])/pred_i95[1], 1),
+  PercChng_I676_Prices = round(100*(pred_676 - pred_676[1])/pred_676[1], 1)
+)
+
+```
+  
+
+For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is 50m away from the highway, we can expect a similar property a block (100m) further from the highway to be about **`r paste0("$", substr(prop500_pred_table$Chng_I676_Prices[3], 1, 2), ",", substr(prop500_pred_table$Chng_I676_Prices[3], 3, 5))` more expensive** (or a `r prop500_pred_table$PercChng_I676_Prices[3]`% change). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, with a **`r paste0("$", substr(prop500_pred_table$Chng_I76_Prices[3], 1, 2), ",", substr(prop500_pred_table$Chng_I76_Prices[3], 3, 5))` increase** (`r prop500_pred_table$PercChng_I76_Prices[3]` % change) associated with a similar property that is a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`. A price increase of **`r paste0("$", substr(prop500_pred_table$Chng_US1_Prices[3], 1, 1), ",", substr(prop500_pred_table$Chng_US1_Prices[3], 2, 4))`** (`r prop500_pred_table$PercChng_US1_Prices[3]`%) is associated with moving a block further away from  the highway.
+
+The exception here is for properties within 500m of [I-95]{style="color: #eba075;"}, where the beta coefficient for log distance to highway is `r coef_i95` (p < 0.001). For every 1% increase in distance from [I-95]{style="color: #eba075;"}, property price decreases by `r paste0(round(abs(1.01^coef_i95 - 1), 4)*100,"%")`. In more understandable terms, a decrease of **`r paste0("$", substr(abs(prop500_pred_table$Chng_I95_Prices[3]), 1, 2), ",", substr(abs(prop500_pred_table$Chng_I95_Prices[3]), 3, 5))`** (`r prop500_pred_table$PercChng_I95_Prices[3]`%) in price is associated with moving a block further away from  the highway. 
+
+We suspect that other factors, such as location preference on the East side of the city are interfering with the expected highway effect. Neighborhoods like Old City, Queen’s Village, and Fishtown are home to many high-income Philadelphians who may have access to amenities that diminish the nuisance of a nearby highway. 
+
+This is our first inkling that **highway effects might not be as strong** as we expected them to be. We now zoom into our **study area** to further understand highway effects in our region of interest.
+
+
+### Study Region Scale Analysis
 
 #### I-676 Effects
 
@@ -1635,9 +1468,9 @@ getRMSE <- function(model_results) {
 
 ```
 
-##### Model Results
+Below is a scatter plot showing the relationship between log-transformed distance to [I-676]{style="color: #7fe3d6;"} and log-transformed property price.
 
-```{r i676effects_model1_studyareanew}
+```{r i676effects_plot_studyareanew}
 # model with just distance to highway
 model_i676 <- lm(log_price ~ log_dist_highway,
                  data = props_i676_tomodel)
@@ -1655,6 +1488,29 @@ model_i676_table <- data.frame(model_i676_summary$coefficients) %>%
          p = round(p, 3))
 row.names(model_i676_table) <- c("Intercept", "Log Dist. to I-676")
 
+model_i676_scatter <- 
+  ggplot(data = props_i676_tomodel, 
+       aes(x = log_dist_highway, y = log_price)) +
+  geom_point(alpha = .2, size = 0.3, show.legend = F,
+             color = "#7fe3d6") +
+  geom_smooth(method = "lm", size = 1.2, show.legend = F,
+              color = "#7fe3d6", fill = "#7fe3d6") +
+  geom_text(aes(label = paste(model_i676_table$Estimate[2]),
+                x = 5.25,
+                y = 14.25),
+            color = "#7fe3d6",
+            show.legend = F) +
+  labs(title = "Property Price (log) as a function of Distance to I-676 (log)",
+       subtitle = "Properties in Study Area",
+       x = "Log Distance to I-676",
+       y = "Log Property Price") +
+  theme_minimal()
+
+model_i676_scatter
+
+```
+
+```{r i676effects_model}
 model_i676_table %>% 
   kbl(align = c("l", rep("c", 2)),
       caption = "Regression Results: Log Price ~ Log Distance to I-676",
@@ -1663,13 +1519,12 @@ model_i676_table %>%
   kable_classic(full_width = F, html_font = "Cambria") %>% 
   row_spec(2, bold = T, background = "#7fe3d6") %>% 
   add_footnote(label = paste0("R-squared: ", round(model_i676_summary$r.squared, 3), ", RMSE: ", round(model_i676_RMSE, 3)),
-               notation = "none")
+               notation = "none") %>%
+  scroll_box(height = "350px") 
 
 ```
 
-From an overly simple model, just looking at how logged distance to [I-676]{style="color: #7fe3d6;"} predicts logged property price, we see that for properties within 500m of [I-676]{style="color: #7fe3d6;"}, distance from the highway does not have a large effect on property price. We see that for every 1% increase in distance to the highway, **property price increases by `r paste0(round(1.01^model_i676_table$Estimate[2] - 1, 4)*100,"%")`**. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^model_i676_table$Estimate[2])*100000) - 100000)` more expensive** (assuming a block is about 200m). The R-squared value of the model is very low at `r round(model_i676_summary$r.squared, 3)` and the RMSE is very high `r round(model_i676_RMSE,3)`, meaning the model is terrible.
-
-```{r i676effects_model2_studyareanew}
+```{r i676effects_model_more1}
 # simple model but with more predictors
 model_i676_more <- lm(log_price ~ log_dist_highway + 
                         residential + building_code_description_new + zoning_group + # internal characteristics
@@ -1679,6 +1534,56 @@ model_i676_more <- lm(log_price ~ log_dist_highway +
                         factor(zip_code), # neighborhood effects (via zip code for now)
                       data = props_i676_tomodel)
 
+```
+
+```{r i676_predtable}
+distances <- seq(50, 250, by = 50)
+
+# model predictions
+pred_i676_simple <- exp(predict(model_i676, newdata = data.frame(log_dist_highway = log(distances))))
+
+# this complicated model needs more parameters
+# where possible, i use the median value, otherwise the most common value for these other control variables
+pred_i676_more <- exp(predict(model_i676_more, 
+                              newdata = data.frame(
+                                log_dist_highway = log(distances),
+                                residential = 1,
+                                building_code_description_new = "LeastExpensive",
+                                zoning_group = "CMX(3,4)",
+                                year_built_group = "Pre-War",
+                                central_air = "Unknown",
+                                number_of_bedrooms = "0",
+                                number_of_bathrooms = "0",
+                                total_area = 0,
+                                quality_grade = "Below Average",
+                                zip_code = "19107")
+                              ))
+
+# get predicted price changes from philly scale analysis
+i676_pred_table <- data.frame(
+  Analysis_Scale = "I-676 Effects in Study Area",
+  Distance_m = distances,
+  HighwayOnly_Prices = round(pred_i676_simple),
+  HighwayPlus_Prices = round(pred_i676_more),
+  Chng_HighwayOnly_Prices = round(pred_i676_simple - pred_i676_simple[1]),
+  Chng_HighwayPlus_Prices = round(pred_i676_more - pred_i676_more[1]),
+  PercChng_HighwayOnly_Prices = round(100*(pred_i676_simple - pred_i676_simple[1]) / pred_i676_simple[1], 1),
+  PercChng_HighwayPlus_Prices = round(100*(pred_i676_more - pred_i676_more[1]) / pred_i676_more[1], 1)
+)
+
+# i676_pred_table %>% 
+#   kbl(align = "c",
+#       caption = "Regression Predictions for I-676 Effects",
+#       col.names = c("Analysis Scale", "Distance (m)", "Highway Only Prices", "Highway Plus Prices", "Change Highway Only Prices", "Change Highway Plus Prices", "% Change Highway Only Prices", "% Change Highway Plus Prices")) %>% 
+#   kable_styling() %>% 
+#   kable_classic(full_width = F, html_font = "Cambria") %>% 
+#   row_spec(c(1,3), bold = T, background = "#7fe3d6")
+
+```
+
+From an overly simple model, just looking at how logged distance to [I-676]{style="color: #7fe3d6;"} predicts logged property price, we see that for properties within 500m of [I-676]{style="color: #7fe3d6;"}, distance from the highway does not have a large effect on property price. We see that for every 1% increase in distance to the highway, **we can associate a property price increase of `r paste0(round(1.01^model_i676_table$Estimate[2] - 1, 4)*100,"%")`**. In more understandable terms, this means that for a property that is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", substr(i676_pred_table$Chng_HighwayOnly_Prices[3], 1, 2), ",", substr(i676_pred_table$Chng_HighwayOnly_Prices[3], 3, 5))` more expensive** (`r i676_pred_table$PercChng_HighwayOnly_Prices[3]`% change). The R-squared value of the model is very low at `r round(model_i676_summary$r.squared, 3)` and the RMSE is very high `r round(model_i676_RMSE,3)`, meaning the model is terrible.
+
+```{r i676effects_model_more2}
 model_i676_more_summary <- summary(model_i676_more)
 model_i676_more_RMSE <- getRMSE(model_i676_more)
 # log_dist_highway                             0.101134640
@@ -1700,13 +1605,14 @@ model_i676_more_table %>%
   kable_classic(full_width = F, html_font = "Cambria") %>%
   row_spec(2, bold = T, background = "#7fe3d6") %>% 
   add_footnote(label = paste0("Adj. R-squared: ", round(model_i676_more_summary$adj.r.squared, 3), ", RMSE: ", round(model_i676_more_RMSE, 3)),
-               notation = "none")
+               notation = "none") %>%
+  scroll_box(height = "350px") 
 
 ```
 
 Finally, we look at a more robust model (which is still relatively simple, including only internal features of the property in addition to ZIP code and logged distance to [I-676]{style="color: #7fe3d6;"}). This model includes the following predictors: year_built_group (categorical), quality_grade (categorical), number_of_bathrooms (categorical), number_of_bedrooms (categorical), total_area (continuous), central_air (categorical), building_code (categorical), zoning group (categorical), and a variable dictating whether the property is residential or not (binary). This more complex model does a better job at explaining the variance in property price than our previous two models, but is not optimal either. The **adjusted R-squared** for this model is **`r round(model_i676_more_summary$adj.r.squared, 3)`** and our **RMSE** is **`r round(model_i676_more_RMSE, 3)`**. 
 
-When including these other predictors, the **effect of logged distance to [I-676]{style="color: #7fe3d6;"} decreases** but remains statistically significant (beta coefficient of `r model_i676_more_table$Estimate[2]`). This means that for every 1% increase in distance from the highway, property price increases by `r paste0(round(abs(1.01^model_i676_more_table$Estimate[2] - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is \$100,000 is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", round((4^model_i676_more_table$Estimate[2])*100000) - 100000)` more expensive**.
+When keeping all other predictors constant, the **effect of logged distance to [I-676]{style="color: #7fe3d6;"} decreases** but remains statistically significant (beta coefficient of `r model_i676_more_table$Estimate[2]`). This means that a 1% increase in distance from the highway is associated with a property price increase of `r paste0(round(abs(1.01^model_i676_more_table$Estimate[2] - 1), 4)*100,"%")`. In more understandable terms, this means that if a property that is 50m away from the highway, would be about **`r paste0("$", substr(i676_pred_table$Chng_HighwayPlus_Prices[3], 1, 2), ",", substr(i676_pred_table$Chng_HighwayPlus_Prices[3], 3, 5))` more expensive** (`r i676_pred_table$PercChng_HighwayPlus_Prices[3]`% change).
 
 #### Discontinuity Effects
 
@@ -1747,29 +1653,6 @@ range_south <- round(range(discontinuity_plot_ungrouped %>%
 ```
 
 ```{r discontinuity_plot}
-# correlations
-# cor_north <- round(cor(discontinuity_plot %>% 
-#                          filter(
-#                            abs(distance_to_highway) <= 500,
-#                            I676_NS == "north") %>% 
-#                          pull(mean_log_price),
-#                        discontinuity_plot %>% 
-#                          filter(
-#                            abs(distance_to_highway) <= 500,
-#                            I676_NS == "north") %>% 
-#                          pull(distance_to_highway)), 3)
-# 
-# cor_south <- round(cor(discontinuity_plot %>% 
-#                          filter(
-#                            abs(distance_to_highway) <= 500,
-#                            I676_NS == "south") %>% 
-#                          pull(mean_log_price),
-#                        discontinuity_plot %>% 
-#                          filter(
-#                            abs(distance_to_highway) <= 500,
-#                            I676_NS == "south") %>% 
-#                          pull(distance_to_highway)), 3)
-
 # use model coefficients instead of correlations
 coef_north_g <- round(
   summary(
@@ -1872,7 +1755,7 @@ discont_plot_ungrouped <- discontinuity_plot_ungrouped %>%
             color = "#1a9988",
             show.legend = F)
   
-discont_plot
+# discont_plot
 discont_plot_ungrouped
 
 # save image for powerpoint
@@ -1880,13 +1763,93 @@ discont_plot_ungrouped
 #        height = 7, width = 10, units = "in")
 ```
 
-In the plot above, we see that on the [North side]{style="color: #eb5600;"} of [I-676]{style="color: #7fe3d6;"}, property prices remain relatively stable and unaffected by distance to the highway. The median property price in the [North]{style="color: #eb5600;"} is `r paste0("$", substr(med_north, 1, 3), ",", substr(med_north, 4, 6))`. When predicting logged property price, the beta coefficient for distance to highway is `r coef_north`, meaning the **highway has no effect on the price**.
+```{r disc_predtable}
+# models (redoing them because i want to use log_dist_highway)
+i676_north <- lm(log_price ~ log_dist_highway,
+                 data = discontinuity_plot_ungrouped %>% 
+                   filter(I676_NS == "north"))
 
-On the other hand, in the [South side]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"}, property prices are within the same range of prices as in the [North side]{style="color: #eb5600;"}, but the median property price is slightly higher at `r paste0("$", substr(med_south, 1, 3), ",", substr(med_south, 4, 6))`. When predicting logged property price to the [South]{style="color: #1a9988;"} of the highway, the beta coefficient for distance to highway is `r coef_south`, meaning **distance to highway has a very small, positive effect on the price**. For every 1m increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(exp(coef_south)-1, 3)*100,"%")`. In more understandable terms, a property that is \$100,000 and 50m [South]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"} would be about **`r paste0("$", round((exp(coef_south)^150)*100000) - 100000)` more expensive** a block further from the highway.
+i676_south <- lm(log_price ~ abs(log_dist_highway),
+                 data = discontinuity_plot_ungrouped %>% 
+                   filter(I676_NS == "south"))
 
-This demonstrates that in our study area, the **highway has a very small influence on property price** that is only really seen on the [South side]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"}.
+distances <- seq(50, 250, by = 50)
 
-### Feature Engineering
+# model predictions
+pred_i676_n <- exp(predict(i676_north, newdata = data.frame(log_dist_highway = log(distances))))
+
+pred_i676_s <- exp(predict(i676_south, newdata = data.frame(log_dist_highway = log(distances))))
+
+# get predicted price changes from philly scale analysis
+i676NS_pred_table <- data.frame(
+  Analysis_Scale = "I-676 Effects -- North/South",
+  Distance_m = distances,
+  North_Prices = round(pred_i676_n),
+  South_Prices = round(pred_i676_s),
+  Chng_North_Prices = round(pred_i676_n - pred_i676_n[1]),
+  Chng_South_Prices = round(pred_i676_s - pred_i676_s[1]),
+  PercChng_North_Prices = round(100*(pred_i676_n - pred_i676_n[1]) / pred_i676_n[1], 1),
+  PercChng_South_Prices = round(100*(pred_i676_s - pred_i676_s[1]) / pred_i676_s[1], 1)
+)
+
+# i676NS_pred_table %>% 
+#   kbl(align = "c",
+#       caption = "Regression Predictions for I-676 Effects -- North/South",
+#       col.names = c("Analysis Scale", "Distance (m)", "North of I-676 Prices", "South of I-676 Prices", "Change North of I-676 Prices", "Change South of I-676 Prices", "% Change North of I-676 Prices", "% Change South of I-676 Prices")) %>% 
+#   kable_styling() %>% 
+#   kable_classic(full_width = F, html_font = "Cambria") %>% 
+#   row_spec(c(1,3), bold = T, background = "#7fe3d6")
+
+```
+
+In the plot above, we see that on the [North side]{style="color: #eb5600;"} of [I-676]{style="color: #7fe3d6;"}, property prices remain relatively stable and unaffected by distance to the highway. The median property price in the [North]{style="color: #eb5600;"} is `r paste0("$", substr(med_north, 1, 3), ",", substr(med_north, 4, 6))`. When predicting logged property price, the beta coefficient for distance to highway is `r coef_north`, meaning the **highway has no effect on the price** (`r paste0("$", substr(i676NS_pred_table$Chng_North_Prices[3], 1, 1), ",", substr(i676NS_pred_table$Chng_North_Prices[3], 2, 4))` increase when moving an additional block north from the highway, starting at 50m away, `r i676NS_pred_table$PercChng_North_Prices[3]`% change).
+
+On the other hand, in the [South side]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"}, property prices are within the same range of prices as in the [North side]{style="color: #eb5600;"}, but the median property price is slightly higher at `r paste0("$", substr(med_south, 1, 3), ",", substr(med_south, 4, 6))`. 
+
+When predicting logged property price to the [South]{style="color: #1a9988;"} of the highway, the beta coefficient for distance to highway is `r coef_south`, meaning **distance to highway has a very small, positive effect on the price**. For every 1m increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(exp(coef_south)-1, 3)*100,"%")`. In more understandable terms, our simple model predicts that a property 150m away from [I-676]{style="color: #7fe3d6;"} would be **`r paste0("$", substr(i676NS_pred_table$Chng_South_Prices[3], 1, 2), ",", substr(i676NS_pred_table$Chng_South_Prices[3], 3, 5))` more expensive** (`r i676NS_pred_table$PercChng_South_Prices[3]` % change) compared to a property 50m away from the expressway.
+
+This demonstrates that in our study area, increased **distance to the highway is associated with an increase in property price** that is only really seen on the [South side]{style="color: #1a9988;"} of [I-676]{style="color: #7fe3d6;"}.
+
+## Study of Highway Caps in Other Cities
+
+Three completed highway capping projects in the United States were selectively included here as case studies and guideline for constructing our alternatives in the context of the Chinatown Stitch. These sites either share similar traits with the Chinatown Stitch or possess dramatically different parameters of both the surrounding neighborhood and the project itself. 
+
+### Klyde Warren
+
+This project connected the predominantly Black Uptown neighborhood with the arts district and Downtown while also providing a community gathering space with free programming year-round. Since its opening in 2012, the park has enhanced the land value in the surrounding area, creating a positive economic impact on the City of Dallas including faster office and multifamily construction growth. However, it brought up concerns of “green gentrification” which benefits the interests of developers over displaced communities.
+
+City: Dallas, TX
+Completion date: 2013
+Area Covered: 5.4 acres (235,000 sqft)
+Cost: $112 million
+Type of project: Park/Open Space
+
+
+### Cap at Union Station
+
+The project addressed the 40-year scar that was created by the construction of the inner-belt highway (I-670) by reconnecting the Columbus downtown area and the Short North neighborhood. The cap acts as a bridge for through traffic across I-670 while also providing leasable spaces to many retail shops and restaurants, ultimately providing an inviting urban streetscape.
+
+City: Columbus, OH
+Completion date: 2004
+Area Covered: 25,500 sqft
+Cost: $7.8 million
+Type of project: Commercial
+
+
+### The Big Dig at the Central Artery
+
+Creating more than 300 acres of open land with over 45 parks and public plazas, the Big Dig project replaced the deteriorating I-93 (Central Artery) with an underground expressway that links downtown Boston to the Boston Logan airport. This project also improved the North End and Waterfront neighborhoods’ access to downtown Boston and reduced traffic congestion, providing ~$168 million per year in time and cost savings.
+
+
+City: Boston, MA
+Completion date: 2007
+Area Covered: 2,350 acres
+Cost: $14.8 billion
+Type of project: Mixed Use
+
+A common thread across the impacts of caps in other cities is **neighborhood access and connection as well as increased value of land**. The Chinatown Stitch will not only reconnect Chinatown North to Chinatown, but also provide much needed open, green space for the community. A potential challenge after the construction of the Chinatown Stitch will be balancing the positive effects of higher land value and the **activation of commercial and residential opportunities** with **affordability and cultural preservation of the character** of Philadelphia's Chinatown.
+
+## Feature Engineering
 
 <h4>**Feature List**</h4>
 
@@ -3707,12 +3670,14 @@ property_S0 <- st_transform(property_S1_4326, 2272)
 ```
 
 <span style="color: #eb5600;"><b>Scenario 0. Where We Start: The I-676 Highway as a Barrier</b></span>  
+
 - Highway remains a physical and economic barrier, dividing Chinatown and limiting connectivity.  
 - Property values show spatial imbalance — sale prices increase significantly with distance from I-676 on the <span style="color: #1a9988;"><b>south side</b></span>, but decline with distance on the <span style="color: #eb5600;"><b>north side</b></span>.  
 - Reinforces unequal development patterns, with opportunity concentrated in the south and disinvestment in the north.  
 - No intervention means no shift in trajectory — existing fragmentation and disparity persist as the baseline.  
 
 <span style="color: #1a9988;"><b>Scenario 1. A First Step: Capping I-676 to Reconnect Chinatown</b></span>  
+
 - One cap serves as a Cap Park, while two others reconnect streets and improve circulation across the highway.  
 - Restores physical connections between north and south Chinatown, enhancing walkability and spatial continuity.  
 - Helps stabilize fragmented property values, narrowing the north–south gap, though overall price growth remains limited without land use changes.  
@@ -3780,7 +3745,8 @@ combined_map
 
 ```
 
-**Scenario 2. Turning Connection into Growth: Cap Park + Alternate Zoning / Land Use**  
+<span style="color: #a66bbe;"><b>Scenario 2. Turning Connection into Growth: Cap Park + Alternate Zoning / Land Use</b></span>  
+
 - Building upon Scenario 1, Scenario 2 integrates both park infrastructure and zoning interventions to unlock the full development potential of underutilized parcels.  
 - <span style="color: #eb5600;">Under the commercial perspective, part of **Vacant Land & Industrial Properties** are converted into **Commercial Mixed-Use developments**.</span>  
 - <span style="color: #eb5600;">Under the residential perspective, part of **Vacant Land & Single-Family Properties** are converted into **Multi-Family Properties** or **Commercial Mixed-Use developments**.</span>  
@@ -4783,12 +4749,14 @@ S2_map
 ## Scenarios Exploration
 ### Median Property Value  
 **South side price increases across interventions** is first evidenced in the shift of median values.  
-From Scenario 0 to Scenario 2, the median price increases from <span style="color: #eb5600;"><b>$402,561</b></span> (observed baseline, <span style="color: #eb5600;"><b>Scenario 0</b></span>)  
-to <span style="color: #1a9988;"><b>$438,338</b></span> in <b>Scenario 1</b>  
-and further to <span style="color: #a66bbe;"><b>$487,683</b></span> in <b>Scenario 2</b>.  
+From <span style="color: #eb5600;"><b>Scenario 0</b></span> to <span style="color: #a66bbe;"><b>Scenario 2</b></span>, the median price increases from <span style="color: #eb5600;"><b>$402,561</b></span>
+to <span style="color: #1a9988;"><b>$438,338</b></span> in <span style="color: #1a9988;"><b>Scenario 1</b></span>, and further to <span style="color: #a66bbe;"><b>$487,683</b></span> in <span style="color: #a66bbe;"><b>Scenario 2</b></span>.  
+
 This progressive shift aligns with the intervention logic:  
 - <span style="color: #1a9988;"><b>Scenario 1</b></span> introduces physical reconnection through caps, producing moderate price uplift.  
 - <span style="color: #a66bbe;"><b>Scenario 2</b></span> builds upon this with zoning reform, pushing the distribution further rightward.  
+
+These results suggest that each layer of intervention contributes incrementally to value change. Physical improvements alone offer moderate benefits, while combining them with zoning changes leads to stronger price increases.
 
 ```{r}
 S0_S1_S2_density <- ggplot() +
@@ -4844,16 +4812,18 @@ ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/final
 ```
 
 ### Discontinuity Across I-676  
-To quantify highway-related land value effects for each scenario, we build on the discontinuity analysis by estimating price changes at varying distances from the highway, controlling for side-specific spatial patterns.  
+To further quantify highway-related land value effects for each scenario, we build on the discontinuity analysis by estimating price changes at varying distances from the highway, controlling for side-specific spatial patterns.  
 
-We fit separate log-linear models for the north and south using observed prices (or predicted prices under each scenario), regressing `log price` on log-transformed or linear distance, respectively.  
+We fit separate log-linear models for the north and south using sale prices (or predicted prices under each scenario), regressing `log price` on `log distance to highway`, respectively.  
 
 For comparability, we apply a baseline distance of 50 meters from the highway and compute price changes at 100m, 150m, and 200m, relative to that baseline.  
 
-Based on the highway effect analysis in the previous section, we focus our interpretation on the **150-meter mark**, which captures the clearest divergence in pricing behavior across sides and scenarios.
+Based on the highway effect analysis in the previous section, we focus our interpretation on the **150-meter** distance, which captures the clearest divergence in pricing behavior across sides and scenarios.
 
-**Scenario 0**  
+<h4><b>Scenario 0</b></h4>  
+
 Without intervention, I-676 remains a strong physical and economic barrier dividing the north and south. The discontinuity effect is clearly observed in the price-distance relationship:  
+
 - **South Side**: Property values increase significantly with distance from the highway. At 150m, prices are approximately $328,943 higher (+50.6%) than at 50m. This suggests a strong negative externality from proximity to the highway, especially on the south side.  
 - **North Side**: Prices decrease slightly with distance. At 150m, the decline is $19,051 (–2.9%), indicating structural constraints that prevent price growth, despite increased distance.  
 - **Overall**: The average change across both sides shows a $108,693 increase (+16.6%), but this masks growing spatial inequality between the two areas.  
@@ -5212,14 +5182,14 @@ S2_table %>%
 
 ### Price Change Patterns
 
-<h5>**Scenario 0 vs. Scenario 1**</h5>  
+<h4>**Scenario 0 vs. Scenario 1**</h4>  
 Compared to Scenario 0, Scenario 1 produces a notable shift in spatial price patterns, especially on the south side of I-676:  
 
-- **South Side**: A wide cluster of parcels shows 10–50% price increases, especially within and surrounding the Stitch area. Several parcels directly adjacent to the cap park even exceed 200%, indicating strong responsiveness to improved connectivity. This confirms the earlier discontinuity plot finding: south-side values increase with distance from the highway due to strong pre-existing disamenity.  
+**South Side**: A wide cluster of parcels shows 10–50% price increases, especially within and surrounding the Stitch area. Several parcels directly adjacent to the cap park even exceed 200%, indicating strong responsiveness to improved connectivity. This confirms the earlier discontinuity plot finding: south-side values increase with distance from the highway due to strong pre-existing disamenity.  
 
-- **North Side**: While less dramatic, we observe several parcels—especially those not adjacent to the highway—also showing moderate increases (10–50%). Some parcels even exceed 100%, suggesting that cap installation does provide benefit across both sides, albeit to different extents.  
+**North Side**: While less dramatic, we observe several parcels—especially those not adjacent to the highway—also showing moderate increases (10–50%). Some parcels even exceed 100%, suggesting that building cap park does provide benefit across both sides, albeit to different extents.  
 
-- **Overall**: The price improvement is not localized to the cap. We see dispersed growth across Chinatown and the Callowhill area, particularly where physical barriers were reduced. This contrasts with the limited north-side growth seen in Scenario 0. These patterns suggest that even without zoning reform, physical reconnection alone can unlock latent value, particularly for previously disconnected parcels. Still, proximity to the highway continues to shape the magnitude of price response.
+**Overall**: The price improvement is not localized to the cap. We see dispersed growth across Chinatown and the Callowhill area, particularly where physical barriers were reduced. This contrasts with the limited north-side growth seen in Scenario 0. These patterns suggest that even without zoning reform, physical reconnection alone can unlock latent value, particularly for previously disconnected parcels. Again, proximity to the highway continues to shape the magnitude of price change.
 ```{r message=FALSE, warning=FALSE}
 property_S1_perc_change <- property_S1_predict%>%
   filter(!is.na(adj_sale_price), adj_sale_price > 100) %>%
@@ -5298,13 +5268,13 @@ price_layer + studyarea_layer + highway_layer + stitch_fill_layer + stitch_core_
 #st_write(property_S1_perc_change,"~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s0_s1.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-<h5>**Scenario 1 vs. Scenario 2**</h5>  
+<h4>**Scenario 1 vs. Scenario 2**</h4>  
 
-- **South Side**: Compared with Scenario 1, Scenario 2 shows more pronounced price growth on the south side, particularly around the core Stitch parcels and the park cap area. These parcels already showed moderate appreciation under Scenario 1, but values rose further under Scenario 2, consistent with added development capacity modeled in zoning reform.  
+**South Side**: Compared with Scenario 1, Scenario 2 shows more pronounced price growth on the south side, particularly around the core Stitch parcels and the park cap area. These parcels already showed moderate appreciation under Scenario 1, but values rose further under Scenario 2, consistent with added development capacity modeled in zoning reform.  
 
-- **North Side**: On the north side, a different pattern emerges. Though overall price response remains limited, the few parcels with significant increases are primarily located farther from the highway, especially in the northeastern corner. This suggests that even where zoning enables new use types, proximity to the highway still limits value recovery. Distance from I-676 remains a major spatial determinant of appreciation potential.  
+**North Side**: On the north side, a different pattern emerges. Though overall price response remains limited, the few parcels with significant increases are primarily located farther from the highway, especially in the northeastern corner. This suggests that even where zoning enables new use types, proximity to the highway still limits value recovery. Distance from I-676 remains a major spatial determinant of appreciation potential.  
 
-- **Overall**: These contrasting patterns reinforce earlier discontinuity results: the south side gains from both physical reconnection and policy-driven densification, whereas the north side remains constrained by structural disadvantages and weak location fundamentals, even with the same zoning changes applied.
+**Overall**: These contrasting patterns reinforce earlier discontinuity results: the south side gains from both physical reconnection and policy-driven densification, whereas the north side remains constrained by structural disadvantages and weak location fundamentals, even with the same zoning changes applied.
 ```{r message=FALSE, warning=FALSE}
 property_S2_perc_change <- property_S4_predict %>%
   filter(!is.na(adj_sale_price), adj_sale_price > 100) %>%
@@ -5415,12 +5385,12 @@ price_layer_s1s2 + studyarea_layer + highway_layer + stitch_fill_layer + stitch_
 #st_write(price_change_s1s2, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s1_s2.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-<h5>**Scenario 0 vs. Scenario 2**</h5>  
-- **South Side**: Strong price growth clusters are clearly visible around the core cap area and to the east of the Stitch. These areas benefit from both physical reconnection and increased development intensity, showing price increases of over 100% in many parcels.  
+<h4>**Scenario 0 vs. Scenario 2**</h4>  
+**South Side**: Strong price growth clusters are clearly visible around the core cap area and to the east of the Stitch. These areas benefit from both physical reconnection and increased development intensity, showing price increases of over 100% in many parcels.  
 
-- **North Side**: While discontinuity plot results previously showed declining trends here, the percentage change map reveals a distinct cluster of high-value parcels farther away from I-676. These parcels show over 200% price increases, likely reflecting zoning upgrades in previously underutilized land.  
+**North Side**: While discontinuity plot results previously showed declining trends here, the percentage change map reveals a distinct cluster of high-value parcels farther away from I-676. These parcels show over 200% price increases, likely reflecting zoning upgrades in previously underutilized land.  
 
-- **Overall**: This contrast reinforces the spatial asymmetry in policy impacts: southern growth is proximity-driven (around Stitch), while northern response depends more on distance from highway and latent development potential.
+**Overall**: This contrast reinforces the spatial asymmetry in policy impacts: southern growth is proximity-driven (around Stitch), while northern response depends more on distance from highway and latent development potential.
 
 ```{r message=FALSE, warning=FALSE}
 price_layer_s2 <- mapview(property_S2_perc_change %>% st_transform(4326),
@@ -5458,36 +5428,234 @@ price_layer_s2 + studyarea_layer + highway_layer + stitch_fill_layer + stitch_co
 #st_write(property_S2_perc_change,"~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s0_s2.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-# Conclusion
+# Recommendations
 
-The Chinatown Stitch project holds transformative potential for the neighborhoods surrounding I-676. Our modeling of three scenarios reveals the following patterns:  
+<h5><b>1. Target development toward parcels with strong market signals</b></h5>
 
-1. **Scenario 0** reflects the status quo: the highway remains a barrier, suppressing value especially on the north side. Prices on the south side rise with distance from the highway, while the north shows little responsiveness — confirming a spatial divide in opportunity.  
-2. **Scenario 1**, which adds caps to improve connectivity without land use changes, stabilizes values across both sides. South side parcels near the Stitch show moderate growth, with some price increases exceeding 200%. However, the north remains less responsive, especially near the highway.  
-3. **Scenario 2**, combining physical reconnection with land use changes (rezoning vacant, industrial, and low-density parcels), leads to stronger and more spatially clustered price increases — especially in the south core and parcels surrounding the cap park. On the north side, while most gains occur farther from the highway, persistent limitations remain.  
+In both <span style="color: #1a9988;"><b>Scenario 1</b></span> and <span style="color: #a66bbe;"><b>Scenario 2</b></span>, our modeling shows that south-side parcels, especially those adjacent to the park cap and close to I-676, experienced substantial price increases. The discontinuity plots reveal a positive correlation between greater distance from I-676 and property values on the south side. This is further supported by the percentage change maps, where many parcels increased by over <b>50%</b>, with some exceeding <b>200%</b>. These patterns suggest that these parcels already meet key feasibility conditions, and current market signals support their potential for more intensive land use.
 
-These outcomes highlight the uneven geography of land value recovery and the lingering effect of historical disinvestment. South-side parcels near the Stitch show the strongest increase potential when both physical and regulatory barriers are addressed.
+We recommend OTIS prioritize investment, densification, and infrastructure support in these high-potential areas. This approach ensures that new development occurs where the market is already active, reducing risk of displacement by reinforcing value where it is already rising.
 
-<span style="color: #eb5600; font-size: 18px;"><b>Recommendations</b></span>
+<h5><b>2. Reevaluate underutilized areas by assessing capacity and constraints</b></h5>
 
-1. **Target development toward parcels with strong market signals**  
-   Parcels on the south side with clustered high-value responses, especially those near the park cap, are demonstrating clear potential for higher density and more intensive commercial or mixed uses. These areas should be prioritized for investment, infrastructure upgrades, and development incentives.  
+<span style="color: #a66bbe;"><b>Scenario 2</b></span> reveals that land use adjustments alone are insufficient to generate price increases on the north side comparable to those observed on the south side. Despite zoning changes, parcels adjacent to the highway continued to experience price decreases. This is confirmed by the discontinuity plots, which show a persistently negative slope. However, several parcel clusters located farther from I-676 present price increases, suggesting spatial variation in how parcels respond to zoning changes.
 
-2. **Reevaluate underperforming areas through the lens of capacity and constraints**  
-   On the north side, even with the same zoning changes, value recovery lags. This suggests zoning strategies alone are insufficient. According to the highest and best use principle, land should be used in a way that is legally permissible, physically possible, financially feasible, and maximally productive. Some north-side parcels may not yet meet these conditions. Tailored interventions — such as infrastructure improvement, transit access, and community services — are needed to unlock value.  
+This suggests that underutilized areas require more than regulatory change. OTIS should consider physical access, transit connectivity, and infrastructure readiness before promoting development in these zones. Without addressing these baseline constraints, rezoning may not yield equitable or effective results.
 
-3. **Pair zoning change with implementation checks**  
-   Before rezoning, assess each site’s development feasibility (market demand, infrastructure, access). Don’t assume zoning change equals value creation — align regulation with realistic pathways to land activation.  
+<h5><b>3. Align zoning changes with implementation checks</b></h5>
 
-4. **Strengthen monitoring mechanisms**  
-   As price increases may indicate future market pressure and displacement risk, particularly in vulnerable communities, use ongoing property value tracking as a baseline for targeting anti-displacement and housing affordability strategies.
+Our scenario-based price change evaluation, using a <b>150-meter</b> baseline, shows clear divergence in responsiveness across the highway divide, suggesting underlying differences in market readiness and infrastructure.
 
+Therefore, OTIS should conduct feasibility checks before rezoning, considering each site’s current use, infrastructure, surrounding parcel dynamics, and market demand. This avoids speculative mismatches and ensures zoning reforms translate into actionable and equitable development when implementing the Stitch project.
+
+<h5><b>4. Strengthen monitoring mechanisms for equity</b></h5>
+
+Median property prices increase significantly from <b>~$402,000</b> in <span style="color: #eb5600;"><b>Scenario 0</b></span> to <b>~$488,000</b> in <span style="color: #a66bbe;"><b>Scenario 2</b></span>. These increases were spatially concentrated, particularly on the two sides.
+
+We recommend OTIS monitor these trends closely. Parcels with large increases should be flagged for early intervention through affordability protections or land value stabilization tools. Simultaneously, parcels with slow or negative growth should be prioritized for supportive investment to prevent missed development opportunity across the corridor.
+
+<span style="color: #eb5600; font-size: 20px;"><b>Conclusions</b></span>
+
+In summary, the four recommendations we propose are not simply about promoting higher density or maximizing property value. They are grounded in spatial pattern recognition, identifying where development potential exists and where structural constraints persist.
+
+The goal is to provide OTIS with a framework for advancing the Chinatown Stitch project while reminding OTIS to manage the market pressures that come with property value changes, so that sale price increase does not become a driver of displacement in the Chinatown community.
+
+For areas where property values are already increasing, we emphasize that development efforts should be built on real and measurable feasibility. This means considering not only zoning adjustments but also the actual conditions of each site, including infrastructure capacity and the ability of the surrounding community to absorb change.
+
+In areas where performance is weaker or conditions are less favorable, unlocking value will require improvements in infrastructure and the provision of essential public services. These areas should not be approached with investment decisions that rely only on projected value increases.
+
+We also encourage OTIS to use property value changes as an early signal to guide housing policy. By establishing a mechanism to monitor and track areas that are sensitive to displacement risk, the city can respond proactively and prevent market-led redevelopment from becoming harmful.
+
+By combining these strategies, city planners and policymakers can pursue a balanced path that advances physical reconnection and zoning changes while also preserving housing stability and long-term community presence in Chinatown.
+
+# Acknowledgments
+
+We'd like to thank our professors, [Michael Fichman](https://www.design.upenn.edu/people/michael-fichman) and [Matthew Harris](https://www.linkedin.com/in/matthew-d-harris/) for their guidance and encouragement, as wel as our clients, [Casey Ross](https://www.caseyross.co/) and [Dr. Christopher Puchalsky](https://www.linkedin.com/in/christopher-puchalsky-46242367/) from OTIS for bringing this project to us, and for their feedback and support. We are also grateful to Dr. Jeffrey Lin from the Federal Reserve Bank of Philadlephia and Dr. Domenic Vitiello for sharing their knowledge and expertise on various highway effects and US Chinatown trends, respectively. Lastly, we'd like to give a special shoutout to [Mjumbe Poe](https://www.design.upenn.edu/people/mjumbe-poe) for sharing his app development expertise throughout our time in the MUSA program.
+
+# Reference
 
 # Code Appendix
-## Case Studies
-### Philadelphia Scale Analysis
+This section is for viewing part of our data wrangling process in the R markdown.
+```{r property wrangling2, message=FALSE, warning=FALSE}
+## Data Wrangling
+#This chunk contains all the code we used for the first step of cleaning the property data.
+
+
+#### clean data for city wise - sale price
+# colnames(cpi_data) <- c("half1", "half2", "cpi_date")
+# cpi_long <- cpi_data %>%
+#   mutate(
+#     Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
+#     Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
+#   ) %>%
+#   select(-half1, -half2) %>%
+#   pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
+#   mutate(
+#     Month = match(Month, month.abb),
+#     date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
+#   ) %>%
+#   select(date, CPI)
+# 
+# property_philly <- property %>%
+#   mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+#   filter(sale_date >= as.Date("2020-01-01") & sale_date <= as.Date("2024-12-31"))%>%
+#   filter(!is.na(sale_price), !is.na(total_livable_area))%>%
+#   mutate(
+#     sale_month = floor_date(sale_date, "month")) %>%
+#   left_join(cpi_long, by = c("sale_month" = "date")) %>%
+#   mutate(CPI = as.numeric(CPI))%>%
+#   mutate(adj_sale_price = sale_price * (340.331/CPI)) %>%
+#   select(-sale_month, -recording_date,  -other_building, 
+#          -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of)
+
+#mean_price <- mean(property_philly$adj_sale_price, na.rm = TRUE)
+#sd_price <- sd(property_philly$adj_sale_price, na.rm = TRUE)
+#extreme_outlier <- mean_price + 5 * sd_price
+
+# price_filtered_philly <- property_philly %>%
+#   filter(adj_sale_price >= 100)
+# 
+# q_philly <- quantile(price_filtered_philly$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+# 
+# property_philly2 <- property_philly %>%
+#   filter(adj_sale_price >= q_philly[1], adj_sale_price <= q_philly[2])
+
+#property_philly <- property_philly%>%
+#  filter(adj_sale_price > 30000, adj_sale_price < extreme_outlier) %>%
+#  filter(total_livable_area >= 100)
+
+# property_philly <- st_transform(property_philly2, crs = 2272)
+
+#st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+
+#### clean data for study area - sale price 
+#study area intersection
+# property_studyarea <- st_intersection(property, studyarea)
+
+#sale price clean up and inflation adjusted
+# colnames(cpi_data) <- c("half1", "half2", "cpi_date")
+# cpi_long <- cpi_data %>%
+#   mutate(
+#     Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
+#     Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
+#   ) %>%
+#   select(-half1, -half2) %>%
+#   pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
+#   mutate(
+#     Month = match(Month, month.abb),
+#     date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
+#   ) %>%
+#   select(date, CPI)
+# 
+# property_data <-property_studyarea%>%
+#   mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+#   filter(!is.na(sale_price))%>%
+#   filter(sale_date <= as.Date("2024-12-31"))%>%
+#   mutate(
+#     sale_date = as.Date(sale_date, format = "%Y-%m-%d"), 
+#     sale_month = floor_date(sale_date, "month"))%>%
+#   left_join(cpi_long, by = c("sale_month" = "date"))%>%
+#   mutate(CPI = as.numeric(CPI))%>%
+#   mutate(adj_sale_price = sale_price * (340.331/CPI)) %>%
+#   select(-sale_month,-recording_date,  -other_building, 
+#          -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of, -state_code)%>%
+#   relocate(adj_sale_price, sale_price, .after = 2)
+# 
+# price_filtered <- property_data %>%
+#   filter(adj_sale_price >= 100)
+# 
+# q <- quantile(price_filtered$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+# 
+# property_data2 <- property_data %>%
+#   filter(adj_sale_price >= q[1], adj_sale_price <= q[2])
+# 
+# property1 <- st_transform(property_data2, crs = 2272)
+
+#join attributes - I676(NS) - nhood1 (neighborhoods in study area)
+# property1 <- rbind(
+#     property1 %>% st_intersection(studyarea_north["geometry"]) %>%
+#       mutate(I676_NS = "north"),
+#     property1 %>% st_intersection(studyarea_south["geometry"]) %>%
+#       mutate(I676_NS = "south")
+#   )
+# nhood1 <- st_intersection(nhood, studyarea)
+
+#  Features clean up for future FE and modeling
+## Zoning
+# property1 <- property1%>%
+#   select(1:2, zoning, location, everything())
+# 
+# property1 <- property1 %>%
+#   mutate(zoning = case_when(
+#     location == "1310-16 VINE ST" ~ "CMX4",   
+#     location == "252-56 N 13TH ST" ~ "CMX4",
+#     location == "255-57 N BROAD ST" ~ "CMX4",
+#     location == "451 N 12TH ST" ~ "CMX3",
+#     location == "453 N 12TH ST" ~"CMX3",
+#     location == "447 N 12TH ST" ~ "CMX3",
+#     location == "1108 BUTTONWOOD ST" ~ "CMX3",
+#     location == "1104 BUTTONWOOD ST" ~ "CMX3",
+#     location == "256-60 N MARVINE ST" ~ "CMX4",
+#     location == "820 VINE ST" ~ "CMX4",
+#     TRUE ~ zoning                        
+#   ))
+
+## central air
+# target_locations_N <- c(
+#                       "1232 SUMMER ST", 
+#                       "1030 BRANDYWINE ST",
+#                       "214 N 12TH ST",
+#                       "1021 SPRING ST")
+# 
+# property1 <- property1 %>%
+#   mutate(
+#     central_air = ifelse(location %in% target_locations_N & central_air == "N", "Y", central_air)
+#   )
+
+## year built - clean up values of 1 and delete the other rows which are parking plot properties that have no year_built data
+
+# valid_locations <- c(
+#   "305-09 N 12TH ST",
+#   "1008-16 WOOD ST",
+#   "1004-06 WOOD ST",
+#   "211 N CAMAC ST",
+#   "231-33 N BROAD ST",
+#   "225-27 N 12TH ST"
+# )
+# property1 <- property1 %>%
+#   filter(location != "711-39 SPRING GARDEN ST") %>%
+#   mutate(year_built = as.numeric(year_built)) %>%
+#   mutate(
+#     year_built = case_when(
+#       location == "305-09 N 12TH ST" & year_built < 1750 ~ 1950,
+#       location == "1008-16 WOOD ST" & year_built < 1750 ~ 1978,
+#       location == "1004-06 WOOD ST" & year_built < 1750 ~ 1920,
+#       location == "211 N CAMAC ST" & year_built < 1750 ~ 1900,
+#       location == "231-33 N BROAD ST" & year_built < 1750 ~ 2020,
+#       location == "225-27 N 12TH ST" & year_built < 1750 ~ 2024,
+#       
+#       !is.na(year_built) & year_built < 1750 &
+#         !(location %in% c(
+#           "305-09 N 12TH ST",
+#           "1008-16 WOOD ST",
+#           "1004-06 WOOD ST",
+#           "211 N CAMAC ST",
+#           "231-33 N BROAD ST",
+#           "225-27 N 12TH ST"
+#         )) ~ NA_real_,
+#       TRUE ~ year_built
+#     )
+#   )
+
+#st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+
 
 ```{r code_appendix_prop500}
+## Exploratory Data Analysis (EDA)
+### Philadelphia Scale Analysis
+
 # adding distance to highway and log price variables
 # properties500 <- philly_properties[hiway_500buff,] %>% # 88571 -> 14751 rows
 #   mutate(log_price = log(adj_sale_price),
@@ -5539,11 +5707,8 @@ These outcomes highlight the uneven geography of land value recovery and the lin
 
 ```
  
- 
- 
-### Study Area Scale Anlysis
-
 ```{r,eval=FALSE}
+### Study Area Scale Anlysis
 # Clean CPI data: format to monthly CPI series for inflation adjustment
 colnames(cpi_data) <- c("half1", "half2", "cpi_date")
 cpi_long <- cpi_data %>%
@@ -5986,11 +6151,13 @@ clean_property_poi_distances <- function(property_sf) {
 # save property_final output and read in the prefiltered to save time
 # property_final: cleaned study area dataset ready for feature engineering
 property_final <- clean_property_poi_distances(property_proj)
-st_write(property_final, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults", driver = "GeoJSON", delete_dsn = TRUE)
+# st_write(property_final, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-### Some Visualizations on Story map
+
 ```{r,eval=FALSE}
+### Part of Visualizations on Story map
+
 S0_S1_density <- ggplot() +
   
   # Scenario 0: true adjusted sale price
@@ -6132,7 +6299,6 @@ ggsave(
 ```
 
 
-
 ```{r,eval=FALSE}
 merged_property_changes <- property_S1_perc_change %>%
   st_drop_geometry() %>%
@@ -6156,9 +6322,9 @@ merged_property_changes <- st_sf(
 )
 
 merged_property_changes <- st_transform(property_S1_perc_change, crs = 4326)
-st_write(merged_property_changes, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/merged_property.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+# st_write(merged_property_changes, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/merged_property.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 
-st_write(merged_property_changes, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/merged_property.json", driver = "GeoJSON", delete_dsn = TRUE)
+# st_write(merged_property_changes, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/merged_property.json", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
 ```{r,eval=FALSE}
@@ -6166,7 +6332,7 @@ property_S0_js <- property_S1_4326 %>%
   select(-predicted_price) %>%                 
   rename(predicted_price = adj_sale_price)       
 
-st_write(property_S0_js, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S0_js.json", driver = "GeoJSON", delete_dsn = TRUE)# 删除 predicted_price 列
+# st_write(property_S0_js, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S0_js.json", driver = "GeoJSON", delete_dsn = TRUE)# 删除 predicted_price 列
 mapview(property_S0_js)
 
 property_S0_js <- property_S1_4326 %>%
@@ -6189,8 +6355,6 @@ property_S0_js <- property_S0_js %>%
 
 mapview(property_S0_js)
 ```
-
-
 
 
 
