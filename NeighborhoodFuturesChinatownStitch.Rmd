@@ -2666,7 +2666,7 @@ After training and validation, the Random Forest model achieved the best perform
 
 ### Data Preparation
 
-Based on feature engineering results, we select the xx most relevant features plus geographical location (longitude and latitude) as independent variables, and use log-transformed property price as the dependent variable. To build and evaluate our model, we split the dataset into two parts: **70%** as the training set to fit the model, and **30%** as the test set to evaluate its accuracy.
+Based on feature engineering results, we select the 23 most relevant features plus geographical location (longitude and latitude) as independent variables, and use log-transformed property price as the dependent variable. To build and evaluate our model, we split the dataset into two parts: **70%** as the training set to fit the model, and **30%** as the test set to evaluate its accuracy.
 
 ```{r modeling_data, quiet = TRUE, results = 'hide'}
 set.seed(123)
