@@ -8,7 +8,7 @@ output:
     number_sections: true
     theme: sandstone
     toc_float: true
-    code_folding: hide
+    code_folding: none
     toc_depth: 3
 editor_options: 
   markdown: 
@@ -23,13 +23,12 @@ bibliography: references.bib
 }
 ```
 
-```{r setup_general, message = FALSE, warning = FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
+```{r setup_general, message = FALSE, warning = FALSE, include =FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
     fig.align = "center") 
 options(scipen=999)
 
 library(sf)
-library(tidymodels)
 library(ggplot2)
 library(tidycensus)
 library(tidyverse)
@@ -45,6 +44,7 @@ library(corrplot)
 library(htmltools)  # For div() function
 library(knitr) # insert images
 library(rsample)
+library(tidymodels)
 library(spatialsample)
 library(glmnet)
 library(ranger)
@@ -91,20 +91,19 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 # wd <- "E:/Spring/Practicum/DataAnalysis/Chinatown"
 
 # Aki
-knitr::opts_knit$set(root.dir = "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/")
-setwd("~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/")
-wd <- "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/"
+#knitr::opts_knit$set(root.dir = "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/")
+#wd <- "~/Documents/MUSA/Spring25/MUSA8010_Practicum/Chinatown-Practicum/"
 
 # sijia
-# knitr::opts_knit$set(root.dir = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum")
+knitr::opts_knit$set(root.dir = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum")
 #setwd("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum/")  # for interactive chunks
-# wd <- "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum"
+wd <- "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum"
 
 # philly properties (from Sijia)
 # from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
-philly_properties <- st_read("akidata/property_philly.geojson") # Aki 88,571 rows
+#philly_properties <- st_read("akidata/property_philly.geojson") # Aki, from most recent update, 4/21/25, 88,571 rows
 # philly_properties <- st_read("DataWrangling/akidata/property_philly_cleaned.geojson") # Luming
-# philly_properties <- st_read("~/Documents/Upenn/Practicum/2025/results/property_philly.geojson") 
+philly_properties <- st_read("~/Documents/Upenn/Practicum/2025/results/property_philly.geojson") 
 ```
 
 # Use Case
@@ -157,13 +156,6 @@ discontinuity <- st_read("Dataset/studyarea-sub/discontinuity.shp") %>%
 Chinatown_Stitch <- st_read("Dataset/Chinatown_Stitch/Chinatown_Stitch.shp") %>%
   st_transform('EPSG:2272')
 
-# property <- st_read("DataWrangling/akidata/opa_properties_public.geojson") %>%
-#   st_transform('EPSG:2272')
-# 
-# property_studyarea <- st_intersection(property, studyarea)
-# 
-# st_write(property_studyarea %>% st_transform('EPSG:3857'), "Dataset/original_property_studyarea.geojson", driver = "GeoJSON")
-
 property_original <- st_read("Dataset/original_property_studyarea.geojson") %>%
   st_transform('EPSG:2272')
 
@@ -174,21 +166,20 @@ property_south <- property_original %>%
   st_intersection(studyarea_south)
 
 # philly hydrology for mapping (bounded by philly_bounds; source: https://opendataphilly.org/datasets/hydrology/)
-hydro <- st_read("https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Hydrographic_Features_Poly/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson") %>%
-  st_transform(crs = 'EPSG:2272') %>% 
+hydro <- st_read("https://services.arcgis.com/fLeGjb7u4uXqeF9q/arcgis/rest/services/Hydrographic_Features_Poly/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson") %>%   st_transform(crs = 'EPSG:2272') %>% 
   st_intersection(philly_bounds)
 
 philly_highways <- st_read("Dataset/Highways/Casestudy_Highways.shp") %>% 
   st_transform('EPSG:2272')
 
-# cleaned and feature engineered property data for study area
-property_studyarea_FE <- st_read("Dataset/property/property_CT_FE.geojson")
+property_studyarea <- st_read("Dataset/original_property_studyarea.geojson") %>%
+  st_transform('EPSG: 2272')
 
-```
+#property <- st_read("Dataset/property/opa_properties_public2.geojson") %>%
+#  st_transform('EPSG:2272')
 
-```{r read_data, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
-# property <- st_read("~/Documents/Upenn/Practicum/2025/Data/property/opa_properties_public2.geojson") %>%
-#   st_transform('EPSG:2272')
+property <- st_read("~/Documents/Upenn/Practicum/2025/Data/property/opa_properties_public2.geojson") %>%
+  st_transform('EPSG:2272')
 
 property2 <- st_read("Dataset/property/property2.geojson") %>%
   st_transform('EPSG:2272')
@@ -200,16 +191,21 @@ newpark <- st_read("Dataset/ParksModified/Park_join_I676_1.geojson")%>%
   st_transform('EPSG:2272')
 property2$distance_to_nearest_park <- property_park$distance_to_nearest_park
 
-nhood <- st_read("Dataset/philly_neighborhoods.geojson")
-
+nhood <- st_read("~/Documents/Upenn/Practicum/2025/Data/philly_neighborhoods.geojson")%>%
+  st_transform('EPSG:2272')
 landuse <- st_read("Dataset/landuse_clip/Land_Use_ClipLayer.shp")
+
+I676_2 <- st_read("Dataset/studyarea/discontinuity.shp")%>%
+  st_transform('EPSG:2272')
 
 cpi_data <- st_read("Dataset/property/cpi_data.csv")
 
+# cleaned property data before future engineerig for study area
 property_final <- st_read("Dataset/property/property_final.geojson")%>%
   st_transform('EPSG:2272')
+# cleaned and feature engineered property data for study area
+property_studyarea_FE <- st_read("Dataset/property/property_CT_FE.geojson")
 ```
-
 Three study areas are used in our report and they are as follows. 
 
 -   **Philadelphia:** We explore properties throughout the city of Philadelphia to conduct the first step of our highway analysis.
@@ -264,6 +260,13 @@ landuse_park_ing <- landuse_4326 %>%
 
 park_4326 <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
   st_transform('EPSG:4326')
+
+#nhoods <- 
+#  st_read("Dataset/DataWrangle/philadelphia-neighborhoods.geojson") %>%
+#  st_transform('EPSG:2272')
+
+park <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
+  st_transform('EPSG:2272')
 
 Chinatown_Callowhill <- nhoods_4326 %>%
   filter(NAME %in% c("CHINATOWN", "CALLOWHILL"))
@@ -363,332 +366,496 @@ We also explored **other completed highway capping projects** across the United 
 # Exploratory Data Analysis
 ## Data Wrangling
 ### Data Sources
-The core dataset of this project consists of parcel-level property records from [Philadelphia Properties and Assessment History](https://opendataphilly.org/datasets/philadelphia-properties-and-assessment-history/), which form the foundation for our quantitative analysis of the spatial effects of the I-676 highway. The analysis focuses on historical sale prices, property characteristics, and spatial location of parcels within Chinatown and adjacent neighborhoods (our main study area). These data are used to simulate and visualize planning scenarios following the Chinatown Stitch intervention, enabling the community to better understand how property sale prices may shift under different policy changes.
+The core dataset of this project consists of parcel-level property records from [Philadelphia Properties and Assessment History](https://opendataphilly.org/datasets/philadelphia-properties-and-assessment-history/), which form the foundation for a quantitative analysis of the spatial effects of the I-676 highway. The analysis focuses on historical sale prices, property characteristics, and spatial location of parcels within Chinatown and adjacent neighborhoods. These data are used to simulate and visualize planning scenarios following the Chinatown Stitch intervention, enabling the community to better understand how property sale prices may shift under different policy changes.
 
 ### Property Data  
-Our primary variable of interest, **property price**, is sourced from the [Philadelphia Properties and Assessment History](https://opendataphilly.org/datasets/philadelphia-properties-and-assessment-history/) dataset available on Open Data Philly. This dataset includes variables such as `sale_price` (which we call property price), number of bedrooms, parcel number, and property condition. To prepare the data for analysis, we apply the following preprocessing steps related to sale date, inflation adjustment, geographic transformation, and handling of missing values:
+Our primary variable of interest, **property price**, is sourced from the [Philadelphia Properties and Assessment History](https://opendataphilly.org/datasets/philadelphia-properties-and-assessment-history/) dataset available on Open Data Philly. This dataset includes variables such as `sale_price`, number of bedrooms, parcel number, and property condition. To prepare the data for analysis, we apply the following preprocessing steps related to sale date, inflation adjustment, geographic transformation, and handling of missing values:
 
-+ **Sale Date (Philadelphia Focus)**: To ensure price comparability, we limit our analysis to properties sold within the last five years, **between 2020 and 2024**, within Philadelphia county.
++ **Sale Date (Philadelphia Focus)**: To ensure price comparability, we limit our analysis to properties sold **between 2020 and 2024** within Philadelphia.
 
 + **Inflation Adjustment**: Sale prices are adjusted for inflation using the **Consumer Price Index (CPI)**, normalized to December 2024 values.
 
 + **Price Range Filtering**: We begin by removing records with **implausibly low sale prices (below $100)**. Then, to reduce the influence of outliers and enhance generalizability, we **trim both the bottom and top 5%** of the price distribution.
 
-+ **Geographic Transformation**: Since spatial proximity to highways and other features influences property values, we re-project coordinates to **NAD83 / Pennsylvania South (EPSG: 2272)** for accurate spatial analysis.
++ **Geographic Transformation**: Since spatial proximity to highways and other features influences property values, we reproject coordinates to **NAD83 / Pennsylvania South (EPSG: 2272)** for accurate spatial analysis.
 
 + **Missing Data Imputation**: Missing values for **zoning**, **central air**, and **year built** are filled using current property characteristics where available.
 
-Please see the [Code Appendix] for the code we implemented to clean our property data the way we described above.
+```{r property wrangling, message=FALSE, warning=FALSE}
+#### clean data for city wise - sale price
+colnames(cpi_data) <- c("half1", "half2", "cpi_date")
+cpi_long <- cpi_data %>%
+  mutate(
+    Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
+    Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
+  ) %>%
+  select(-half1, -half2) %>%
+  pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
+  mutate(
+    Month = match(Month, month.abb),
+    date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
+  ) %>%
+  select(date, CPI)
 
-### Neighborhood Context Data
+property_philly <-property%>%
+  mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+  filter(sale_date >= as.Date("2020-01-01") & sale_date <= as.Date("2024-12-31"))%>%
+  filter(!is.na(sale_price), !is.na(total_livable_area))%>%
+  mutate(
+    sale_month = floor_date(sale_date, "month"))%>%
+  left_join(cpi_long, by = c("sale_month" = "date"))%>%
+  mutate(CPI = as.numeric(CPI))%>%
+  mutate(adj_sale_price = sale_price * (340.331/CPI))%>%
+  select(-sale_month, -recording_date,  -other_building, 
+         -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of)
 
+#mean_price <- mean(property_philly$adj_sale_price, na.rm = TRUE)
+#sd_price <- sd(property_philly$adj_sale_price, na.rm = TRUE)
+#extreme_outlier <- mean_price + 5 * sd_price
+price_filtered_philly <- property_philly %>%
+  filter(adj_sale_price >= 100)
+
+q_philly <- quantile(price_filtered_philly$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+
+property_philly2 <- property_philly %>%
+  filter(adj_sale_price >= q_philly[1], adj_sale_price <= q_philly[2])
+
+#property_philly <- property_philly%>%
+#  filter(adj_sale_price > 30000, adj_sale_price < extreme_outlier) %>%
+#  filter(total_livable_area >= 100)
+
+property_philly <- st_transform(property_philly2, crs = 2272)
+
+#st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+
+#### clean data for study area - sale price 
+#study area intersection
+property_studyarea <- st_intersection(property, studyarea)
+
+#sale price clean up and inflation adjusted
+colnames(cpi_data) <- c("half1", "half2", "cpi_date")
+cpi_long <- cpi_data %>%
+  mutate(
+    Jan = `half1`, Feb = `half1`, Mar = `half1`, Apr = `half1`, May = `half1`, Jun = `half1`,
+    Jul = `half2`, Aug = `half2`, Sep = `half2`, Oct = `half2`, Nov = `half2`, Dec = `half2`
+  ) %>%
+  select(-half1, -half2) %>%
+  pivot_longer(cols = -cpi_date, names_to = "Month", values_to = "CPI") %>%
+  mutate(
+    Month = match(Month, month.abb),
+    date = as.Date(paste(cpi_date, Month, "01", sep = "-"))  
+  ) %>%
+  select(date, CPI)
+
+property_data <-property_studyarea%>%
+  mutate(sale_date = as.Date(sale_date, format = "%Y-%m-%d")) %>%
+  filter(!is.na(sale_price))%>%
+  filter(sale_date <= as.Date("2024-12-31"))%>%
+  mutate(
+    sale_date = as.Date(sale_date, format = "%Y-%m-%d"), 
+    sale_month = floor_date(sale_date, "month"))%>%
+  left_join(cpi_long, by = c("sale_month" = "date"))%>%
+  mutate(CPI = as.numeric(CPI))%>%
+  mutate(adj_sale_price = sale_price * (340.331/CPI)) %>%
+  select(-sale_month,-recording_date,  -other_building, 
+         -assessment_date, -mailing_address_2, mailing_city_state, mailing_care_of, -state_code)%>%
+  relocate(adj_sale_price, sale_price, .after = 2)
+
+price_filtered <- property_data %>%
+  filter(adj_sale_price >= 100)
+
+q <- quantile(price_filtered$adj_sale_price, probs = c(0.05, 0.95), na.rm = TRUE)
+
+property_data2 <- property_data %>%
+  filter(adj_sale_price >= q[1], adj_sale_price <= q[2])
+
+property1 <- st_transform(property_data2, crs = 2272)
+
+#join attributes - I676(NS) - nhood1 (neighborhoods in study area)
+property1 <- rbind(
+    property1 %>% st_intersection(studyarea_north["geometry"]) %>%
+      mutate(I676_NS = "north"),
+    property1 %>% st_intersection(studyarea_south["geometry"]) %>%
+      mutate(I676_NS = "south")
+  )
+nhood1 <- st_intersection(nhood, studyarea)
+
+#  Features clean up for future FE and modeling
+## Zoning
+property1 <- property1%>%
+  select(1:2, zoning, location, everything())
+
+property1 <- property1 %>%
+  mutate(zoning = case_when(
+    location == "1310-16 VINE ST" ~ "CMX4",   
+    location == "252-56 N 13TH ST" ~ "CMX4",
+    location == "255-57 N BROAD ST" ~ "CMX4",
+    location == "451 N 12TH ST" ~ "CMX3",
+    location == "453 N 12TH ST" ~"CMX3",
+    location == "447 N 12TH ST" ~ "CMX3",
+    location == "1108 BUTTONWOOD ST" ~ "CMX3",
+    location == "1104 BUTTONWOOD ST" ~ "CMX3",
+    location == "256-60 N MARVINE ST" ~ "CMX4",
+    location == "820 VINE ST" ~ "CMX4",
+    TRUE ~ zoning                        
+  ))
+
+## central air
+target_locations_N <- c(
+                      "1232 SUMMER ST", 
+                      "1030 BRANDYWINE ST",
+                      "214 N 12TH ST",
+                      "1021 SPRING ST")
+
+property1 <- property1 %>%
+  mutate(
+    central_air = ifelse(location %in% target_locations_N & central_air == "N", "Y", central_air)
+  )
+## year built - clean up values of 1 and delete the other rows which are parking plot properties that have no year_built data
+valid_locations <- c(
+  "305-09 N 12TH ST",
+  "1008-16 WOOD ST",
+  "1004-06 WOOD ST",
+  "211 N CAMAC ST",
+  "231-33 N BROAD ST",
+  "225-27 N 12TH ST"
+)
+property1 <- property1 %>%
+  filter(location != "711-39 SPRING GARDEN ST") %>%
+  mutate(year_built = as.numeric(year_built)) %>%
+  mutate(
+    year_built = case_when(
+      location == "305-09 N 12TH ST" & year_built < 1750 ~ 1950,
+      location == "1008-16 WOOD ST" & year_built < 1750 ~ 1978,
+      location == "1004-06 WOOD ST" & year_built < 1750 ~ 1920,
+      location == "211 N CAMAC ST" & year_built < 1750 ~ 1900,
+      location == "231-33 N BROAD ST" & year_built < 1750 ~ 2020,
+      location == "225-27 N 12TH ST" & year_built < 1750 ~ 2024,
+      
+      !is.na(year_built) & year_built < 1750 &
+        !(location %in% c(
+          "305-09 N 12TH ST",
+          "1008-16 WOOD ST",
+          "1004-06 WOOD ST",
+          "211 N CAMAC ST",
+          "231-33 N BROAD ST",
+          "225-27 N 12TH ST"
+        )) ~ NA_real_,
+      TRUE ~ year_built
+    )
+  )
+#st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+
+```{r census data, message=FALSE, warning=FALSE, quiet = TRUE, results='hide'}
+### The method here for pushing data is diffenrent from the one we usually use cause the there is some issues when downloading the geometry data
+# census block group
+census_api_key("92998588496b9701036218b765c78d2ffb7aedcd", install = TRUE, overwrite = TRUE)
+acs_variable_list.2023 <- load_variables(2023, "acs5", cache = TRUE)
+
+local_shapefile <- "Dataset/census/tl_2023_42_bg"
+bg_pa <- st_read(local_shapefile, quiet = TRUE)
+bg_philly <- bg_pa %>%
+  filter(COUNTYFP == "101") %>%
+  st_transform(2272) %>%
+  select(GEOID, geometry)
+
+block2023_attr <- get_acs(
+  geography = "block group",
+  variables = c("B19013_001E", "B25058_001E"),
+  year = 2023,
+  state = 42,
+  county = 101,
+  geometry = FALSE
+)
+
+block2023_attr <- block2023_attr %>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  rename(
+    MedHHInc = B19013_001,
+    MedRent = B25058_001
+  )
+
+block2023 <- left_join(bg_philly, block2023_attr, by = "GEOID")
+
+studyarea_blockgroup_df <- as.data.frame(studyarea_blockgroup) %>% select(-geometry)
+block2023_studyarea <- block2023 %>% inner_join(studyarea_blockgroup_df, by = "GEOID")
+
+#census tract
+tract_pa <- st_read("Dataset/census/tl_2023_42_tract", quiet = TRUE)
+
+tract_philly <- tract_pa %>%
+  filter(COUNTYFP == "101") %>%
+  st_transform(2272) %>%
+  select(GEOID, geometry)
+
+tract_attr <- get_acs(
+  geography = "tract",
+  variables = c("B25026_001E", "B15001_050E", "B15001_009E","B06012_002E"),
+  year = 2023, state = 42, county = 101, geometry = FALSE
+)
+
+tract_attr_wide <- tract_attr %>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  rename(
+    TotalPop = B25026_001,
+    FemaleBachelors = B15001_050,
+    MaleBachelors = B15001_009,
+    TotalPoverty = B06012_002
+  )
+
+tract2023 <- left_join(tract_philly, tract_attr_wide, by = "GEOID")
+studyarea_blockgroup_df <- as.data.frame(studyarea_blockgroup) %>% select(-geometry)
+
+tract2023 <- tract2023 %>%
+  mutate(GEOID_trimmed = as.numeric(str_sub(GEOID, 7, 9)))
+
+studyarea_blockgroup_df <- studyarea_blockgroup_df %>%
+  mutate(GEOID_trimmed = as.numeric(str_sub(TRACT, 2, 4)))
+
+tract2023_studyarea <- tract2023 %>%
+  inner_join(studyarea_blockgroup_df, by = "GEOID_trimmed")
+tract_studyarea <- st_intersection(studyarea, tract2023_studyarea)
+
+# Property1_property2_census_join
+property1 <- property1 %>%
+  mutate(census_tract = as.numeric(census_tract))
+tract_studyarea_selected <- tract_studyarea %>%
+  select(GEOID_trimmed, TotalPoverty, MaleBachelors, FemaleBachelors, TotalPop) %>%
+  st_drop_geometry()  
+
+property1_blockgroup <- st_join(property1, block2023_studyarea %>% select(GEOID, MedHHInc, MedRent), 
+                            join = st_intersects)
+
+property1_geometry <- st_geometry(property1)
+
+tract_studyarea_selected <- tract_studyarea_selected %>%
+  distinct(GEOID_trimmed, .keep_all = TRUE)
+property1 <- property1_blockgroup %>%
+  st_drop_geometry() %>% 
+  left_join(tract_studyarea_selected, by = c("census_tract" = "GEOID_trimmed"))
+
+property1 <- property1 %>%
+  mutate(objectid = as.character(objectid))
+
+# property2 includes additional spatial indicators for modeling,
+# such as distance to nearest park, transit, hospital, and supermarket
+property2 <- property2 %>%
+  mutate(objectid = as.character(objectid))
+#Join other indicators to cleaned property1
+property_combined <- property1 %>%
+  left_join(property2, by = "objectid") %>%
+  rename(sale_price = sale_price.y)%>%
+  select(-sale_price.x) 
+```
+
+```{r POI, message=FALSE, warning=FALSE, quiet=TRUE, results='hide', eval = FALSE}
+# POI - restaurant-drink-dessert
+api_key <- "AIzaSyCa-yuy1Y3n07URlR2HHg6dp_cIEouv9hs"
+keywords <- c("restaurant", "dim sum restaurant", "kitchen", "desert","tea", "bubble tea","matcha", "herbal tea")
+place_types <- c("restaurant", "cafe", "bakery")
+
+studyarea_proj <- st_transform(block2023_studyarea, 2272)
+
+grid_pts <- st_make_grid(studyarea_proj, cellsize = 2000, what = "centers")
+grid_pts <- st_sf(geometry = grid_pts) %>%
+  st_filter(st_buffer(studyarea_proj, 1000)) 
+
+grid_pts_wgs <- st_transform(grid_pts, 4326)
+coords <- st_coordinates(grid_pts_wgs)
+
+all_responses <- list()
+
+for (pt_idx in seq_len(nrow(coords))) {
+  location <- coords[pt_idx, c(2,1)]  # lat, lng
+  cat(" Querying center point", pt_idx, "at", paste(location, collapse = ", "), "\n")
+  
+  for (ptype in place_types) {
+    for (kw in keywords) {
+      Sys.sleep(5)  
+      cat("🔎", kw, "in", ptype, "\n")
+
+      response <- google_places(
+        keyword = kw,
+        location = location,
+        radius = 2000,  
+        place_type = ptype,
+        key = api_key
+      )
+
+      if (is.null(response[["results"]]) || length(response[["results"]]) == 0) {
+        cat("No results for:", kw, "in", ptype, "\n")
+        next
+      }
+
+      page_token <- response$next_page_token
+      results_list <- list(response[["results"]])
+      i <- 1
+
+      while (!is.null(page_token)) {
+        Sys.sleep(10)
+        response_next <- google_places(
+          keyword = kw,
+          location = location,
+          radius = 2000,
+          place_type = ptype,
+          key = api_key,
+          page_token = page_token
+        )
+
+        if (is.null(response_next[["results"]]) || length(response_next[["results"]]) == 0) break
+
+        results_list[[i + 1]] <- response_next[["results"]]
+        page_token <- response_next$next_page_token
+        i <- i + 1
+      }
+
+      all_responses[[paste(kw, ptype, pt_idx, sep = "_")]] <- bind_rows(results_list) %>%
+        filter(!is.na(place_id)) %>%
+        distinct(place_id, .keep_all = TRUE)
+    }
+  }
+}
+
+all_responses <- all_responses[lengths(all_responses) > 0]
+restaurant_results <- bind_rows(all_responses) %>%
+  mutate(lat = geometry$location$lat, lng = geometry$location$lng) %>%
+  select(lat, lng, name, place_id, rating) %>%
+  distinct(place_id, .keep_all = TRUE)
+
+restaurant_sf <- st_as_sf(restaurant_results, coords = c("lng", "lat"), crs = 4326)
+restaurant_proj <- st_transform(restaurant_sf, 2272)
+
+studyarea_buffer <- st_buffer(studyarea_proj, 2000)
+res_poi <- st_filter(restaurant_proj, studyarea_buffer)
+radius_circles <- st_buffer(st_transform(grid_pts, 2272), dist = 2000)
+
+# POI - grocery
+keywords <- c("grocery store", "supermarket", "asian grocery", "chinese supermarket",
+              "korean market", "japanese grocery", "international market", "food market")
+
+place_types <- c("supermarket", "grocery_or_supermarket", "convenience_store", "store")
+
+studyarea_proj <- st_transform(block2023_studyarea, 2272)
+
+grid_pts <- st_make_grid(studyarea_proj, cellsize = 2000, what = "centers")
+grid_pts <- st_sf(geometry = grid_pts) %>%
+  st_filter(st_buffer(studyarea_proj, 1000))
+
+grid_pts_wgs <- st_transform(grid_pts, 4326)
+coords <- st_coordinates(grid_pts_wgs)
+
+all_responses <- list()
+
+for (pt_idx in seq_len(nrow(coords))) {
+  location <- coords[pt_idx, c(2,1)]  # lat, lng
+  cat(" Querying center", pt_idx, "at", paste(location, collapse = ", "), "\n")
+  
+  for (ptype in place_types) {
+    for (kw in keywords) {
+      Sys.sleep(5)  
+      cat("🔎", kw, "in", ptype, "\n")
+
+      response <- google_places(
+        keyword = kw,
+        location = location,
+        radius = 2000,
+        place_type = ptype,
+        key = api_key
+      )
+
+      if (is.null(response[["results"]]) || length(response[["results"]]) == 0) next
+
+      page_token <- response$next_page_token
+      results_list <- list(response[["results"]])
+      i <- 1
+
+      while (!is.null(page_token)) {
+        Sys.sleep(10)
+        response_next <- google_places(
+          keyword = kw,
+          location = location,
+          radius = 2000,
+          place_type = ptype,
+          key = api_key,
+          page_token = page_token
+        )
+        if (is.null(response_next[["results"]]) || length(response_next[["results"]]) == 0) break
+
+        results_list[[i + 1]] <- response_next[["results"]]
+        page_token <- response_next$next_page_token
+        i <- i + 1
+      }
+
+      all_responses[[paste(kw, ptype, pt_idx, sep = "_")]] <- bind_rows(results_list) %>%
+        filter(!is.na(place_id)) %>%
+        distinct(place_id, .keep_all = TRUE)
+    }
+  }
+}
+
+all_responses <- all_responses[lengths(all_responses) > 0]
+
+grocery_results <- bind_rows(all_responses) %>%
+  mutate(lat = geometry$location$lat,
+         lng = geometry$location$lng) %>%
+  select(lat, lng, name, place_id, rating) %>%
+  distinct(place_id, .keep_all = TRUE)
+
+grocery_sf <- st_as_sf(grocery_results, coords = c("lng", "lat"), crs = 4326)
+grocery_proj <- st_transform(grocery_sf, 2272)
+
+studyarea_buffer <- st_buffer(studyarea_proj, 2000)
+grocery <- st_filter(grocery_proj, studyarea_buffer)
+
+# property join poi
+property_sf <- st_as_sf(property_combined, sf_column_name = "geometry")
+property_proj <- st_transform(property_sf, 2272)
+grocery_proj <- st_transform(grocery, 2272)
+restaurant_proj <- st_transform(res_poi, 2272)
+
+grocery_idx <- st_nearest_feature(property_proj, grocery_proj)
+
+property_proj$nearest_grocery_name <- grocery_proj$name[grocery_idx]
+property_proj$nearest_grocery_dist <- st_distance(
+  property_proj,
+  grocery_proj[grocery_idx, ],
+  by_element = TRUE
+)
+restaurant_idx <- st_nearest_feature(property_proj, restaurant_proj)
+property_proj$nearest_restaurant_name <- restaurant_proj$name[restaurant_idx]
+property_proj$nearest_restaurant_dist <- st_distance(
+  property_proj,
+  restaurant_proj[restaurant_idx, ],
+  by_element = TRUE
+)
+property_proj$nearest_grocery_dist_m <- as.numeric(property_proj$nearest_grocery_dist)
+property_proj$nearest_restaurant_dist_m <- as.numeric(property_proj$nearest_restaurant_dist)
+clean_property_poi_distances <- function(property_sf) {
+  property_sf %>%
+    mutate(
+      nearest_grocery_dist_m = as.numeric(nearest_grocery_dist),
+      nearest_restaurant_dist_m = as.numeric(nearest_restaurant_dist)) %>%
+    select(
+      -nearest_grocery_dist,
+      -nearest_restaurant_dist
+    )
+}
+property_final <- clean_property_poi_distances(property_proj)
+st_write(property_final, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults", driver = "GeoJSON", delete_dsn = TRUE)
+```
+
+### Neighborhood Context Data  
 To capture the **neighborhood context** surrounding each parcel, we integrated multiple spatial datasets from [Open Data Philly](https://opendataphilly.org/datasets/), including parks, City Hall, transit stations (bus, metro and trolley), schools, hospitals, bodies of water, bike networks, and points-of-interest or POIs such as grocery stores and restaurants (via Google Places API). For each type of feature, we computed the distance to the nearest amenity for each property, generating a set of **spatial accessibility indicators** (i.e. distance to nearest restaurant, distance to nearest hospital, etc.). 
 
 We further spatially joined each parcel to its corresponding **neighborhood name**, **land use** category, and **retail** environment data (low- or high-produce supply stores per 1,000 people, abbreviated to LPSS and HPSS, respectively) to enrich contextual attributes. **Crime rate** was calculated using historical crime records for Philadelphia. Specifically, we applied a k-nearest-neighbor (K-NN) approach (for values of k between 1 and 5) to derive the average distance to the nearest reported incidents for each property, reflecting localized safety levels.
 
 These variables are essential indicators in our analysis and modeling, capturing how the **surrounding built and social environments may influence sale price** and responses to planning interventions.
 
-```{r census data, message=FALSE, warning=FALSE, quiet = TRUE, results='hide'}
-### The method here for pushing data is different from the one we usually use cause the there is some issues when downloading the geometry data
-# census block group
-# census_api_key("92998588496b9701036218b765c78d2ffb7aedcd", install = TRUE, overwrite = TRUE)
-# acs_variable_list.2023 <- load_variables(2023, "acs5", cache = TRUE)
-# 
-# local_shapefile <- "Dataset/census/tl_2023_42_bg"
-# bg_pa <- st_read(local_shapefile, quiet = TRUE)
-# bg_philly <- bg_pa %>%
-#   filter(COUNTYFP == "101") %>%
-#   st_transform(2272) %>%
-#   select(GEOID, geometry)
-# 
-# block2023_attr <- get_acs(
-#   geography = "block group",
-#   variables = c("B19013_001E", "B25058_001E"),
-#   year = 2023,
-#   state = 42,
-#   county = 101,
-#   geometry = FALSE
-# )
-# 
-# block2023_attr <- block2023_attr %>%
-#   select(GEOID, variable, estimate) %>%
-#   pivot_wider(names_from = variable, values_from = estimate) %>%
-#   rename(
-#     MedHHInc = B19013_001,
-#     MedRent = B25058_001
-#   )
-# 
-# block2023 <- left_join(bg_philly, block2023_attr, by = "GEOID")
-# 
-# studyarea_blockgroup_df <- as.data.frame(studyarea_blockgroup) %>% select(-geometry)
-# block2023_studyarea <- block2023 %>% inner_join(studyarea_blockgroup_df, by = "GEOID")
-# 
-# #census tract
-# tract_pa <- st_read("Dataset/census/tl_2023_42_tract", quiet = TRUE)
-# 
-# tract_philly <- tract_pa %>%
-#   filter(COUNTYFP == "101") %>%
-#   st_transform(2272) %>%
-#   select(GEOID, geometry)
-# 
-# tract_attr <- get_acs(
-#   geography = "tract",
-#   variables = c("B25026_001E", "B15001_050E", "B15001_009E","B06012_002E"),
-#   year = 2023, state = 42, county = 101, geometry = FALSE
-# )
-# 
-# tract_attr_wide <- tract_attr %>%
-#   select(GEOID, variable, estimate) %>%
-#   pivot_wider(names_from = variable, values_from = estimate) %>%
-#   rename(
-#     TotalPop = B25026_001,
-#     FemaleBachelors = B15001_050,
-#     MaleBachelors = B15001_009,
-#     TotalPoverty = B06012_002
-#   )
-# 
-# tract2023 <- left_join(tract_philly, tract_attr_wide, by = "GEOID")
-# studyarea_blockgroup_df <- as.data.frame(studyarea_blockgroup) %>% select(-geometry)
-# 
-# tract2023 <- tract2023 %>%
-#   mutate(GEOID_trimmed = as.numeric(str_sub(GEOID, 7, 9)))
-# 
-# studyarea_blockgroup_df <- studyarea_blockgroup_df %>%
-#   mutate(GEOID_trimmed = as.numeric(str_sub(TRACT, 2, 4)))
-# 
-# tract2023_studyarea <- tract2023 %>%
-#   inner_join(studyarea_blockgroup_df, by = "GEOID_trimmed")
-# tract_studyarea <- st_intersection(studyarea, tract2023_studyarea)
-# 
-# # Property1_property2_census_join
-# property1 <- property1 %>%
-#   mutate(census_tract = as.numeric(census_tract))
-# tract_studyarea_selected <- tract_studyarea %>%
-#   select(GEOID_trimmed, TotalPoverty, MaleBachelors, FemaleBachelors, TotalPop) %>%
-#   st_drop_geometry()  
-# 
-# property1_blockgroup <- st_join(property1, block2023_studyarea %>% select(GEOID, MedHHInc, MedRent), 
-#                             join = st_intersects)
-# 
-# property1_geometry <- st_geometry(property1)
-# 
-# tract_studyarea_selected <- tract_studyarea_selected %>%
-#   distinct(GEOID_trimmed, .keep_all = TRUE)
-# property1 <- property1_blockgroup %>%
-#   st_drop_geometry() %>% 
-#   left_join(tract_studyarea_selected, by = c("census_tract" = "GEOID_trimmed"))
-# 
-# property1 <- property1 %>%
-#   mutate(objectid = as.character(objectid))
-# 
-# # property2 includes additional spatial indicators for modeling,
-# # such as distance to nearest park, transit, hospital, and supermarket
-# property2 <- property2 %>%
-#   mutate(objectid = as.character(objectid))
-# #Join other indicators to cleaned property1
-# property_combined <- property1 %>%
-#   left_join(property2, by = "objectid") %>%
-#   rename(sale_price = sale_price.y)%>%
-#   select(-sale_price.x) 
-```
-
-```{r POI, message=FALSE, warning=FALSE, quiet=TRUE, results='hide', eval = FALSE}
-# POI - restaurant-drink-dessert
-# api_key <- "AIzaSyCa-yuy1Y3n07URlR2HHg6dp_cIEouv9hs"
-# keywords <- c("restaurant", "dim sum restaurant", "kitchen", "desert","tea", "bubble tea","matcha", "herbal tea")
-# place_types <- c("restaurant", "cafe", "bakery")
-# 
-# studyarea_proj <- st_transform(block2023_studyarea, 2272)
-# 
-# grid_pts <- st_make_grid(studyarea_proj, cellsize = 2000, what = "centers")
-# grid_pts <- st_sf(geometry = grid_pts) %>%
-#   st_filter(st_buffer(studyarea_proj, 1000)) 
-# 
-# grid_pts_wgs <- st_transform(grid_pts, 4326)
-# coords <- st_coordinates(grid_pts_wgs)
-# 
-# all_responses <- list()
-# 
-# for (pt_idx in seq_len(nrow(coords))) {
-#   location <- coords[pt_idx, c(2,1)]  # lat, lng
-#   cat(" Querying center point", pt_idx, "at", paste(location, collapse = ", "), "\n")
-#   
-#   for (ptype in place_types) {
-#     for (kw in keywords) {
-#       Sys.sleep(5)  
-#       cat("🔎", kw, "in", ptype, "\n")
-# 
-#       response <- google_places(
-#         keyword = kw,
-#         location = location,
-#         radius = 2000,  
-#         place_type = ptype,
-#         key = api_key
-#       )
-# 
-#       if (is.null(response[["results"]]) || length(response[["results"]]) == 0) {
-#         cat("No results for:", kw, "in", ptype, "\n")
-#         next
-#       }
-# 
-#       page_token <- response$next_page_token
-#       results_list <- list(response[["results"]])
-#       i <- 1
-# 
-#       while (!is.null(page_token)) {
-#         Sys.sleep(10)
-#         response_next <- google_places(
-#           keyword = kw,
-#           location = location,
-#           radius = 2000,
-#           place_type = ptype,
-#           key = api_key,
-#           page_token = page_token
-#         )
-# 
-#         if (is.null(response_next[["results"]]) || length(response_next[["results"]]) == 0) break
-# 
-#         results_list[[i + 1]] <- response_next[["results"]]
-#         page_token <- response_next$next_page_token
-#         i <- i + 1
-#       }
-# 
-#       all_responses[[paste(kw, ptype, pt_idx, sep = "_")]] <- bind_rows(results_list) %>%
-#         filter(!is.na(place_id)) %>%
-#         distinct(place_id, .keep_all = TRUE)
-#     }
-#   }
-# }
-# 
-# all_responses <- all_responses[lengths(all_responses) > 0]
-# restaurant_results <- bind_rows(all_responses) %>%
-#   mutate(lat = geometry$location$lat, lng = geometry$location$lng) %>%
-#   select(lat, lng, name, place_id, rating) %>%
-#   distinct(place_id, .keep_all = TRUE)
-# 
-# restaurant_sf <- st_as_sf(restaurant_results, coords = c("lng", "lat"), crs = 4326)
-# restaurant_proj <- st_transform(restaurant_sf, 2272)
-# 
-# studyarea_buffer <- st_buffer(studyarea_proj, 2000)
-# res_poi <- st_filter(restaurant_proj, studyarea_buffer)
-# radius_circles <- st_buffer(st_transform(grid_pts, 2272), dist = 2000)
-# 
-# # POI - grocery
-# keywords <- c("grocery store", "supermarket", "asian grocery", "chinese supermarket",
-#               "korean market", "japanese grocery", "international market", "food market")
-# 
-# place_types <- c("supermarket", "grocery_or_supermarket", "convenience_store", "store")
-# 
-# studyarea_proj <- st_transform(block2023_studyarea, 2272)
-# 
-# grid_pts <- st_make_grid(studyarea_proj, cellsize = 2000, what = "centers")
-# grid_pts <- st_sf(geometry = grid_pts) %>%
-#   st_filter(st_buffer(studyarea_proj, 1000))
-# 
-# grid_pts_wgs <- st_transform(grid_pts, 4326)
-# coords <- st_coordinates(grid_pts_wgs)
-# 
-# all_responses <- list()
-# 
-# for (pt_idx in seq_len(nrow(coords))) {
-#   location <- coords[pt_idx, c(2,1)]  # lat, lng
-#   cat(" Querying center", pt_idx, "at", paste(location, collapse = ", "), "\n")
-#   
-#   for (ptype in place_types) {
-#     for (kw in keywords) {
-#       Sys.sleep(5)  
-#       cat("🔎", kw, "in", ptype, "\n")
-# 
-#       response <- google_places(
-#         keyword = kw,
-#         location = location,
-#         radius = 2000,
-#         place_type = ptype,
-#         key = api_key
-#       )
-# 
-#       if (is.null(response[["results"]]) || length(response[["results"]]) == 0) next
-# 
-#       page_token <- response$next_page_token
-#       results_list <- list(response[["results"]])
-#       i <- 1
-# 
-#       while (!is.null(page_token)) {
-#         Sys.sleep(10)
-#         response_next <- google_places(
-#           keyword = kw,
-#           location = location,
-#           radius = 2000,
-#           place_type = ptype,
-#           key = api_key,
-#           page_token = page_token
-#         )
-#         if (is.null(response_next[["results"]]) || length(response_next[["results"]]) == 0) break
-# 
-#         results_list[[i + 1]] <- response_next[["results"]]
-#         page_token <- response_next$next_page_token
-#         i <- i + 1
-#       }
-# 
-#       all_responses[[paste(kw, ptype, pt_idx, sep = "_")]] <- bind_rows(results_list) %>%
-#         filter(!is.na(place_id)) %>%
-#         distinct(place_id, .keep_all = TRUE)
-#     }
-#   }
-# }
-# 
-# all_responses <- all_responses[lengths(all_responses) > 0]
-# 
-# grocery_results <- bind_rows(all_responses) %>%
-#   mutate(lat = geometry$location$lat,
-#          lng = geometry$location$lng) %>%
-#   select(lat, lng, name, place_id, rating) %>%
-#   distinct(place_id, .keep_all = TRUE)
-# 
-# grocery_sf <- st_as_sf(grocery_results, coords = c("lng", "lat"), crs = 4326)
-# grocery_proj <- st_transform(grocery_sf, 2272)
-# 
-# studyarea_buffer <- st_buffer(studyarea_proj, 2000)
-# grocery <- st_filter(grocery_proj, studyarea_buffer)
-# 
-# # property join poi
-# property_sf <- st_as_sf(property_combined, sf_column_name = "geometry")
-# property_proj <- st_transform(property_sf, 2272)
-# grocery_proj <- st_transform(grocery, 2272)
-# restaurant_proj <- st_transform(res_poi, 2272)
-# 
-# grocery_idx <- st_nearest_feature(property_proj, grocery_proj)
-# 
-# property_proj$nearest_grocery_name <- grocery_proj$name[grocery_idx]
-# property_proj$nearest_grocery_dist <- st_distance(
-#   property_proj,
-#   grocery_proj[grocery_idx, ],
-#   by_element = TRUE
-# )
-# restaurant_idx <- st_nearest_feature(property_proj, restaurant_proj)
-# property_proj$nearest_restaurant_name <- restaurant_proj$name[restaurant_idx]
-# property_proj$nearest_restaurant_dist <- st_distance(
-#   property_proj,
-#   restaurant_proj[restaurant_idx, ],
-#   by_element = TRUE
-# )
-# property_proj$nearest_grocery_dist_m <- as.numeric(property_proj$nearest_grocery_dist)
-# property_proj$nearest_restaurant_dist_m <- as.numeric(property_proj$nearest_restaurant_dist)
-# clean_property_poi_distances <- function(property_sf) {
-#   property_sf %>%
-#     mutate(
-#       nearest_grocery_dist_m = as.numeric(nearest_grocery_dist),
-#       nearest_restaurant_dist_m = as.numeric(nearest_restaurant_dist)) %>%
-#     select(
-#       -nearest_grocery_dist,
-#       -nearest_restaurant_dist
-#     )
-# }
-# property_final <- clean_property_poi_distances(property_proj)
-# st_write(property_final, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults", driver = "GeoJSON", delete_dsn = TRUE)
-```
-
-```{r renaming_landuse, quiet = TRUE, results = 'hide'}
+```{r landuse_data, quiet = TRUE, results = 'hide'}
 landuse <- st_read("Dataset/landuse_clip/Land_Use_ClipLayer.shp") %>%
   st_transform('EPSG:2272')
 
@@ -712,13 +879,9 @@ landuse_rename <- landuse %>%
     C_DIG2DESC == 91 ~ "Vacant",
     C_DIG2DESC == 92 ~ "Other/Unknown"
   ))
-
 ```
 
 ```{r neighborhood_wrangle, quiet = TRUE, results = 'hide'}
-park <- st_read("Dataset/ParksModified/Parks_within_1km.shp") %>%
-  st_transform('EPSG:2272')
-
 # philly park data (https://opendataphilly.org/datasets/ppr-properties/)
 philly_parks <- st_read("https://opendata.arcgis.com/datasets/d52445160ab14380a673e5849203eb64_0.geojson") %>%
   st_transform(crs = 'EPSG:2272') %>% 
@@ -767,7 +930,6 @@ phillyCrimes <-
   st_transform('EPSG:2272')
 
 # LPSS_PER1000: Number of low-produce supply stores per 1,000 people
-# HPSS_PER1000: Number of high-produce supply stores per 1,000 people
 retail <-
   st_read("https://opendata.arcgis.com/datasets/53b8a1c653a74c92b2de23a5d7bf04a0_0.geojson") %>%
   st_transform('EPSG:2272')
@@ -779,7 +941,7 @@ calculate_nearest_distance <- function(set_points, other_layer) {
   st_distance(set_points, other_layer[nearest_idx, ], by_element = TRUE) %>% as.numeric()
 }
 
-Luming_property <- property_original %>%
+Luming_property <- property_studyarea %>%
   dplyr::select(objectid, geometry, sale_price) %>%
   rename(orig_objectid = objectid)
 
@@ -816,7 +978,6 @@ Luming_property <- Luming_property %>%
       crime_nn5 = nn_function(st_coordinates(Luming_property), 
                               st_coordinates(phillyCrimes), k = 5))
 ```
-
 
 ## Basic Geography of our Study Area
 
@@ -949,7 +1110,6 @@ kable(
   col.names = NULL
 ) %>%
   kable_styling(position = "center")
-
 ```
 
 ## Highway Effects Analysis
@@ -967,7 +1127,6 @@ Our main takeaways from our literature review comes from the Lin and Brinkman pa
 
 With this in mind, we start our quantitative analyses at three different scales. First, we look at the effect of the four main highways in Philadelphia on properties within 500m of them. Then, we zoom into our study area and look at I-676 effects. Finally, we separate our study area into North and South to see how the highway effects are felt differently across different neighborhoods.
 
-
 ### Philadelphia Scale Analysis
 
 We used property data from OPA Philadelphia that was cleaned the way we reported in the [Property Data] section.
@@ -978,19 +1137,15 @@ For each scale of analysis, we report highway effects by discussing the change i
 
 ![](Final%20R%20Markdown/Images/reporting_highway_effect.png)
 
-We saw the following trends in property prices.
+We saw the following trends in property prices  
 
 ```{r prep_500m_highway_data, quiet = TRUE, results = 'hide'}
 # create 500m buffer around philly highways
 buff500 <- 500 * 3.28084
 hiway_500buff <- st_union(st_buffer(philly_highways, buff500))
 
-# read in pre-saved file
-prop500 <- st_read("akidata/philly_prop500_dst2hghwy_250421.geojson") %>% # Aki, (download from Box)
- mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
-
-# prop500 <- st_read("Dataset/phl_properties_dist2highway/philly_prop500_dst2hghwy_250421.geojson") %>%
-#   mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
+prop500 <- st_read("Dataset/phl_properties_dist2highway/philly_prop500_dst2hghwy_250421.geojson") %>%
+  mutate(closest_highway = factor(closest_highway, levels = c("US-1", "I-76", "I-676", "I-95")))
 ```
 
 ```{r map_prop500}
@@ -1037,6 +1192,7 @@ ggplot() +
 
 ```
 
+
 ```{r prop500_med_saleprices}
 # median sale prices to talk about in the text
 med_price_us1 <- round(median(prop500 %>% 
@@ -1077,7 +1233,8 @@ prop_count_i95 <- prop_count %>%
   filter(grepl("95", closest_highway)) %>% 
   pull(count)
 ```
-
+  
+  
 `r paste0(substr(nrow(prop500), 1, 2), ",", substr(nrow(prop500), 3, 5))` total properties were included in this analysis. We see that the distribution of log sale prices of properties within 500m of highways in Philadelphia generally follow a normal distribution.
 
 Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r prop_count_676` properties) as there are near the other highways, they are most expensive group with a median property price of **`r paste0('$', substr(med_price_676, 1, 3), ',', substr(med_price_676, 4, 9))`**. 
@@ -1085,6 +1242,7 @@ Though there aren't as many properties near [I-676]{style="color: #7fe3d6;"} (`r
 Properties near [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"} are among a similar range of prices with median property prices being **`r paste0('$', substr(med_price_i95, 1, 3), ',', substr(med_price_i95, 4, 9))`** and **`r paste0('$', substr(med_price_i76, 1, 3), ',', substr(med_price_i76, 4, 9))`**, respectively, though there are almost five times as many properties near [I-95]{style="color: #eba075;"} compared to [I-76]{style="color: #eb5600;"} (`r paste0(substr(prop_count_i95,1,1), ",", substr(prop_count_i95, 2,4))` and `r paste0(substr(prop_count_i76,1,1), ",", substr(prop_count_i76, 2,4))` properties around [I-95]{style="color: #eba075;"} and [I-76]{style="color: #eb5600;"}, respectively). 
 
 Finally, there are many properties within 500m of [US-1]{style="color: #1a9988;"} (`r paste0(substr(prop_count_us1,1,1), ",", substr(prop_count_us1, 2,4))` properties), but the median property price was lowest compared to other highways at **`r paste0('$', substr(med_price_us1, 1, 3), ',', substr(med_price_us1, 4, 9))`**.
+
 
 ```{r prop500_faceted}
 prop500_faceted <- 
@@ -1139,10 +1297,6 @@ coef_i676 <- round(
 
 ```
 
-The scatter plot below shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) are associated with moving away from a highway which agrees with our literature review of highway effects on property prices. 
-
-When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, this coefficient was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
-
 ```{r prop500_scatter}
 scatter_4highways <- 
   ggplot(data = prop500, 
@@ -1185,8 +1339,13 @@ scatter_4highways <-
   theme_minimal()
 
 scatter_4highways
-
 ```
+
+
+The scatter plot below shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) are associated with moving away from a highway which agrees with our literature review of highway effects on property prices. 
+
+When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, this coefficient was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
+
 
 ```{r prop500_predtable}
 # models
@@ -1235,15 +1394,8 @@ prop500_pred_table <- data.frame(
   PercChng_I676_Prices = round(100*(pred_676 - pred_676[1])/pred_676[1], 1)
 )
 
-# prop500_pred_table %>% 
-#   kbl(align = "c",
-#       caption = "Regression Predictions: Log Price ~ Log Distance to Closest Highway",
-#       col.names = c("Analysis Scale", "Distance (m)", "US-1 Prices", "I-76 Prices", "I-95 Prices", "I-676 Prices", "Change US-1 Prices", "Change I-76 Prices", "Change I-95 Prices", "Change I-676 Prices", "% Change US-1 Prices", "% Change I-76 Prices", "% Change I-95 Prices", "% Change I-676 Prices")) %>% 
-#   kable_styling() %>% 
-#   kable_classic(full_width = F, html_font = "Cambria") %>% 
-#   row_spec(c(1,3), bold = T, background = "#7fe3d6")
-
 ```
+  
 
 For every 1% increase in distance from [I-676]{style="color: #7fe3d6;"}, property price increases by `r paste0(round(1.01^coef_i676 - 1, 4)*100,"%")`. In more understandable terms, this means that if a property that is 50m away from the highway, we can expect a similar property a block (100m) further from the highway to be about **`r paste0("$", substr(prop500_pred_table$Chng_I676_Prices[3], 1, 2), ",", substr(prop500_pred_table$Chng_I676_Prices[3], 3, 5))` more expensive** (or a `r prop500_pred_table$PercChng_I676_Prices[3]`% change). For every 1% increase in distance from [I-76]{style="color: #eb5600;"}, property price increases by `r paste0(round(1.01^coef_i76 - 1, 4)*100,"%")`, with a **`r paste0("$", substr(prop500_pred_table$Chng_I76_Prices[3], 1, 2), ",", substr(prop500_pred_table$Chng_I76_Prices[3], 3, 5))` increase** (`r prop500_pred_table$PercChng_I76_Prices[3]` % change) associated with a similar property that is a block further from the highway. For every 1% increase in distance from [US-1]{style="color: #1a9988;"}, property price increases by `r paste0(round(1.01^coef_us1 - 1, 4)*100,"%")`. A price increase of **`r paste0("$", substr(prop500_pred_table$Chng_US1_Prices[3], 1, 1), ",", substr(prop500_pred_table$Chng_US1_Prices[3], 2, 4))`** (`r prop500_pred_table$PercChng_US1_Prices[3]`%) is associated with moving a block further away from  the highway.
 
@@ -1252,6 +1404,7 @@ The exception here is for properties within 500m of [I-95]{style="color: #eba075
 We suspect that other factors, such as location preference on the East side of the city are interfering with the expected highway effect. Neighborhoods like Old City, Queen’s Village, and Fishtown are home to many high-income Philadelphians who may have access to amenities that diminish the nuisance of a nearby highway. 
 
 This is our first inkling that **highway effects might not be as strong** as we expected them to be. We now zoom into our **study area** to further understand highway effects in our region of interest.
+
 
 ### Study Region Scale Analysis
 
@@ -1427,6 +1580,7 @@ i676_pred_table <- data.frame(
 #   row_spec(c(1,3), bold = T, background = "#7fe3d6")
 
 ```
+
 From an overly simple model, just looking at how logged distance to [I-676]{style="color: #7fe3d6;"} predicts logged property price, we see that for properties within 500m of [I-676]{style="color: #7fe3d6;"}, distance from the highway does not have a large effect on property price. We see that for every 1% increase in distance to the highway, **we can associate a property price increase of `r paste0(round(1.01^model_i676_table$Estimate[2] - 1, 4)*100,"%")`**. In more understandable terms, this means that for a property that is 50m away from the highway, we can expect a similar property a block further from the highway to be about **`r paste0("$", substr(i676_pred_table$Chng_HighwayOnly_Prices[3], 1, 2), ",", substr(i676_pred_table$Chng_HighwayOnly_Prices[3], 3, 5))` more expensive** (`r i676_pred_table$PercChng_HighwayOnly_Prices[3]`% change). The R-squared value of the model is very low at `r round(model_i676_summary$r.squared, 3)` and the RMSE is very high `r round(model_i676_RMSE,3)`, meaning the model is terrible.
 
 ```{r i676effects_model_more2}
@@ -2137,7 +2291,7 @@ property_CT <- property_final %>%
 mean_depth <- mean(property_CT$depth, na.rm = TRUE)
 property_CT$depth[is.na(property_CT$depth)] <- mean_depth
 
-# st_write(property_CT, "property_CT_FE.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_CT, "property_CT_FE.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
 
@@ -2773,10 +2927,9 @@ xgb_val_fit_geo <- xgb_best_wf %>%
 
 ## Fit and Extract final model
 ## Final fit on all data
-# full_fit_rf     <- rf_best_wf %>% fit(property_modeling)
+full_fit_rf     <- rf_best_wf %>% fit(property_modeling)
 # extract final fit model object as native package type
-# rf_full_mod     <- full_fit_rf  $fit$fit$fit
-
+rf_full_mod     <- full_fit_rf  $fit$fit$fit
 # saveRDS(rf_full_mod,     file = "Modeling/results/rf_model_new.rds")
 # saveRDS(rf_best_wf, file = "Modeling/results/rf_workflow_new.rds")
 ```
@@ -3144,8 +3297,6 @@ Excluding industrial zones and high-rise office buildings from the analysis (IRM
 
 
 # Scenario Planning
-
-
 ```{r message=FALSE, warning=FALSE, quiet = TRUE, results='hide'}
 property_raw_s1 <- st_transform(property_data, crs = 2272)
 
@@ -3511,20 +3662,22 @@ property_S1_fe$predicted_price <- exp(predicted_log_price) - 1
 
 property_S1_4326 <- property_S1_fe%>%st_transform('EPSG:4326')
 property_S1_predict <- property_S1_fe%>%st_transform('EPSG:2272')
-# st_write(property_S1_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-# st_write(property_S1_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
-# st_write(property_S1_4326, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_4326.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S1_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S1_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S1_4326, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_4326.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 property_S1_4326 <- st_read("Storymap_dataset/property_S1_4326.geojson")
 property_S0 <- st_transform(property_S1_4326, 2272)
 ```
 
 <span style="color: #eb5600;"><b>Scenario 0. Where We Start: The I-676 Highway as a Barrier</b></span>  
+
 - Highway remains a physical and economic barrier, dividing Chinatown and limiting connectivity.  
 - Property values show spatial imbalance — sale prices increase significantly with distance from I-676 on the <span style="color: #1a9988;"><b>south side</b></span>, but decline with distance on the <span style="color: #eb5600;"><b>north side</b></span>.  
 - Reinforces unequal development patterns, with opportunity concentrated in the south and disinvestment in the north.  
 - No intervention means no shift in trajectory — existing fragmentation and disparity persist as the baseline.  
 
 <span style="color: #1a9988;"><b>Scenario 1. A First Step: Capping I-676 to Reconnect Chinatown</b></span>  
+
 - One cap serves as a Cap Park, while two others reconnect streets and improve circulation across the highway.  
 - Restores physical connections between north and south Chinatown, enhancing walkability and spatial continuity.  
 - Helps stabilize fragmented property values, narrowing the north–south gap, though overall price growth remains limited without land use changes.  
@@ -3592,7 +3745,8 @@ combined_map
 
 ```
 
-**Scenario 2. Turning Connection into Growth: Cap Park + Alternate Zoning / Land Use**  
+<span style="color: #a66bbe;"><b>Scenario 2. Turning Connection into Growth: Cap Park + Alternate Zoning / Land Use</b></span>  
+
 - Building upon Scenario 1, Scenario 2 integrates both park infrastructure and zoning interventions to unlock the full development potential of underutilized parcels.  
 - <span style="color: #eb5600;">Under the commercial perspective, part of **Vacant Land & Industrial Properties** are converted into **Commercial Mixed-Use developments**.</span>  
 - <span style="color: #eb5600;">Under the residential perspective, part of **Vacant Land & Single-Family Properties** are converted into **Multi-Family Properties** or **Commercial Mixed-Use developments**.</span>  
@@ -4004,8 +4158,8 @@ rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
 predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s2)$.pred
 property_S2_fe$predicted_price <- exp(predicted_log_price) - 1
 
-# st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-# st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
 
 property_S2_4326 <- property_S2_fe %>%st_transform('EPSG:4326')
 property_S2_predict <- property_S2_fe%>%st_transform('EPSG:2272')
@@ -4236,8 +4390,8 @@ property_S3_fe$predicted_price <- exp(predicted_log_price) - 1
 
 
 
-# st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-# st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
 
 property_S3_4326 <- property_S3_fe%>%st_transform('EPSG:4326')
 property_S3_predict <- property_S3_fe%>%st_transform('EPSG:2272')
@@ -4548,8 +4702,8 @@ rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
 predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s4)$.pred
 property_S4_fe$predicted_price <- exp(predicted_log_price) - 1
 
-# st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-# st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
 
 
 property_S4_4326 <- property_S4_fe%>%st_transform('EPSG:4326')
@@ -4595,12 +4749,14 @@ S2_map
 ## Scenarios Exploration
 ### Median Property Value  
 **South side price increases across interventions** is first evidenced in the shift of median values.  
-From Scenario 0 to Scenario 2, the median price increases from <span style="color: #eb5600;"><b>$402,561</b></span> (observed baseline, <span style="color: #eb5600;"><b>Scenario 0</b></span>)  
-to <span style="color: #1a9988;"><b>$438,338</b></span> in <b>Scenario 1</b>  
-and further to <span style="color: #a66bbe;"><b>$487,683</b></span> in <b>Scenario 2</b>.  
+From <span style="color: #eb5600;"><b>Scenario 0</b></span> to <span style="color: #a66bbe;"><b>Scenario 2</b></span>, the median price increases from <span style="color: #eb5600;"><b>$402,561</b></span>
+to <span style="color: #1a9988;"><b>$438,338</b></span> in <span style="color: #1a9988;"><b>Scenario 1</b></span>, and further to <span style="color: #a66bbe;"><b>$487,683</b></span> in <span style="color: #a66bbe;"><b>Scenario 2</b></span>.  
+
 This progressive shift aligns with the intervention logic:  
 - <span style="color: #1a9988;"><b>Scenario 1</b></span> introduces physical reconnection through caps, producing moderate price uplift.  
 - <span style="color: #a66bbe;"><b>Scenario 2</b></span> builds upon this with zoning reform, pushing the distribution further rightward.  
+
+These results suggest that each layer of intervention contributes incrementally to value change. Physical improvements alone offer moderate benefits, while combining them with zoning changes leads to stronger price increases.
 
 ```{r}
 S0_S1_S2_density <- ggplot() +
@@ -4656,16 +4812,18 @@ ggsave(filename = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/final
 ```
 
 ### Discontinuity Across I-676  
-To quantify highway-related land value effects for each scenario, we build on the discontinuity analysis by estimating price changes at varying distances from the highway, controlling for side-specific spatial patterns.  
+To further quantify highway-related land value effects for each scenario, we build on the discontinuity analysis by estimating price changes at varying distances from the highway, controlling for side-specific spatial patterns.  
 
-We fit separate log-linear models for the north and south using observed prices (or predicted prices under each scenario), regressing `log price` on log-transformed or linear distance, respectively.  
+We fit separate log-linear models for the north and south using sale prices (or predicted prices under each scenario), regressing `log price` on `log distance to highway`, respectively.  
 
 For comparability, we apply a baseline distance of 50 meters from the highway and compute price changes at 100m, 150m, and 200m, relative to that baseline.  
 
-Based on the highway effect analysis in the previous section, we focus our interpretation on the **150-meter mark**, which captures the clearest divergence in pricing behavior across sides and scenarios.
+Based on the highway effect analysis in the previous section, we focus our interpretation on the **150-meter** distance, which captures the clearest divergence in pricing behavior across sides and scenarios.
 
-**Scenario 0**  
+<h4><b>Scenario 0</b></h4>  
+
 Without intervention, I-676 remains a strong physical and economic barrier dividing the north and south. The discontinuity effect is clearly observed in the price-distance relationship:  
+
 - **South Side**: Property values increase significantly with distance from the highway. At 150m, prices are approximately $328,943 higher (+50.6%) than at 50m. This suggests a strong negative externality from proximity to the highway, especially on the south side.  
 - **North Side**: Prices decrease slightly with distance. At 150m, the decline is $19,051 (–2.9%), indicating structural constraints that prevent price growth, despite increased distance.  
 - **Overall**: The average change across both sides shows a $108,693 increase (+16.6%), but this masks growing spatial inequality between the two areas.  
@@ -5024,14 +5182,14 @@ S2_table %>%
 
 ### Price Change Patterns
 
-<h5>**Scenario 0 vs. Scenario 1**</h5>  
+<h4>**Scenario 0 vs. Scenario 1**</h4>  
 Compared to Scenario 0, Scenario 1 produces a notable shift in spatial price patterns, especially on the south side of I-676:  
 
-- **South Side**: A wide cluster of parcels shows 10–50% price increases, especially within and surrounding the Stitch area. Several parcels directly adjacent to the cap park even exceed 200%, indicating strong responsiveness to improved connectivity. This confirms the earlier discontinuity plot finding: south-side values increase with distance from the highway due to strong pre-existing disamenity.  
+**South Side**: A wide cluster of parcels shows 10–50% price increases, especially within and surrounding the Stitch area. Several parcels directly adjacent to the cap park even exceed 200%, indicating strong responsiveness to improved connectivity. This confirms the earlier discontinuity plot finding: south-side values increase with distance from the highway due to strong pre-existing disamenity.  
 
-- **North Side**: While less dramatic, we observe several parcels—especially those not adjacent to the highway—also showing moderate increases (10–50%). Some parcels even exceed 100%, suggesting that cap installation does provide benefit across both sides, albeit to different extents.  
+**North Side**: While less dramatic, we observe several parcels—especially those not adjacent to the highway—also showing moderate increases (10–50%). Some parcels even exceed 100%, suggesting that building cap park does provide benefit across both sides, albeit to different extents.  
 
-- **Overall**: The price improvement is not localized to the cap. We see dispersed growth across Chinatown and the Callowhill area, particularly where physical barriers were reduced. This contrasts with the limited north-side growth seen in Scenario 0. These patterns suggest that even without zoning reform, physical reconnection alone can unlock latent value, particularly for previously disconnected parcels. Still, proximity to the highway continues to shape the magnitude of price response.
+**Overall**: The price improvement is not localized to the cap. We see dispersed growth across Chinatown and the Callowhill area, particularly where physical barriers were reduced. This contrasts with the limited north-side growth seen in Scenario 0. These patterns suggest that even without zoning reform, physical reconnection alone can unlock latent value, particularly for previously disconnected parcels. Again, proximity to the highway continues to shape the magnitude of price change.
 ```{r message=FALSE, warning=FALSE}
 property_S1_perc_change <- property_S1_predict%>%
   filter(!is.na(adj_sale_price), adj_sale_price > 100) %>%
@@ -5110,13 +5268,13 @@ price_layer + studyarea_layer + highway_layer + stitch_fill_layer + stitch_core_
 #st_write(property_S1_perc_change,"~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s0_s1.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-<h5>**Scenario 1 vs. Scenario 2**</h5>  
+<h4>**Scenario 1 vs. Scenario 2**</h4>  
 
-- **South Side**: Compared with Scenario 1, Scenario 2 shows more pronounced price growth on the south side, particularly around the core Stitch parcels and the park cap area. These parcels already showed moderate appreciation under Scenario 1, but values rose further under Scenario 2, consistent with added development capacity modeled in zoning reform.  
+**South Side**: Compared with Scenario 1, Scenario 2 shows more pronounced price growth on the south side, particularly around the core Stitch parcels and the park cap area. These parcels already showed moderate appreciation under Scenario 1, but values rose further under Scenario 2, consistent with added development capacity modeled in zoning reform.  
 
-- **North Side**: On the north side, a different pattern emerges. Though overall price response remains limited, the few parcels with significant increases are primarily located farther from the highway, especially in the northeastern corner. This suggests that even where zoning enables new use types, proximity to the highway still limits value recovery. Distance from I-676 remains a major spatial determinant of appreciation potential.  
+**North Side**: On the north side, a different pattern emerges. Though overall price response remains limited, the few parcels with significant increases are primarily located farther from the highway, especially in the northeastern corner. This suggests that even where zoning enables new use types, proximity to the highway still limits value recovery. Distance from I-676 remains a major spatial determinant of appreciation potential.  
 
-- **Overall**: These contrasting patterns reinforce earlier discontinuity results: the south side gains from both physical reconnection and policy-driven densification, whereas the north side remains constrained by structural disadvantages and weak location fundamentals, even with the same zoning changes applied.
+**Overall**: These contrasting patterns reinforce earlier discontinuity results: the south side gains from both physical reconnection and policy-driven densification, whereas the north side remains constrained by structural disadvantages and weak location fundamentals, even with the same zoning changes applied.
 ```{r message=FALSE, warning=FALSE}
 property_S2_perc_change <- property_S4_predict %>%
   filter(!is.na(adj_sale_price), adj_sale_price > 100) %>%
@@ -5227,12 +5385,12 @@ price_layer_s1s2 + studyarea_layer + highway_layer + stitch_fill_layer + stitch_
 #st_write(price_change_s1s2, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s1_s2.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-<h5>**Scenario 0 vs. Scenario 2**</h5>  
-- **South Side**: Strong price growth clusters are clearly visible around the core cap area and to the east of the Stitch. These areas benefit from both physical reconnection and increased development intensity, showing price increases of over 100% in many parcels.  
+<h4>**Scenario 0 vs. Scenario 2**</h4>  
+**South Side**: Strong price growth clusters are clearly visible around the core cap area and to the east of the Stitch. These areas benefit from both physical reconnection and increased development intensity, showing price increases of over 100% in many parcels.  
 
-- **North Side**: While discontinuity plot results previously showed declining trends here, the percentage change map reveals a distinct cluster of high-value parcels farther away from I-676. These parcels show over 200% price increases, likely reflecting zoning upgrades in previously underutilized land.  
+**North Side**: While discontinuity plot results previously showed declining trends here, the percentage change map reveals a distinct cluster of high-value parcels farther away from I-676. These parcels show over 200% price increases, likely reflecting zoning upgrades in previously underutilized land.  
 
-- **Overall**: This contrast reinforces the spatial asymmetry in policy impacts: southern growth is proximity-driven (around Stitch), while northern response depends more on distance from highway and latent development potential.
+**Overall**: This contrast reinforces the spatial asymmetry in policy impacts: southern growth is proximity-driven (around Stitch), while northern response depends more on distance from highway and latent development potential.
 
 ```{r message=FALSE, warning=FALSE}
 price_layer_s2 <- mapview(property_S2_perc_change %>% st_transform(4326),
@@ -5270,41 +5428,59 @@ price_layer_s2 + studyarea_layer + highway_layer + stitch_fill_layer + stitch_co
 #st_write(property_S2_perc_change,"~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_s0_s2.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-# Conclusion
+# Recommendations
 
-The Chinatown Stitch project holds transformative potential for the neighborhoods surrounding I-676. Our modeling of three scenarios reveals the following patterns:  
+<h5><b>1. Target development toward parcels with strong market signals</b></h5>
 
-1. **Scenario 0** reflects the status quo: the highway remains a barrier, suppressing value especially on the north side. Prices on the south side rise with distance from the highway, while the north shows little responsiveness — confirming a spatial divide in opportunity.  
-2. **Scenario 1**, which adds caps to improve connectivity without land use changes, stabilizes values across both sides. South side parcels near the Stitch show moderate growth, with some price increases exceeding 200%. However, the north remains less responsive, especially near the highway.  
-3. **Scenario 2**, combining physical reconnection with land use changes (rezoning vacant, industrial, and low-density parcels), leads to stronger and more spatially clustered price increases — especially in the south core and parcels surrounding the cap park. On the north side, while most gains occur farther from the highway, persistent limitations remain.  
+In both <span style="color: #1a9988;"><b>Scenario 1</b></span> and <span style="color: #a66bbe;"><b>Scenario 2</b></span>, our modeling shows that south-side parcels, especially those adjacent to the park cap and close to I-676, experienced substantial price increases. The discontinuity plots reveal a positive correlation between greater distance from I-676 and property values on the south side. This is further supported by the percentage change maps, where many parcels increased by over <b>50%</b>, with some exceeding <b>200%</b>. These patterns suggest that these parcels already meet key feasibility conditions, and current market signals support their potential for more intensive land use.
 
-These outcomes highlight the uneven geography of land value recovery and the lingering effect of historical disinvestment. South-side parcels near the Stitch show the strongest increase potential when both physical and regulatory barriers are addressed.
+We recommend OTIS prioritize investment, densification, and infrastructure support in these high-potential areas. This approach ensures that new development occurs where the market is already active, reducing risk of displacement by reinforcing value where it is already rising.
 
-<span style="color: #eb5600; font-size: 18px;"><b>Recommendations</b></span>
+<h5><b>2. Reevaluate underutilized areas by assessing capacity and constraints</b></h5>
 
-1. **Target development toward parcels with strong market signals**  
-   Parcels on the south side with clustered high-value responses, especially those near the park cap, are demonstrating clear potential for higher density and more intensive commercial or mixed uses. These areas should be prioritized for investment, infrastructure upgrades, and development incentives.  
+<span style="color: #a66bbe;"><b>Scenario 2</b></span> reveals that land use adjustments alone are insufficient to generate price increases on the north side comparable to those observed on the south side. Despite zoning changes, parcels adjacent to the highway continued to experience price decreases. This is confirmed by the discontinuity plots, which show a persistently negative slope. However, several parcel clusters located farther from I-676 present price increases, suggesting spatial variation in how parcels respond to zoning changes.
 
-2. **Reevaluate underperforming areas through the lens of capacity and constraints**  
-   On the north side, even with the same zoning changes, value recovery lags. This suggests zoning strategies alone are insufficient. According to the highest and best use principle, land should be used in a way that is legally permissible, physically possible, financially feasible, and maximally productive. Some north-side parcels may not yet meet these conditions. Tailored interventions — such as infrastructure improvement, transit access, and community services — are needed to unlock value.  
+This suggests that underutilized areas require more than regulatory change. OTIS should consider physical access, transit connectivity, and infrastructure readiness before promoting development in these zones. Without addressing these baseline constraints, rezoning may not yield equitable or effective results.
 
-3. **Pair zoning change with implementation checks**  
-   Before rezoning, assess each site’s development feasibility (market demand, infrastructure, access). Don’t assume zoning change equals value creation — align regulation with realistic pathways to land activation.  
+<h5><b>3. Align zoning changes with implementation checks</b></h5>
 
-4. **Strengthen monitoring mechanisms**  
-   As price increases may indicate future market pressure and displacement risk, particularly in vulnerable communities, use ongoing property value tracking as a baseline for targeting anti-displacement and housing affordability strategies.
+Our scenario-based price change evaluation, using a <b>150-meter</b> baseline, shows clear divergence in responsiveness across the highway divide, suggesting underlying differences in market readiness and infrastructure.
 
+Therefore, OTIS should conduct feasibility checks before rezoning, considering each site’s current use, infrastructure, surrounding parcel dynamics, and market demand. This avoids speculative mismatches and ensures zoning reforms translate into actionable and equitable development when implementing the Stitch project.
+
+<h5><b>4. Strengthen monitoring mechanisms for equity</b></h5>
+
+Median property prices increase significantly from <b>~$402,000</b> in <span style="color: #eb5600;"><b>Scenario 0</b></span> to <b>~$488,000</b> in <span style="color: #a66bbe;"><b>Scenario 2</b></span>. These increases were spatially concentrated, particularly on the two sides.
+
+We recommend OTIS monitor these trends closely. Parcels with large increases should be flagged for early intervention through affordability protections or land value stabilization tools. Simultaneously, parcels with slow or negative growth should be prioritized for supportive investment to prevent missed development opportunity across the corridor.
+
+<span style="color: #eb5600; font-size: 20px;"><b>Conclusions</b></span>
+
+In summary, the four recommendations we propose are not simply about promoting higher density or maximizing property value. They are grounded in spatial pattern recognition, identifying where development potential exists and where structural constraints persist.
+
+The goal is to provide OTIS with a framework for advancing the Chinatown Stitch project while reminding OTIS to manage the market pressures that come with property value changes, so that sale price increase does not become a driver of displacement in the Chinatown community.
+
+For areas where property values are already increasing, we emphasize that development efforts should be built on real and measurable feasibility. This means considering not only zoning adjustments but also the actual conditions of each site, including infrastructure capacity and the ability of the surrounding community to absorb change.
+
+In areas where performance is weaker or conditions are less favorable, unlocking value will require improvements in infrastructure and the provision of essential public services. These areas should not be approached with investment decisions that rely only on projected value increases.
+
+We also encourage OTIS to use property value changes as an early signal to guide housing policy. By establishing a mechanism to monitor and track areas that are sensitive to displacement risk, the city can respond proactively and prevent market-led redevelopment from becoming harmful.
+
+By combining these strategies, city planners and policymakers can pursue a balanced path that advances physical reconnection and zoning changes while also preserving housing stability and long-term community presence in Chinatown.
 
 # Acknowledgments
 
 We'd like to thank our professors, [Michael Fichman](https://www.design.upenn.edu/people/michael-fichman) and [Matthew Harris](https://www.linkedin.com/in/matthew-d-harris/) for their guidance and encouragement, as wel as our clients, [Casey Ross](https://www.caseyross.co/) and [Dr. Christopher Puchalsky](https://www.linkedin.com/in/christopher-puchalsky-46242367/) from OTIS for bringing this project to us, and for their feedback and support. We are also grateful to Dr. Jeffrey Lin from the Federal Reserve Bank of Philadlephia and Dr. Domenic Vitiello for sharing their knowledge and expertise on various highway effects and US Chinatown trends, respectively. Lastly, we'd like to give a special shoutout to [Mjumbe Poe](https://www.design.upenn.edu/people/mjumbe-poe) for sharing his app development expertise throughout our time in the MUSA program.
 
+# Reference
+
 # Code Appendix
-
+This section is for viewing part of our data wrangling process in the R markdown.
+```{r property wrangling2, message=FALSE, warning=FALSE}
 ## Data Wrangling
+#This chunk contains all the code we used for the first step of cleaning the property data.
 
-This chunk contains all the code we used for the first step of cleaning the property data.
-```{r property wrangling, message=FALSE, warning=FALSE}
+
 #### clean data for city wise - sale price
 # colnames(cpi_data) <- c("half1", "half2", "cpi_date")
 # cpi_long <- cpi_data %>%
@@ -5474,10 +5650,12 @@ This chunk contains all the code we used for the first step of cleaning the prop
 #st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
+
+
+```{r code_appendix_prop500}
 ## Exploratory Data Analysis (EDA)
 ### Philadelphia Scale Analysis
 
-```{r code_appendix_prop500}
 # adding distance to highway and log price variables
 # properties500 <- philly_properties[hiway_500buff,] %>% # 88571 -> 14751 rows
 #   mutate(log_price = log(adj_sale_price),
@@ -5529,11 +5707,8 @@ This chunk contains all the code we used for the first step of cleaning the prop
 
 ```
  
- 
- 
-### Study Area Scale Anlysis
-
 ```{r,eval=FALSE}
+### Study Area Scale Anlysis
 # Clean CPI data: format to monthly CPI series for inflation adjustment
 colnames(cpi_data) <- c("half1", "half2", "cpi_date")
 cpi_long <- cpi_data %>%
@@ -5979,8 +6154,10 @@ property_final <- clean_property_poi_distances(property_proj)
 # st_write(property_final, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults", driver = "GeoJSON", delete_dsn = TRUE)
 ```
 
-### Some Visualizations on Story map
+
 ```{r,eval=FALSE}
+### Part of Visualizations on Story map
+
 S0_S1_density <- ggplot() +
   
   # Scenario 0: true adjusted sale price
@@ -6122,7 +6299,6 @@ ggsave(
 ```
 
 
-
 ```{r,eval=FALSE}
 merged_property_changes <- property_S1_perc_change %>%
   st_drop_geometry() %>%
@@ -6181,5 +6357,4 @@ mapview(property_S0_js)
 ```
 
 
-# References
 
