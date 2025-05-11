@@ -23,8 +23,8 @@ bibliography: references.bib
 }
 ```
 
-```{r setup_general, message = FALSE, warning = FALSE, include =FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
+```{r setup_general, message = FALSE, warning = FALSE, results = 'hide'}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
     fig.align = "center") 
 options(scipen=999)
 
@@ -41,8 +41,8 @@ library(lwgeom)
 library(FNN)
 library(kableExtra)
 library(corrplot)
-library(htmltools)  # For div() function
-library(knitr) # insert images
+library(htmltools)  
+library(knitr) 
 library(rsample)
 library(tidymodels)
 library(spatialsample)
@@ -83,9 +83,7 @@ library(classInt)
 
 palette5 <- colorRampPalette(c("#1a9988", "#eb5600"))(5)
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
-```
 
-```{r setup_wd, message = FALSE, quiet = TRUE, results = 'hide'}
 # Change to your own workspace
 # knitr::opts_knit$set(root.dir = "E:/Spring/Practicum/DataAnalysis/Chinatown") # Luming
 # wd <- "E:/Spring/Practicum/DataAnalysis/Chinatown"
@@ -96,13 +94,9 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 # sijia
 knitr::opts_knit$set(root.dir = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum")
-#setwd("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum/")  # for interactive chunks
+#setwd("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum/") 
 wd <- "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum"
 
-# philly properties (from Sijia)
-# from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
-#philly_properties <- st_read("akidata/property_philly.geojson") # Aki, from most recent update, 4/21/25, 88,571 rows
-# philly_properties <- st_read("DataWrangling/akidata/property_philly_cleaned.geojson") # Luming
 philly_properties <- st_read("~/Documents/Upenn/Practicum/2025/results/property_philly.geojson") 
 ```
 
@@ -3177,14 +3171,14 @@ ggplot(data = val_pred_sf_plot,aes(x = MAPE)) +
 
 ```{r RF_MAPE_plot1-2}
 RF_MAPE_plot1_2 <- ggplot(val_pred_sf_plot %>% 
-         filter(!MAPE<.3193), 
+         filter(!MAPE<.3232), 
        aes(x = log_adj_sale_price, y = .pred)) +
-  geom_point(color = "#eb5600", alpha = 0.4, size = 1.5) +
+  geom_point(color = "grey", alpha = 0.4, size = 1.5) +
   geom_point(data = val_pred_sf_plot %>% 
-               filter(MAPE<.3193), 
+               filter(MAPE<.3232), 
              aes(x = log_adj_sale_price, y = .pred), 
              color = "#1a9988", alpha = 0.5, size = 2) +
-  geom_abline(linetype = "dashed", color = "#1a9988") +
+  geom_abline(linetype = "dashed", color = "black") +
   geom_smooth(method = "lm", color = "#eb5600", se = FALSE) +
   coord_equal() +
   labs(x = "Observed value", y = "Predicted value",
@@ -3312,7 +3306,7 @@ Excluding industrial zones and high-rise office buildings from the analysis (IRM
 
 ## Scenarios
 
-```{r message=FALSE, warning=FALSE, quiet = TRUE, results='hide'}
+```{r message=FALSE, warning=FALSE, quiet = TRUE, results='hide', fig.height=5, fig.width=12}
 property_raw_s1 <- st_transform(property_data, crs = 2272)
 
 property_raw_s1 <- rbind(
@@ -3377,9 +3371,9 @@ property_combined_s1 <- property_raw_s1 %>%
   left_join(property2, by = "objectid") %>%
   rename(sale_price = sale_price.y)%>%
   select(-sale_price.x)
-```
 
-```{r scenario 1 data processing, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+#scenario 1 data processing, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'
+
 grocery <- readRDS("Dataset/poi/poi_grocery.rds")
 res_poi <- readRDS("Dataset/poi/poi_restaurant.rds")
 property_sf <- st_as_sf(property_combined_s1, sf_column_name = "geometry")
@@ -3456,9 +3450,9 @@ property_S1_no_fe <- property_S1_no_fe %>%
   )
 
 #st_write(property_S1_no_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_no_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
-```
 
-```{r}
+###### Feature Engineering 
+
 median_bedroom <- median(as.numeric(as.character(property_S1_no_fe$number_of_bedrooms)), na.rm = TRUE)
 median_bathroom <- median(as.numeric(as.character(property_S1_no_fe$number_of_bathrooms)), na.rm = TRUE)
 
@@ -3628,9 +3622,9 @@ property_S1_fe <- property_S1_no_fe %>%
 
 mean_depth <- mean(property_S1_fe$depth, na.rm = TRUE)
 property_S1_fe$depth[is.na(property_S1_fe$depth)] <- mean_depth
-```
 
-```{r predictive modeling for scenario 1, quiet=TRUE, results='hide'}
+##### predictive modeling for scenario 1, quiet=TRUE, results='hide'
+
 property_modeling_s1 <- property_S1_fe %>%
   mutate(
     Longitude = st_coordinates(.)[, 1],
@@ -3720,8 +3714,8 @@ property_S1_predict <- property_S1_predict %>%
 base_map <- list(
   geom_sf(data = studyarea, fill = "transparent", color = "grey60", linewidth = 1.2, linetype = "dashed"),
   geom_sf(data = discontinuity, fill = "black", color = "transparent"),
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 500391), fill = "grey", color = "grey", linewidth = 1),
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 500391), fill = "white", color = "grey", linewidth = 1)
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1),
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1)
 )
 
 S0_map <- ggplot() +
@@ -3770,7 +3764,7 @@ combined_map
 - Under the residential perspective, reclassify part of Single-Family residential and vacant lots as Multi-Family, expanding affordable housing options and increasing population capacity.  
 - These combined interventions unlock more development value and lead to significant property price increases, especially where zoning changes align with better access and street connectivity. However, while the south shows notable value increases, the north continues to lag, reflecting persistent structural challenges that require further public investment in amenities and infrastructure.
 
-```{r data processing for S2 S3 S4}
+```{r data processing for S2 S3 S4, fig.height=5, fig.width=12}
 #property_S1_fe_selected <- property_S1_fe %>%
 #  filter(category_code == "1 " | zoning_group == "RSA5")
 
@@ -3949,9 +3943,7 @@ property_S4_no_fe <- property_S4_no_fe %>%
   )
 
 
-```
-
-```{r S2_comm -FE countinued , quiet=TRUE, results='hide'}
+###### {r S2_comm -FE countinued , quiet=TRUE, results='hide'}
 median_bedroom <- median(as.numeric(as.character(property_S2_no_fe$number_of_bedrooms)), na.rm = TRUE)
 median_bathroom <- median(as.numeric(as.character(property_S2_no_fe$number_of_bathrooms)), na.rm = TRUE)
 
@@ -4125,9 +4117,7 @@ property_S2_fe <- property_S2_no_fe %>%
 
 mean_depth <- mean(property_S2_fe$depth, na.rm = TRUE)
 property_S2_fe$depth[is.na(property_S2_fe$depth)] <- mean_depth
-```
-
-```{r predictive modeling for commercial perspective, quiet=TRUE, results='hide'}
+##### {r predictive modeling for commercial perspective, quiet=TRUE, results='hide'}
 property_modeling_s2 <- property_S2_fe %>%
   mutate(
     Longitude = st_coordinates(.)[, 1],
@@ -4173,14 +4163,12 @@ rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
 predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s2)$.pred
 property_S2_fe$predicted_price <- exp(predicted_log_price) - 1
 
-st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
 
 property_S2_4326 <- property_S2_fe %>%st_transform('EPSG:4326')
 property_S2_predict <- property_S2_fe%>%st_transform('EPSG:2272')
-```
-
-```{r S2_res -FE countinued, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+####### {r S2_res -FE countinued, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
 median_bedroom <- median(as.numeric(as.character(property_S3_no_fe$number_of_bedrooms)), na.rm = TRUE)
 median_bathroom <- median(as.numeric(as.character(property_S3_no_fe$number_of_bathrooms)), na.rm = TRUE)
 
@@ -4355,9 +4343,7 @@ property_S3_fe <- property_S3_no_fe %>%
 
 mean_depth <- mean(property_S3_fe$depth, na.rm = TRUE)
 property_S3_fe$depth[is.na(property_S3_fe$depth)] <- mean_depth
-```
-
-```{r predictive modeling for residential perspective, quiet=TRUE, results='hide'}
+####### r predictive modeling for residential perspective, quiet=TRUE, results='hide'}
 property_modeling_s3 <- property_S3_fe %>%
   mutate(
     Longitude = st_coordinates(.)[, 1],
@@ -4405,14 +4391,12 @@ property_S3_fe$predicted_price <- exp(predicted_log_price) - 1
 
 
 
-st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
 
 property_S3_4326 <- property_S3_fe%>%st_transform('EPSG:4326')
 property_S3_predict <- property_S3_fe%>%st_transform('EPSG:2272')
-```
-
-```{r S2 - comm -res, fig.height=5, fig.width=12, message=FALSE, warning=FALSE}
+#######{r S2 - comm -res, fig.height=5, fig.width=12, message=FALSE, warning=FALSE}
 # S2 changed
 property_S2_comm <- property_S2_fe %>%
   filter(
@@ -4491,9 +4475,7 @@ S2_S3_combined <- S2_changed_map + S3_changed_map +
   theme(legend.position = "bottom")
 
 S2_S3_combined
-```
-
-```{r S2- data wrangling - FE, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+#######{r S2- data wrangling - FE, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
 property_S4_no_fe <- property_S4_no_fe %>%
   mutate(alternate_feature = case_when(
     parcel_number %in% property_S2_comm$parcel_number ~ "Commercial",
@@ -4670,9 +4652,7 @@ property_S4_fe <- property_S4_no_fe %>%
     zip_code = factor(zip_code)
   )
 
-```
-
-```{r predictive modeling for S2, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+######## {r predictive modeling for S2, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
 property_modeling_s4 <- property_S4_fe %>%
   mutate(
     Longitude = st_coordinates(.)[, 1],
@@ -4717,15 +4697,13 @@ rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
 predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s4)$.pred
 property_S4_fe$predicted_price <- exp(predicted_log_price) - 1
 
-st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
 
 
 property_S4_4326 <- property_S4_fe%>%st_transform('EPSG:4326')
 property_S4_predict <- property_S4_fe%>%st_transform('EPSG:2272')
-```
-
-```{r S2 property map, fig.height=5, fig.width=12, message=FALSE, warning=FALSE}
+#### {r S2 property map, fig.height=5, fig.width=12, message=FALSE, warning=FALSE}
 property_S4_predict <- property_S4_predict %>%
   mutate(price_group = cut(
     predicted_price,
@@ -5489,7 +5467,7 @@ We'd like to thank our professors, [Michael Fichman](https://www.design.upenn.ed
 
 # Code Appendix
 This section is for viewing part of our data wrangling process in the R markdown.
-```{r property wrangling2, message=FALSE, warning=FALSE}
+```{r property wrangling2, message=FALSE, warning=FALSE, eval=FALSE}
 ## Data Wrangling
 #This chunk contains all the code we used for the first step of cleaning the property data.
 
@@ -5661,11 +5639,8 @@ This section is for viewing part of our data wrangling process in the R markdown
 #   )
 
 #st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-```
 
-
-
-```{r code_appendix_prop500}
+############r code_appendix_prop500
 ## Exploratory Data Analysis (EDA)
 ### Philadelphia Scale Analysis
 
@@ -5718,9 +5693,7 @@ This section is for viewing part of our data wrangling process in the R markdown
 # save output and read in the prefiltered to save time
 # st_write(prop500, "akidata/philly_prop500_dst2hghwy_250421.geojson")
 
-```
- 
-```{r,eval=FALSE}
+#################3
 ### Study Area Scale Anlysis
 # Clean CPI data: format to monthly CPI series for inflation adjustment
 colnames(cpi_data) <- c("half1", "half2", "cpi_date")
@@ -5863,9 +5836,7 @@ property1 <- property1 %>%
       TRUE ~ year_built
     )
   )
-```
-
-```{r census data2, message=FALSE, warning=FALSE, quiet = TRUE, results='hide',eval=FALSE}
+################
 ### The method here for pushing data is diffenrent from the one we usually use cause the there is some issues when downloading the geometry data
 # census block group
 census_api_key("92998588496b9701036218b765c78d2ffb7aedcd", install = TRUE, overwrite = TRUE)
@@ -5967,9 +5938,7 @@ property_combined <- property1 %>%
   left_join(property2, by = "objectid") %>%
   rename(sale_price = sale_price.y)%>%
   select(-sale_price.x) 
-```
-
-```{r POI2, message=FALSE, warning=FALSE, quiet=TRUE, results='hide', eval = FALSE}
+#################
 # POI - restaurant-drink-dessert
 api_key <- "AIzaSyCa-yuy1Y3n07URlR2HHg6dp_cIEouv9hs"
 keywords <- c("restaurant", "dim sum restaurant", "kitchen", "desert","tea", "bubble tea","matcha", "herbal tea")
@@ -6165,10 +6134,7 @@ clean_property_poi_distances <- function(property_sf) {
 # property_final: cleaned study area dataset ready for feature engineering
 property_final <- clean_property_poi_distances(property_proj)
 # st_write(property_final, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults", driver = "GeoJSON", delete_dsn = TRUE)
-```
-
-
-```{r,eval=FALSE}
+#############
 ### Part of Visualizations on Story map
 
 S0_S1_density <- ggplot() +
@@ -6215,9 +6181,7 @@ ggsave(
   units = "in",
   dpi = 300
 )
-```
-
-```{r,eval=FALSE}
+###############
 S0_S2_density <- ggplot() +
   
   # Scenario 0: true adjusted sale price
@@ -6262,9 +6226,7 @@ ggsave(
   units = "in",
   dpi = 300
 )
-```
-
-```{r,eval=FALSE}
+###############
 S1_S2_density <- ggplot() +
   
   # Scenario 0: true adjusted sale price
@@ -6309,10 +6271,7 @@ ggsave(
   units = "in",
   dpi = 300
 )
-```
-
-
-```{r,eval=FALSE}
+###########
 merged_property_changes <- property_S1_perc_change %>%
   st_drop_geometry() %>%
   rename_with(~ paste0(., "_s0s1"), -objectid) %>%
@@ -6338,9 +6297,7 @@ merged_property_changes <- st_transform(property_S1_perc_change, crs = 4326)
 # st_write(merged_property_changes, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/merged_property.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 
 # st_write(merged_property_changes, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/merged_property.json", driver = "GeoJSON", delete_dsn = TRUE)
-```
-
-```{r,eval=FALSE}
+#########
 property_S0_js <- property_S1_4326 %>%
   select(-predicted_price) %>%                 
   rename(predicted_price = adj_sale_price)       
