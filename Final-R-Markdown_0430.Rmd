@@ -2468,9 +2468,9 @@ In addition to these core variables, we retain several features that are current
 5. `Number of bedrooms` and `Number of bathrooms` show weaker effects once size is controlled for, but are retained for interpretability and flexibility in downstream scenario design.  
 6. `log_nearest_restaurant_dist_m` and `log_nearest_grocery_dist_m` are not statistically significant in the current model. This may suggest that in our study area—where most parcels are in walkable, amenity-rich neighborhoods like Center City and Chinatown—variation in food access is low, and therefore has limited power in explaining price differences. However, these variables are conceptually important and may gain significance in future scenario modeling, especially if the Stitch project leads to shifts in retail landscape or perceived accessibility. For that reason, we retain them in the feature set.  
 
-To address potential multicollinearity, we conducted a GVIF analysis. Most variables showed acceptable VIF values below 5. Only `garage_spaces` presented a high VIF (6.95), likely due to its overlap with other structural variables. We retained it due to its policy relevance—for example, its role in parking regulations, transit-oriented development, and future scenario simulation related to land use and accessibility.  
+To address potential multicollinearity, we conducted a GVIF analysis. Most variables showed acceptable VIF values below 5. Only `garage_spaces` presented a high VIF (6.95), likely due to its overlap with other structural variables. We retained it due to its policy relevance, for example, its role in parking regulations, transit-oriented development, and future scenario simulation related to land use and accessibility.  
 
-In addition, we identified that `zip_code` and `nhoods_name` are highly collinear. Certain neighborhoods are almost fully nested within specific ZIP codes, making the two variables statistically redundant. To avoid aliasing and ensure model stability, we removed `zip_code` and retained `nhoods_name` to capture neighborhood-level fixed effects.  
+As for `zip_code` and `nhoods_name`, we observed strong multicollinearity between them due to spatial nesting—most neighborhoods fall entirely within a single ZIP code. To maintain model stability in the OLS framework, we excluded `zip_code` and retained `nhoods_name` as a proxy for local fixed effects. However, in predictive modeling tasks (e.g., Random Forest, XGBoost), we reintroduce both variables. Tree-based and nonlinear models can handle multicollinearity more flexibly, and including both may improve prediction accuracy by capturing spatial heterogeneity at multiple administrative levels.
 
 Altogether, this comprehensive feature set reflects both current explanatory power and anticipated value for scenario modeling. The next stage will use this full variable group as input for machine learning models (`RF`, `XGBoost`,`RL`) to enable robust spatial prediction under different futures.
 ```{r message=FALSE, warning=FALSE}
@@ -2657,7 +2657,7 @@ After training and validation, the Random Forest model achieved the best perform
 
 ### Data Preparation
 
-Based on feature engineering results, we select the xx most relevant features plus geographical location (longitude and latitude) as independent variables, and use log-transformed property price as the dependent variable. To build and evaluate our model, we split the dataset into two parts: **70%** as the training set to fit the model, and **30%** as the test set to evaluate its accuracy.
+Based on feature engineering results, we select the 23 most relevant features plus geographical location (longitude and latitude) as independent variables, and use log-transformed property price as the dependent variable. To build and evaluate our model, we split the dataset into two parts: **70%** as the training set to fit the model, and **30%** as the test set to evaluate its accuracy.
 
 ```{r modeling_data, quiet = TRUE, results = 'hide'}
 set.seed(123)
@@ -5472,8 +5472,6 @@ By combining these strategies, city planners and policymakers can pursue a balan
 
 We'd like to thank our professors, [Michael Fichman](https://www.design.upenn.edu/people/michael-fichman) and [Matthew Harris](https://www.linkedin.com/in/matthew-d-harris/) for their guidance and encouragement, as wel as our clients, [Casey Ross](https://www.caseyross.co/) and [Dr. Christopher Puchalsky](https://www.linkedin.com/in/christopher-puchalsky-46242367/) from OTIS for bringing this project to us, and for their feedback and support. We are also grateful to Dr. Jeffrey Lin from the Federal Reserve Bank of Philadlephia and Dr. Domenic Vitiello for sharing their knowledge and expertise on various highway effects and US Chinatown trends, respectively. Lastly, we'd like to give a special shoutout to [Mjumbe Poe](https://www.design.upenn.edu/people/mjumbe-poe) for sharing his app development expertise throughout our time in the MUSA program.
 
-# Reference
-
 # Code Appendix
 This section is for viewing part of our data wrangling process in the R markdown.
 ```{r property wrangling2, message=FALSE, warning=FALSE}
@@ -6356,5 +6354,4 @@ property_S0_js <- property_S0_js %>%
 mapview(property_S0_js)
 ```
 
-
-
+# Reference
