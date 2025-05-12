@@ -8,7 +8,7 @@ output:
     number_sections: true
     theme: sandstone
     toc_float: true
-    code_folding: none
+    code_folding: hide
     toc_depth: 3
 editor_options: 
   markdown: 
@@ -23,8 +23,8 @@ bibliography: references.bib
 }
 ```
 
-```{r setup_general, message = FALSE, warning = FALSE, include =FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
+```{r setup_general, message = FALSE, warning = FALSE, results = 'hide'}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, cache = FALSE, fig.show = "asis",
     fig.align = "center") 
 options(scipen=999)
 
@@ -41,8 +41,8 @@ library(lwgeom)
 library(FNN)
 library(kableExtra)
 library(corrplot)
-library(htmltools)  # For div() function
-library(knitr) # insert images
+library(htmltools)  
+library(knitr) 
 library(rsample)
 library(tidymodels)
 library(spatialsample)
@@ -83,9 +83,7 @@ library(classInt)
 
 palette5 <- colorRampPalette(c("#1a9988", "#eb5600"))(5)
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
-```
 
-```{r setup_wd, message = FALSE, quiet = TRUE, results = 'hide'}
 # Change to your own workspace
 # knitr::opts_knit$set(root.dir = "E:/Spring/Practicum/DataAnalysis/Chinatown") # Luming
 # wd <- "E:/Spring/Practicum/DataAnalysis/Chinatown"
@@ -96,13 +94,9 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 # sijia
 knitr::opts_knit$set(root.dir = "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum")
-#setwd("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum/")  # for interactive chunks
+#setwd("~/Documents/Upenn/Practicum/2025/Chinatown-Practicum/") 
 wd <- "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum"
 
-# philly properties (from Sijia)
-# from the last 5 years, inflation-adjusted prices, total area > 100 sq ft, prices > 30,000, outliers above 5 SD from the mean were removed
-#philly_properties <- st_read("akidata/property_philly.geojson") # Aki, from most recent update, 4/21/25, 88,571 rows
-# philly_properties <- st_read("DataWrangling/akidata/property_philly_cleaned.geojson") # Luming
 philly_properties <- st_read("~/Documents/Upenn/Practicum/2025/results/property_philly.geojson") 
 ```
 
@@ -1297,6 +1291,10 @@ coef_i676 <- round(
 
 ```
 
+The scatter plot below shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) are associated with moving away from a highway which agrees with our literature review of highway effects on property prices. 
+
+When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, this coefficient was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
+
 ```{r prop500_scatter}
 scatter_4highways <- 
   ggplot(data = prop500, 
@@ -1340,11 +1338,6 @@ scatter_4highways <-
 
 scatter_4highways
 ```
-
-
-The scatter plot below shows the relationship between distance to highway and property price along with the regression coefficients for each highway. We observe that without controlling for anything else, property prices generally increase (albeit by very little) are associated with moving away from a highway which agrees with our literature review of highway effects on property prices. 
-
-When predicting property price, the beta coefficient for log distance to highway is `r coef_i676`, `r coef_i76`, and `r coef_us1` for [I-676]{style="color: #7fe3d6;"}, [I-76]{style="color: #eb5600;"}, and [US-1]{style="color: #1a9988;"}, respectively (note that the though the beta coefficients were significant with p < 0.01 for [I-76]{style="color: #eb5600;"} and [US-1]{style="color: #1a9988;"}, this coefficient was not statistically significant for [I-676]{style="color: #7fe3d6;"} with a p = 0.069). 
 
 
 ```{r prop500_predtable}
@@ -1519,8 +1512,7 @@ model_i676_table %>%
   kable_classic(full_width = F, html_font = "Cambria") %>% 
   row_spec(2, bold = T, background = "#7fe3d6") %>% 
   add_footnote(label = paste0("R-squared: ", round(model_i676_summary$r.squared, 3), ", RMSE: ", round(model_i676_RMSE, 3)),
-               notation = "none") %>%
-  scroll_box(height = "350px") 
+               notation = "none")
 
 ```
 
@@ -1814,38 +1806,45 @@ This demonstrates that in our study area, increased **distance to the highway is
 
 Three completed highway capping projects in the United States were selectively included here as case studies and guideline for constructing our alternatives in the context of the Chinatown Stitch. These sites either share similar traits with the Chinatown Stitch or possess dramatically different parameters of both the surrounding neighborhood and the project itself. 
 
-### Klyde Warren
+### Klyde Warren Park
 
-This project connected the predominantly Black Uptown neighborhood with the arts district and Downtown while also providing a community gathering space with free programming year-round. Since its opening in 2012, the park has enhanced the land value in the surrounding area, creating a positive economic impact on the City of Dallas including faster office and multifamily construction growth. However, it brought up concerns of “green gentrification” which benefits the interests of developers over displaced communities.
+This project **connected** the predominantly Black Uptown neighborhood with the arts district and Downtown while also providing a community gathering space with free programming year-round. Since its opening in 2012, the park has **enhanced the land value** in the surrounding area, creating a positive economic impact on the City of Dallas including faster office and multifamily construction growth. However, it brought up concerns of **"green gentrification"** which benefits the interests of developers over displaced communities.
 
-City: Dallas, TX
-Completion date: 2013
-Area Covered: 5.4 acres (235,000 sqft)
-Cost: $112 million
-Type of project: Park/Open Space
+![Klyde Warren Park - image and info from https://www.klydewarrenpark.org/](Final%20R%20Markdown/Images/KlydeWarrenPark.png)
+
++ **City:** Dallas, TX
++ **Completion date:** 2013
++ **Area Covered:** 5.4 acres (235,000 sqft)
++ **Cost:** $112 million
++ **Type of project:** Park/Open Space
 
 
 ### Cap at Union Station
 
-The project addressed the 40-year scar that was created by the construction of the inner-belt highway (I-670) by reconnecting the Columbus downtown area and the Short North neighborhood. The cap acts as a bridge for through traffic across I-670 while also providing leasable spaces to many retail shops and restaurants, ultimately providing an inviting urban streetscape.
+The project addressed the **40-year scar** that was created by the construction of the inner-belt highway (I-670) by **reconnecting the Columbus downtown area and the Short North neighborhood**. The cap acts as a bridge for through traffic across I-670 while also providing leasable spaces to many retail shops and restaurants, ultimately providing an **inviting urban streetscape**.
 
-City: Columbus, OH
-Completion date: 2004
-Area Covered: 25,500 sqft
-Cost: $7.8 million
-Type of project: Commercial
+![Cap at Union Park - image from https://www.crexi.com/properties/1653293/ohio-the-cap-at-union-station](Final%20R%20Markdown/Images/CapUnionStation.png)
+
++ **City:** Columbus, OH
++ **Completion date:** 2004
++ **Area Covered:** 25,500 sqft
++ **Cost:** $7.8 million
++ **Type of project:** Commercial
 
 
 ### The Big Dig at the Central Artery
 
-Creating more than 300 acres of open land with over 45 parks and public plazas, the Big Dig project replaced the deteriorating I-93 (Central Artery) with an underground expressway that links downtown Boston to the Boston Logan airport. This project also improved the North End and Waterfront neighborhoods’ access to downtown Boston and reduced traffic congestion, providing ~$168 million per year in time and cost savings.
+Creating more than 300 acres of open land with **over 45 parks and public plazas**, the Big Dig project replaced the deteriorating I-93 (Central Artery) with an underground expressway that links downtown Boston to the Boston Logan airport. This project also improved the North End and Waterfront neighborhoods’ access to downtown Boston and **reduced traffic congestion**, providing ~$168 million per year in time and cost savings.
 
+![Central Artery - image from https://themindcircle.com/boston-big-dig/](Final%20R%20Markdown/Images/CentralArtery.png)
 
-City: Boston, MA
-Completion date: 2007
-Area Covered: 2,350 acres
-Cost: $14.8 billion
-Type of project: Mixed Use
++ **City**: Boston, MA
++ **Completion date:** 2007
++ **Area Covered:** 2,350 acres
++ **Cost**: $14.8 billion
++ **Type of project:** Mixed Use
+
+#### Summary of Highway Cap Impacts
 
 A common thread across the impacts of caps in other cities is **neighborhood access and connection as well as increased value of land**. The Chinatown Stitch will not only reconnect Chinatown North to Chinatown, but also provide much needed open, green space for the community. A potential challenge after the construction of the Chinatown Stitch will be balancing the positive effects of higher land value and the **activation of commercial and residential opportunities** with **affordability and cultural preservation of the character** of Philadelphia's Chinatown.
 
@@ -1888,7 +1887,7 @@ A common thread across the impacts of caps in other cities is **neighborhood acc
 <h5><b>Correlation Matrix</b></h5>
 We examined correlations between continuous variables and sale price. This analysis aimed to identify variables with strong predictive relevance and assess potential multicollinearity. **Total Livable Area** shows the strongest positive correlation with **sale price**, reaffirming its role as a key structural determinant of property value. **Number of bedrooms** and **bathrooms** also exhibit moderate positive associations.  
 
-Among spatial accessibility variables, **sale price** is positively correlated with **distance to I-676**, supporting the assumption of highway-induced disamenity. Distances to **City Hall**, **transit**, and **water bodies** show weak but directionally consistent relationships.  
+Among spatial accessibility variables, **sale price** is positively correlated with **distance to I-676** as discussed before extensively, supporting the assumption of highway-induced disamenity. Distances to **City Hall**, **transit**, and **water bodies** show weak but directionally consistent relationships.  
 
 Importantly, **distance to park** shows relatively low correlation with price but is retained due to its direct policy relevance—Scenario 1 includes the construction of a cap park, making this variable critical for evaluating environmental improvements. **Crime Rate (crime_nn5)** is moderately negatively correlated with sale price, indicating that public safety remains a consistent influence on market value.  
 
@@ -2451,6 +2450,8 @@ final_plot
 ## OLS Modeling  
 The model achieves an R-squared of 0.45, indicating that approximately 45% of the variation in log-transformed sale prices is explained by the included predictors. The adjusted R-squared is 0.450, which adjusts for the number of predictors and confirms that the model has moderate explanatory power. The RMSE (Root Mean Squared Error) is 0.506, meaning the average deviation between the predicted and actual log sale prices is about 0.51. Given the complexity of housing markets and the limited sample size (N = 1528), this level of accuracy is acceptable for baseline modeling and policy scenario evaluation.  
 
+### Indicators
+
 Among the variables, several variables stand out as statistically significant and substantively important, and will serve as core inputs in our future predictive models.  
 
 1. `Distance to I-676` shows a positive and highly significant effect, the coefficient is 0.154, supporting the disamenity hypothesis and serving as a focal variable for the Stitch impact.  
@@ -2468,9 +2469,12 @@ In addition to these core variables, we retain several features that are current
 5. `Number of bedrooms` and `Number of bathrooms` show weaker effects once size is controlled for, but are retained for interpretability and flexibility in downstream scenario design.  
 6. `log_nearest_restaurant_dist_m` and `log_nearest_grocery_dist_m` are not statistically significant in the current model. This may suggest that in our study area—where most parcels are in walkable, amenity-rich neighborhoods like Center City and Chinatown—variation in food access is low, and therefore has limited power in explaining price differences. However, these variables are conceptually important and may gain significance in future scenario modeling, especially if the Stitch project leads to shifts in retail landscape or perceived accessibility. For that reason, we retain them in the feature set.  
 
-To address potential multicollinearity, we conducted a GVIF analysis. Most variables showed acceptable VIF values below 5. Only `garage_spaces` presented a high VIF (6.95), likely due to its overlap with other structural variables. We retained it due to its policy relevance, for example, its role in parking regulations, transit-oriented development, and future scenario simulation related to land use and accessibility.  
+### Multicollinearity
+
+To address potential multicollinearity, we conducted a **Generalized Variance Inflation Factor (GVIF)** analysis [@GVIFpaper]. Most variables showed acceptable VIF values below 5. Only `garage_spaces` presented a high Variance Inflation Factor or VIF (6.95), likely due to its overlap with other structural variables. We retained it due to its policy relevance—for example, its role in parking regulations, transit-oriented development, and future scenario simulation related to land use and accessibility.  
 
 As for `zip_code` and `nhoods_name`, we observed strong multicollinearity between them due to spatial nesting—most neighborhoods fall entirely within a single ZIP code. To maintain model stability in the OLS framework, we excluded `zip_code` and retained `nhoods_name` as a proxy for local fixed effects. However, in predictive modeling tasks (e.g., Random Forest, XGBoost), we reintroduce both variables. Tree-based and nonlinear models can handle multicollinearity more flexibly, and including both may improve prediction accuracy by capturing spatial heterogeneity at multiple administrative levels.
+
 
 Altogether, this comprehensive feature set reflects both current explanatory power and anticipated value for scenario modeling. The next stage will use this full variable group as input for machine learning models (`RF`, `XGBoost`,`RL`) to enable robust spatial prediction under different futures.
 ```{r message=FALSE, warning=FALSE}
@@ -2757,6 +2761,8 @@ ggplot() +
 ### Model Training
 
 Within the training set, we use **spatial cross-validation**, which tests the model on different areas to avoid overfitting to nearby properties. **K-means Clustering** is used when creating the cross-validation folds. This helps prevent the model from "cheating" by seeing similar areas in both training and testing.
+
+#### Workflow
 
 Each model is trained following a workflow, including defining, tuning, and evaluating. Here, we'd like to take **Random Forest workflow** as an example.
 
@@ -3108,7 +3114,7 @@ intersections %>%
   row_spec(3, bold = T, background = "#7fe3d6")
 ```
 
-Predicted and observed prices are compared by the scatter plots. The [orange]{style="color: #eb5600;"} and [green]{style="color: #1a9988;"} lines are closer in the RF model, indicating a better performance overall. However, the deviation suggests that, **on average, the model’s predictions are lower than the observed prices**. Examining the data points further reveals that prediction accuracy decreases as prices rise, confirming our concerns about the variability in the higher price ranges of the dataset. The intersection point suggests that our **RF model performs better for lower-valued housing prices around $422,857.5**.
+Predicted (in [orange]{style="color: #eb5600;"}) and observed (in [green]{style="color: #1a9988;"}) prices are compared by the scatter plots. The [orange]{style="color: #eb5600;"} and [green]{style="color: #1a9988;"} lines are closer in the RF model, indicating a better performance overall. However, the deviation suggests that, **on average, the model’s predictions are lower than the observed prices**. Examining the data points further reveals that prediction accuracy decreases as prices rise, confirming our concerns about the variability in the higher price ranges of the dataset. The intersection point suggests that our **RF model performs better for lower-valued housing prices around $422,857.5**.
 
 ### Random Forest Model
 
@@ -3165,15 +3171,15 @@ ggplot(data = val_pred_sf_plot,aes(x = MAPE)) +
 
 ```{r RF_MAPE_plot1-2}
 RF_MAPE_plot1_2 <- ggplot(val_pred_sf_plot %>% 
-         filter(!MAPE<.3193), 
+         filter(!MAPE<.3232), 
        aes(x = log_adj_sale_price, y = .pred)) +
   geom_point(color = "grey", alpha = 0.4, size = 1.5) +
   geom_point(data = val_pred_sf_plot %>% 
-               filter(MAPE<.3193), 
+               filter(MAPE<.3232), 
              aes(x = log_adj_sale_price, y = .pred), 
              color = "#1a9988", alpha = 0.5, size = 2) +
   geom_abline(linetype = "dashed", color = "black") +
-  geom_smooth(method = "lm", color = "black", se = FALSE) +
+  geom_smooth(method = "lm", color = "#eb5600", se = FALSE) +
   coord_equal() +
   labs(x = "Observed value", y = "Predicted value",
        title = "Prediction Accuracy <span style='color:#1a9988;'>(Errors < 32.32%)</span>",
@@ -3297,7 +3303,10 @@ Excluding industrial zones and high-rise office buildings from the analysis (IRM
 
 
 # Scenario Planning
-```{r message=FALSE, warning=FALSE, quiet = TRUE, results='hide'}
+
+## Scenarios
+
+```{r message=FALSE, warning=FALSE, quiet = TRUE, results='hide', fig.height=5, fig.width=12}
 property_raw_s1 <- st_transform(property_data, crs = 2272)
 
 property_raw_s1 <- rbind(
@@ -3362,9 +3371,9 @@ property_combined_s1 <- property_raw_s1 %>%
   left_join(property2, by = "objectid") %>%
   rename(sale_price = sale_price.y)%>%
   select(-sale_price.x)
-```
 
-```{r scenario 1 data processing, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+#scenario 1 data processing, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'
+
 grocery <- readRDS("Dataset/poi/poi_grocery.rds")
 res_poi <- readRDS("Dataset/poi/poi_restaurant.rds")
 property_sf <- st_as_sf(property_combined_s1, sf_column_name = "geometry")
@@ -3441,9 +3450,9 @@ property_S1_no_fe <- property_S1_no_fe %>%
   )
 
 #st_write(property_S1_no_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S1_no_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
-```
 
-```{r}
+###### Feature Engineering 
+
 median_bedroom <- median(as.numeric(as.character(property_S1_no_fe$number_of_bedrooms)), na.rm = TRUE)
 median_bathroom <- median(as.numeric(as.character(property_S1_no_fe$number_of_bathrooms)), na.rm = TRUE)
 
@@ -3613,9 +3622,9 @@ property_S1_fe <- property_S1_no_fe %>%
 
 mean_depth <- mean(property_S1_fe$depth, na.rm = TRUE)
 property_S1_fe$depth[is.na(property_S1_fe$depth)] <- mean_depth
-```
 
-```{r predictive modeling for scenario 1, quiet=TRUE, results='hide'}
+##### predictive modeling for scenario 1, quiet=TRUE, results='hide'
+
 property_modeling_s1 <- property_S1_fe %>%
   mutate(
     Longitude = st_coordinates(.)[, 1],
@@ -3703,33 +3712,40 @@ property_S1_predict <- property_S1_predict %>%
                            include.lowest = TRUE))
 
 base_map <- list(
-  geom_sf(data = studyarea, fill = "transparent", color = "grey60", linewidth = 1.2, linetype = "dashed"),
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3),
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1),
   geom_sf(data = discontinuity, fill = "black", color = "transparent"),
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 500391), fill = "grey", color = "grey", linewidth = 1),
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 500391), fill = "white", color = "grey", linewidth = 1)
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1),
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1)
 )
 
+# Scenario 0 map with legend
 S0_map <- ggplot() +
-  base_map +
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
+  geom_sf(data = discontinuity, fill = "black", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1) +
   geom_sf(data = property_S0, aes(color = price_group), size = 0.8, show.legend = "point") +
   scale_color_manual(values = palette5, labels = qBr_S1_labels, name = "Sale Price") +
   labs(title = "Scenario 0: Sale Price") +
   theme_void() +
-  theme(plot.title = element_text(size = 18, face = "bold",hjust = 0.5))
+  theme(plot.title = element_text(size = 18, face = "bold", hjust = 0.5))
 
+# Scenario 1 map without legend
 S1_map <- ggplot() +
-  base_map +
-  geom_sf(data = property_S1_predict, 
-        aes(color = price_group), 
-        size = 0.8, 
-        show.legend = FALSE)+ 
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
+  geom_sf(data = discontinuity, fill = "black", color = "transparent") +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1) +
+  geom_sf(data = property_S1_predict, aes(color = price_group), size = 0.8, show.legend = FALSE) +
   scale_color_manual(values = palette5, labels = qBr_S1_labels, name = "Sale Price") +
   labs(title = "Scenario 1: Predicted Sale Price") +
   theme_void() +
-  theme(plot.title = element_text(size = 18, face = "bold",hjust = 0.5),
-      legend.position = "none")
+  theme(plot.title = element_text(size = 18, face = "bold", hjust = 0.5))
 
-
+# Combine plots — only left one has legend
 combined_map <- S0_map + S1_map +
   plot_layout(ncol = 2, guides = "collect") &
   theme(
@@ -3738,7 +3754,7 @@ combined_map <- S0_map + S1_map +
     legend.box = "horizontal",
     legend.title = element_text(size = 12),
     legend.text = element_text(size = 10),
-    legend.key.width = unit(1.2, "cm")  # 控制每个图例项的宽度
+    legend.key.width = unit(1.2, "cm")
   )
 
 combined_map
@@ -3755,7 +3771,7 @@ combined_map
 - Under the residential perspective, reclassify part of Single-Family residential and vacant lots as Multi-Family, expanding affordable housing options and increasing population capacity.  
 - These combined interventions unlock more development value and lead to significant property price increases, especially where zoning changes align with better access and street connectivity. However, while the south shows notable value increases, the north continues to lag, reflecting persistent structural challenges that require further public investment in amenities and infrastructure.
 
-```{r data processing for S2 S3 S4}
+```{r data processing for S2 S3 S4, fig.height=5, fig.width=12}
 #property_S1_fe_selected <- property_S1_fe %>%
 #  filter(category_code == "1 " | zoning_group == "RSA5")
 
@@ -3934,9 +3950,7 @@ property_S4_no_fe <- property_S4_no_fe %>%
   )
 
 
-```
-
-```{r S2_comm -FE countinued , quiet=TRUE, results='hide'}
+###### {r S2_comm -FE countinued , quiet=TRUE, results='hide'}
 median_bedroom <- median(as.numeric(as.character(property_S2_no_fe$number_of_bedrooms)), na.rm = TRUE)
 median_bathroom <- median(as.numeric(as.character(property_S2_no_fe$number_of_bathrooms)), na.rm = TRUE)
 
@@ -4110,9 +4124,7 @@ property_S2_fe <- property_S2_no_fe %>%
 
 mean_depth <- mean(property_S2_fe$depth, na.rm = TRUE)
 property_S2_fe$depth[is.na(property_S2_fe$depth)] <- mean_depth
-```
-
-```{r predictive modeling for commercial perspective, quiet=TRUE, results='hide'}
+##### {r predictive modeling for commercial perspective, quiet=TRUE, results='hide'}
 property_modeling_s2 <- property_S2_fe %>%
   mutate(
     Longitude = st_coordinates(.)[, 1],
@@ -4158,14 +4170,12 @@ rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
 predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s2)$.pred
 property_S2_fe$predicted_price <- exp(predicted_log_price) - 1
 
-st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S2_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S2_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
 
 property_S2_4326 <- property_S2_fe %>%st_transform('EPSG:4326')
 property_S2_predict <- property_S2_fe%>%st_transform('EPSG:2272')
-```
-
-```{r S2_res -FE countinued, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+####### {r S2_res -FE countinued, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
 median_bedroom <- median(as.numeric(as.character(property_S3_no_fe$number_of_bedrooms)), na.rm = TRUE)
 median_bathroom <- median(as.numeric(as.character(property_S3_no_fe$number_of_bathrooms)), na.rm = TRUE)
 
@@ -4340,9 +4350,7 @@ property_S3_fe <- property_S3_no_fe %>%
 
 mean_depth <- mean(property_S3_fe$depth, na.rm = TRUE)
 property_S3_fe$depth[is.na(property_S3_fe$depth)] <- mean_depth
-```
-
-```{r predictive modeling for residential perspective, quiet=TRUE, results='hide'}
+####### r predictive modeling for residential perspective, quiet=TRUE, results='hide'}
 property_modeling_s3 <- property_S3_fe %>%
   mutate(
     Longitude = st_coordinates(.)[, 1],
@@ -4390,14 +4398,12 @@ property_S3_fe$predicted_price <- exp(predicted_log_price) - 1
 
 
 
-st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S3_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S3_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
 
 property_S3_4326 <- property_S3_fe%>%st_transform('EPSG:4326')
 property_S3_predict <- property_S3_fe%>%st_transform('EPSG:2272')
-```
-
-```{r S2 - comm -res, fig.height=5, fig.width=12, message=FALSE, warning=FALSE}
+#######{r S2 - comm -res, fig.height=5, fig.width=12, message=FALSE, warning=FALSE}
 # S2 changed
 property_S2_comm <- property_S2_fe %>%
   filter(
@@ -4406,11 +4412,14 @@ property_S2_comm <- property_S2_fe %>%
     zoning_old != zoning_new
   )
 
+
+
 S2_changed_map <- ggplot() +
-  geom_sf(data = studyarea, fill = "transparent", color = "grey60", linetype = "dashed", linewidth = 1.2) +
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
   geom_sf(data = discontinuity, fill = "black", color = "transparent") +
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 500391), fill = "grey", color = "grey", linewidth = 1) +
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 500391), fill = "white", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1) +
   
   geom_sf(data = property_S2_comm %>% filter(!is.na(predicted_price)), 
           aes(colour = cut(predicted_price, breaks = qBr_S1, labels = qBr_S1_labels, include.lowest = TRUE)),
@@ -4439,14 +4448,15 @@ property_S2_res <- property_S3_fe %>%
   filter(
     landuse_old != landuse_new |
     category_code_old != category_code_new |
-    zoning_old != zoning_old
+    zoning_old != zoning_new
   )
 
 S3_changed_map <- ggplot() +
-  geom_sf(data = studyarea, fill = "transparent", color = "grey60", linetype = "dashed", linewidth = 1.2) +
+  geom_sf(data = landuse, fill = "white", color = "gray90", linewidth = 0.3) +
+  geom_sf(data = studyarea, fill = "transparent", color = "grey", linetype = "dashed", linewidth = 1) +
   geom_sf(data = discontinuity, fill = "black", color = "transparent") +
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 500391), fill = "grey", color = "grey", linewidth = 1) +
-  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 500391), fill = "white", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ == 511360), fill = "grey", color = "grey", linewidth = 1) +
+  geom_sf(data = Chinatown_Stitch %>% filter(FID_ != 511360), fill = "white", color = "grey", linewidth = 1) +
 
   geom_sf(data = property_S2_res %>% filter(!is.na(predicted_price)), 
           aes(colour = cut(predicted_price, breaks = qBr_S1, labels = qBr_S1_labels, include.lowest = TRUE)),
@@ -4476,9 +4486,7 @@ S2_S3_combined <- S2_changed_map + S3_changed_map +
   theme(legend.position = "bottom")
 
 S2_S3_combined
-```
-
-```{r S2- data wrangling - FE, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+#######{r S2- data wrangling - FE, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
 property_S4_no_fe <- property_S4_no_fe %>%
   mutate(alternate_feature = case_when(
     parcel_number %in% property_S2_comm$parcel_number ~ "Commercial",
@@ -4655,9 +4663,7 @@ property_S4_fe <- property_S4_no_fe %>%
     zip_code = factor(zip_code)
   )
 
-```
-
-```{r predictive modeling for S2, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
+######## {r predictive modeling for S2, message=FALSE, warning=FALSE, quiet=TRUE, results='hide'}
 property_modeling_s4 <- property_S4_fe %>%
   mutate(
     Longitude = st_coordinates(.)[, 1],
@@ -4702,15 +4708,13 @@ rf_workflow <- readRDS("Modeling/results/rf_workflow.rds")
 predicted_log_price <- predict(rf_workflow, new_data = property_modeling_s4)$.pred
 property_S4_fe$predicted_price <- exp(predicted_log_price) - 1
 
-st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.geojson", driver = "GeoJSON", delete_dsn = TRUE)
+#st_write(property_S4_fe, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/property_S4_fe.json", driver = "GeoJSON", delete_dsn = TRUE)
 
 
 property_S4_4326 <- property_S4_fe%>%st_transform('EPSG:4326')
 property_S4_predict <- property_S4_fe%>%st_transform('EPSG:2272')
-```
-
-```{r S2 property map, fig.height=5, fig.width=12, message=FALSE, warning=FALSE}
+#### {r S2 property map, fig.height=5, fig.width=12, message=FALSE, warning=FALSE}
 property_S4_predict <- property_S4_predict %>%
   mutate(price_group = cut(
     predicted_price,
@@ -5236,13 +5240,13 @@ studyarea_layer <- studyarea %>%
           legend = FALSE, layer.name = "Study Area")
 
 stitch_fill_layer <- Chinatown_Stitch %>%
-  filter(FID_ != 500391) %>%
+  filter(FID_ != 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "white", alpha.regions = 0.8, lwd = 1,
           legend = FALSE, layer.name = "Stitch Area")
 
 stitch_core_layer <- Chinatown_Stitch %>%
-  filter(FID_ == 500391) %>%
+  filter(FID_ == 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "grey", alpha.regions = 0.8, lwd = 1,
           legend = FALSE, layer.name = "Cap Park")
@@ -5365,12 +5369,12 @@ studyarea_layer <- studyarea %>%
   mapview(color = "grey60", lwd = 2, alpha.regions = 0, lty = "dashed", legend = FALSE, layer.name = "Study Area")
 
 stitch_fill_layer <- Chinatown_Stitch %>%
-  filter(FID_ != 500391) %>%
+  filter(FID_ != 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "white", alpha.regions = 0.8, lwd = 1, legend = FALSE, layer.name = "Stitch Area")
 
 stitch_core_layer <- Chinatown_Stitch %>%
-  filter(FID_ == 500391) %>%
+  filter(FID_ == 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "grey", alpha.regions = 0.8, lwd = 1, legend = FALSE, layer.name = "Cap Park")
 
@@ -5407,12 +5411,12 @@ studyarea_layer <- studyarea %>%
   mapview(color = "grey60", lwd = 2, alpha.regions = 0, lty = "dashed", legend = FALSE, layer.name = "Study Area")
 
 stitch_fill_layer <- Chinatown_Stitch %>%
-  filter(FID_ != 500391) %>%
+  filter(FID_ != 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "white", alpha.regions = 0.8, lwd = 1, legend = FALSE, layer.name = "Stitch Area")
 
 stitch_core_layer <- Chinatown_Stitch %>%
-  filter(FID_ == 500391) %>%
+  filter(FID_ == 511360) %>%
   st_transform(4326) %>%
   mapview(color = "grey", col.regions = "grey", alpha.regions = 0.8, lwd = 1, legend = FALSE, layer.name = "Cap Park")
 
@@ -5474,7 +5478,7 @@ We'd like to thank our professors, [Michael Fichman](https://www.design.upenn.ed
 
 # Code Appendix
 This section is for viewing part of our data wrangling process in the R markdown.
-```{r property wrangling2, message=FALSE, warning=FALSE}
+```{r property wrangling2, message=FALSE, warning=FALSE, eval=FALSE}
 ## Data Wrangling
 #This chunk contains all the code we used for the first step of cleaning the property data.
 
@@ -5646,11 +5650,8 @@ This section is for viewing part of our data wrangling process in the R markdown
 #   )
 
 #st_write(property_philly, "property_philly.geojson", driver = "GeoJSON", delete_dsn = TRUE)
-```
 
-
-
-```{r code_appendix_prop500}
+############r code_appendix_prop500
 ## Exploratory Data Analysis (EDA)
 ### Philadelphia Scale Analysis
 
@@ -5703,9 +5704,7 @@ This section is for viewing part of our data wrangling process in the R markdown
 # save output and read in the prefiltered to save time
 # st_write(prop500, "akidata/philly_prop500_dst2hghwy_250421.geojson")
 
-```
- 
-```{r,eval=FALSE}
+#################3
 ### Study Area Scale Anlysis
 # Clean CPI data: format to monthly CPI series for inflation adjustment
 colnames(cpi_data) <- c("half1", "half2", "cpi_date")
@@ -5848,9 +5847,7 @@ property1 <- property1 %>%
       TRUE ~ year_built
     )
   )
-```
-
-```{r census data2, message=FALSE, warning=FALSE, quiet = TRUE, results='hide',eval=FALSE}
+################
 ### The method here for pushing data is diffenrent from the one we usually use cause the there is some issues when downloading the geometry data
 # census block group
 census_api_key("92998588496b9701036218b765c78d2ffb7aedcd", install = TRUE, overwrite = TRUE)
@@ -5952,9 +5949,7 @@ property_combined <- property1 %>%
   left_join(property2, by = "objectid") %>%
   rename(sale_price = sale_price.y)%>%
   select(-sale_price.x) 
-```
-
-```{r POI2, message=FALSE, warning=FALSE, quiet=TRUE, results='hide', eval = FALSE}
+#################
 # POI - restaurant-drink-dessert
 api_key <- "AIzaSyCa-yuy1Y3n07URlR2HHg6dp_cIEouv9hs"
 keywords <- c("restaurant", "dim sum restaurant", "kitchen", "desert","tea", "bubble tea","matcha", "herbal tea")
@@ -6150,10 +6145,7 @@ clean_property_poi_distances <- function(property_sf) {
 # property_final: cleaned study area dataset ready for feature engineering
 property_final <- clean_property_poi_distances(property_proj)
 # st_write(property_final, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults", driver = "GeoJSON", delete_dsn = TRUE)
-```
-
-
-```{r,eval=FALSE}
+#############
 ### Part of Visualizations on Story map
 
 S0_S1_density <- ggplot() +
@@ -6200,9 +6192,7 @@ ggsave(
   units = "in",
   dpi = 300
 )
-```
-
-```{r,eval=FALSE}
+###############
 S0_S2_density <- ggplot() +
   
   # Scenario 0: true adjusted sale price
@@ -6247,9 +6237,7 @@ ggsave(
   units = "in",
   dpi = 300
 )
-```
-
-```{r,eval=FALSE}
+###############
 S1_S2_density <- ggplot() +
   
   # Scenario 0: true adjusted sale price
@@ -6294,10 +6282,7 @@ ggsave(
   units = "in",
   dpi = 300
 )
-```
-
-
-```{r,eval=FALSE}
+###########
 merged_property_changes <- property_S1_perc_change %>%
   st_drop_geometry() %>%
   rename_with(~ paste0(., "_s0s1"), -objectid) %>%
@@ -6323,9 +6308,7 @@ merged_property_changes <- st_transform(property_S1_perc_change, crs = 4326)
 # st_write(merged_property_changes, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/merged_property.geojson", driver = "GeoJSON", delete_dsn = TRUE)
 
 # st_write(merged_property_changes, "~/Documents/Upenn/Practicum/2025/Chinatown-Practicum-my/finalresults/merged_property.json", driver = "GeoJSON", delete_dsn = TRUE)
-```
-
-```{r,eval=FALSE}
+#########
 property_S0_js <- property_S1_4326 %>%
   select(-predicted_price) %>%                 
   rename(predicted_price = adj_sale_price)       
@@ -6355,3 +6338,5 @@ mapview(property_S0_js)
 ```
 
 # Reference
+
+
